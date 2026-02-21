@@ -10,7 +10,6 @@
   :root {
     --bg: #0a0a0f;
     --accent: #00ffcc;
-    --accent2: #ff3366;
     --text: #e0e0e0;
     --card: #12121a;
   }
@@ -26,10 +25,9 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    padding: 2rem 1rem;
   }
 
-  /* Animated grid background */
   body::before {
     content: '';
     position: fixed;
@@ -48,6 +46,7 @@
     color: var(--accent);
     text-shadow: 0 0 40px rgba(0,255,204,0.4);
     margin-bottom: 0.2em;
+    text-align: center;
   }
 
   .subtitle {
@@ -56,6 +55,7 @@
     color: rgba(224,224,224,0.4);
     margin-bottom: 2.5rem;
     text-transform: uppercase;
+    text-align: center;
   }
 
   .main-card {
@@ -67,7 +67,6 @@
     position: relative;
   }
 
-  /* Corner decorations */
   .main-card::before, .main-card::after {
     content: '';
     position: absolute;
@@ -76,9 +75,9 @@
     border-style: solid;
   }
   .main-card::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
-  .main-card::after { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+  .main-card::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
 
-  #video-container {
+  #video-wrapper {
     position: relative;
     width: 100%;
     aspect-ratio: 4/3;
@@ -86,15 +85,17 @@
     border-radius: 2px;
     overflow: hidden;
     display: none;
+    margin-bottom: 1.5rem;
   }
 
-  #video-container.active { display: block; }
+  #video-wrapper.active { display: block; }
 
   #video {
     width: 100%;
     height: 100%;
     object-fit: cover;
     transform: scaleX(-1);
+    display: block;
   }
 
   #canvas {
@@ -115,20 +116,17 @@
     pointer-events: none;
   }
 
-  @keyframes scan {
-    0% { top: 0%; }
-    100% { top: 100%; }
-  }
+  @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
   .gesture-overlay {
     position: absolute;
     bottom: 1rem;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.75);
     border: 1px solid var(--accent);
     padding: 0.4rem 1.2rem;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     letter-spacing: 0.2em;
     color: var(--accent);
     text-transform: uppercase;
@@ -138,7 +136,7 @@
   #start-btn {
     display: block;
     width: 100%;
-    padding: 1rem;
+    padding: 1.1rem;
     background: transparent;
     border: 1px solid var(--accent);
     color: var(--accent);
@@ -150,6 +148,7 @@
     transition: all 0.2s;
     position: relative;
     overflow: hidden;
+    margin-bottom: 1.5rem;
   }
 
   #start-btn::before {
@@ -157,63 +156,42 @@
     position: absolute;
     inset: 0;
     background: var(--accent);
-    transform: translateX(-100%);
+    transform: translateX(-101%);
     transition: transform 0.2s;
     z-index: 0;
   }
-
   #start-btn:hover::before { transform: translateX(0); }
   #start-btn:hover { color: var(--bg); }
   #start-btn span { position: relative; z-index: 1; }
-
   #start-btn.hidden { display: none; }
 
   .legend {
-    margin-top: 1.5rem;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 0.75rem;
+    margin-bottom: 1rem;
   }
 
   .legend-item {
-    background: rgba(255,255,255,0.03);
+    background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 2px;
     padding: 0.75rem 0.5rem;
     text-align: center;
-    transition: all 0.2s;
+    transition: all 0.3s;
   }
 
   .legend-item.active-gesture {
     border-color: var(--accent);
     background: rgba(0,255,204,0.08);
-    box-shadow: 0 0 20px rgba(0,255,204,0.1);
+    box-shadow: 0 0 20px rgba(0,255,204,0.15);
   }
 
-  .legend-icon {
-    font-size: 1.8rem;
-    margin-bottom: 0.3rem;
-    display: block;
-  }
-
-  .legend-label {
-    font-size: 0.65rem;
-    letter-spacing: 0.2em;
-    color: rgba(224,224,224,0.5);
-    text-transform: uppercase;
-    display: block;
-  }
-
-  .legend-word {
-    font-size: 0.75rem;
-    color: var(--accent);
-    display: block;
-    margin-top: 0.2rem;
-    font-weight: 700;
-  }
+  .legend-icon  { font-size: 1.8rem; margin-bottom: 0.3rem; display: block; }
+  .legend-label { font-size: 0.6rem; letter-spacing: 0.2em; color: rgba(224,224,224,0.4); text-transform: uppercase; display: block; }
+  .legend-word  { font-size: 0.75rem; color: var(--accent); display: block; margin-top: 0.2rem; font-weight: 700; }
 
   .status-bar {
-    margin-top: 1rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -227,77 +205,86 @@
     width: 6px; height: 6px;
     border-radius: 50%;
     background: rgba(255,255,255,0.2);
+    flex-shrink: 0;
     transition: all 0.3s;
   }
+  .status-dot.online { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: blink 2s infinite; }
+  .status-dot.error  { background: #ff3366; box-shadow: 0 0 8px #ff3366; }
 
-  .status-dot.online {
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent);
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
-  .flash {
-    position: fixed;
-    inset: 0;
-    background: var(--accent);
-    opacity: 0;
-    pointer-events: none;
-    z-index: 999;
-  }
-
-  .flash.go {
-    animation: flashAnim 0.3s ease-out;
-  }
-
-  @keyframes flashAnim {
-    0% { opacity: 0.3; }
-    100% { opacity: 0; }
-  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
   .toast {
     position: fixed;
     top: 2rem;
     left: 50%;
-    transform: translateX(-50%) translateY(-4rem);
+    transform: translateX(-50%) translateY(-5rem);
     background: var(--accent);
     color: var(--bg);
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 2rem;
+    font-size: 2.5rem;
     letter-spacing: 0.15em;
-    padding: 0.6rem 2rem;
+    padding: 0.5rem 2.5rem;
     border-radius: 2px;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
     z-index: 1000;
+    pointer-events: none;
   }
+  .toast.show { transform: translateX(-50%) translateY(0); }
 
-  .toast.show {
-    transform: translateX(-50%) translateY(0);
+  .loading-bar {
+    width: 100%;
+    height: 2px;
+    background: rgba(0,255,204,0.1);
+    margin-bottom: 1.5rem;
+    display: none;
+    position: relative;
+    overflow: hidden;
   }
+  .loading-bar.active { display: block; }
+  .loading-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%;
+    height: 100%;
+    background: var(--accent);
+    animation: loading 1.2s linear infinite;
+  }
+  @keyframes loading { to { left: 140%; } }
+
+  #error-box {
+    display: none;
+    background: rgba(255,51,102,0.1);
+    border: 1px solid #ff3366;
+    color: #ff7799;
+    padding: 1rem;
+    font-size: 0.72rem;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+    border-radius: 2px;
+  }
+  #error-box.active { display: block; }
 </style>
 </head>
 <body>
 
-<div class="flash" id="flash"></div>
 <div class="toast" id="toast">HAI!</div>
 
-<div style="text-align:center; margin-bottom: 1rem;">
-  <h1 class="title">HAND WAVE</h1>
-  <p class="subtitle">// gesture detector v1.0 //</p>
-</div>
+<h1 class="title">HAND WAVE</h1>
+<p class="subtitle">// gesture detector v2.0 //</p>
 
 <div class="main-card">
+
+  <div id="error-box"></div>
+  <div class="loading-bar" id="loading-bar"></div>
+
   <button id="start-btn"><span>▶ AKTIFKAN KAMERA</span></button>
 
-  <div id="video-container">
+  <div id="video-wrapper">
     <video id="video" playsinline autoplay muted></video>
     <canvas id="canvas"></canvas>
     <div class="scan-line"></div>
-    <div class="gesture-overlay" id="gesture-label">SCAN TANGAN...</div>
+    <div class="gesture-overlay" id="gesture-label">ARAHKAN TANGAN KE KAMERA</div>
   </div>
 
   <div class="legend">
@@ -324,159 +311,178 @@
   </div>
 </div>
 
-<!-- MediaPipe -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mediapipe-hands/0.4.1646424915/hands.min.js" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mediapipe-drawing-utils/0.3.1620248257/drawing_utils.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose@0.0.7/dist/handpose.min.js"></script>
+
 <script>
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const startBtn = document.getElementById('start-btn');
-const videoContainer = document.getElementById('video-container');
-const gestureLabel = document.getElementById('gesture-label');
-const statusDot = document.getElementById('status-dot');
-const statusText = document.getElementById('status-text');
-const flash = document.getElementById('flash');
-const toast = document.getElementById('toast');
+const video   = document.getElementById('video');
+const canvas  = document.getElementById('canvas');
+const ctx     = canvas.getContext('2d');
+const btn     = document.getElementById('start-btn');
+const wrapper = document.getElementById('video-wrapper');
+const lbl     = document.getElementById('gesture-label');
+const dot     = document.getElementById('status-dot');
+const stxt    = document.getElementById('status-text');
+const toast   = document.getElementById('toast');
+const loadBar = document.getElementById('loading-bar');
+const errBox  = document.getElementById('error-box');
 
-let lastSpokenGesture = null;
+let model = null;
+let lastGesture = null;
 let lastSpeakTime = 0;
-const speakCooldown = 2000; // 2 seconds cooldown
+const COOLDOWN = 2500;
 
-// Speech
-function speak(text) {
-  const now = Date.now();
-  if (text === lastSpokenGesture && now - lastSpeakTime < speakCooldown) return;
-  
-  lastSpokenGesture = text;
-  lastSpeakTime = now;
-
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'id-ID';
-  utterance.rate = 0.9;
-  utterance.pitch = 1.1;
-  window.speechSynthesis.speak(utterance);
-
-  // Toast notification
-  toast.textContent = text.toUpperCase();
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 1800);
-
-  // Flash effect
-  flash.classList.remove('go');
-  void flash.offsetWidth;
-  flash.classList.add('go');
+function showError(msg) {
+  errBox.innerHTML = msg;
+  errBox.classList.add('active');
+  dot.classList.remove('online');
+  dot.classList.add('error');
+  stxt.textContent = 'ERROR — COBA LAGI';
 }
 
-// Count extended fingers
-function countFingers(landmarks) {
-  const tips = [4, 8, 12, 16, 20];
-  const bases = [2, 6, 10, 14, 18];
+function speak(text) {
+  const now = Date.now();
+  if (text === lastGesture && now - lastSpeakTime < COOLDOWN) return;
+  lastGesture = text;
+  lastSpeakTime = now;
+
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'id-ID';
+  u.rate = 0.85;
+  u.pitch = 1.1;
+  window.speechSynthesis && window.speechSynthesis.speak(u);
+
+  toast.textContent = text.toUpperCase();
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function highlight(n) {
+  [1,2,5].forEach(x => document.getElementById('legend-'+x).classList.remove('active-gesture'));
+  if ([1,2,5].includes(n)) document.getElementById('legend-'+n).classList.add('active-gesture');
+}
+
+function countFingers(lm) {
   let count = 0;
-
-  // Thumb (different axis)
-  if (landmarks[4].x < landmarks[3].x) count++; // left hand thumb
-  // For mirrored video, check x difference
-  // Simple: compare tip x vs MCP x
-  const thumbExtended = Math.abs(landmarks[4].x - landmarks[2].x) > 0.05;
-  if (thumbExtended) count = 1; else count = 0;
-
-  // Other 4 fingers: tip y < pip y (extended = tip above pip)
-  for (let i = 1; i < 5; i++) {
-    if (landmarks[tips[i]].y < landmarks[tips[i] - 2].y) count++;
-  }
-
+  // Thumb: horizontal distance
+  if (Math.abs(lm[4][0] - lm[2][0]) > 30) count++;
+  // 4 fingers: tip y < pip y means extended
+  if (lm[8][1]  < lm[6][1])  count++;
+  if (lm[12][1] < lm[10][1]) count++;
+  if (lm[16][1] < lm[14][1]) count++;
+  if (lm[20][1] < lm[18][1]) count++;
   return count;
 }
 
-let hands;
+const CONN = [
+  [0,1],[1,2],[2,3],[3,4],
+  [0,5],[5,6],[6,7],[7,8],
+  [5,9],[9,10],[10,11],[11,12],
+  [9,13],[13,14],[14,15],[15,16],
+  [13,17],[17,18],[18,19],[19,20],[0,17]
+];
 
-startBtn.addEventListener('click', async () => {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-    video.srcObject = stream;
-    await video.play();
-
-    startBtn.classList.add('hidden');
-    videoContainer.classList.add('active');
-    statusDot.classList.add('online');
-    statusText.textContent = 'MENDETEKSI TANGAN...';
-
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
-
-    // Init MediaPipe Hands
-    hands = new Hands({
-      locateFile: (file) => `https://cdnjs.cloudflare.com/ajax/libs/mediapipe-hands/0.4.1646424915/${file}`
-    });
-
-    hands.setOptions({
-      maxNumHands: 1,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.5
-    });
-
-    hands.onResults(onResults);
-
-    // Process frames
-    async function loop() {
-      if (video.readyState === 4) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        await hands.send({ image: video });
-      }
-      requestAnimationFrame(loop);
-    }
-    loop();
-
-  } catch (err) {
-    alert('Gagal akses kamera: ' + err.message);
-  }
-});
-
-function highlightLegend(count) {
-  document.getElementById('legend-1').classList.remove('active-gesture');
-  document.getElementById('legend-2').classList.remove('active-gesture');
-  document.getElementById('legend-5').classList.remove('active-gesture');
-  if (count === 1) document.getElementById('legend-1').classList.add('active-gesture');
-  else if (count === 2) document.getElementById('legend-2').classList.add('active-gesture');
-  else if (count === 5) document.getElementById('legend-5').classList.add('active-gesture');
-}
-
-function onResults(results) {
+function drawHand(lm) {
+  const sx = canvas.width  / video.videoWidth;
+  const sy = canvas.height / video.videoHeight;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-    const landmarks = results.multiHandLandmarks[0];
-    
-    // Draw landmarks
-    drawConnectors(ctx, landmarks, HAND_CONNECTIONS, { color: 'rgba(0,255,204,0.5)', lineWidth: 2 });
-    drawLandmarks(ctx, landmarks, { color: '#00ffcc', lineWidth: 1, radius: 4 });
-
-    const count = countFingers(landmarks);
-    highlightLegend(count);
-
-    if (count === 1) {
-      gestureLabel.textContent = '1 JARI — HALOOO';
-      speak('Halooo');
-    } else if (count === 2) {
-      gestureLabel.textContent = '2 JARI — HALO SEMUANYA';
-      speak('Halo semuanya');
-    } else if (count === 5) {
-      gestureLabel.textContent = '5 JARI — HAI!';
-      speak('Hai');
-    } else {
-      gestureLabel.textContent = `${count} JARI TERDETEKSI`;
-      lastSpokenGesture = null;
-    }
-  } else {
-    gestureLabel.textContent = 'ARAHKAN TANGAN KE KAMERA';
-    highlightLegend(0);
-    lastSpokenGesture = null;
+  ctx.strokeStyle = 'rgba(0,255,204,0.6)';
+  ctx.lineWidth = 2;
+  for (const [a,b] of CONN) {
+    ctx.beginPath();
+    ctx.moveTo(lm[a][0]*sx, lm[a][1]*sy);
+    ctx.lineTo(lm[b][0]*sx, lm[b][1]*sy);
+    ctx.stroke();
+  }
+  for (const [x,y] of lm) {
+    ctx.beginPath();
+    ctx.arc(x*sx, y*sy, 4, 0, Math.PI*2);
+    ctx.fillStyle = '#00ffcc';
+    ctx.fill();
   }
 }
+
+async function start() {
+  errBox.classList.remove('active');
+  btn.classList.add('hidden');
+  loadBar.classList.add('active');
+  stxt.textContent = 'MEMUAT MODEL AI...';
+
+  try {
+    model = await handpose.load();
+    stxt.textContent = 'MENGAKSES KAMERA...';
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+    });
+
+    video.srcObject = stream;
+    await new Promise(res => { video.onloadedmetadata = res; });
+    await video.play();
+
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    loadBar.classList.remove('active');
+    wrapper.classList.add('active');
+    dot.classList.add('online');
+    stxt.textContent = 'MENDETEKSI TANGAN...';
+
+    loop();
+  } catch(err) {
+    loadBar.classList.remove('active');
+    btn.classList.remove('hidden');
+
+    let msg = `<b>⚠️ ${err.name}:</b> ${err.message}<br><br>`;
+    if (err.name === 'NotAllowedError') {
+      msg += '📌 <b>Solusi:</b> Klik ikon kamera/gembok di address bar, pilih <b>"Allow"</b>, lalu klik tombol lagi.';
+    } else if (err.name === 'NotFoundError') {
+      msg += '📌 <b>Solusi:</b> Kamera tidak terdeteksi. Cek koneksi kamera atau coba browser lain.';
+    } else if (location.protocol === 'file:') {
+      msg += '📌 <b>Masalah utama:</b> File dibuka langsung (file://). Browser memblokir kamera untuk file lokal.<br><br>';
+      msg += '✅ <b>Solusi paling mudah:</b><br>';
+      msg += '1. Install <a href="https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer" style="color:var(--accent)">Live Server</a> di VS Code, klik kanan file → Open with Live Server<br>';
+      msg += '2. Atau buka terminal di folder file, jalankan: <code style="background:#1a1a2e;padding:2px 6px">python -m http.server 8000</code> lalu buka <code style="background:#1a1a2e;padding:2px 6px">localhost:8000</code>';
+    } else {
+      msg += '📌 Pastikan buka via <b>HTTPS</b> dan browser Chrome/Edge terbaru.';
+    }
+    showError(msg);
+  }
+}
+
+async function loop() {
+  if (!model) return;
+  try {
+    const preds = await model.estimateHands(video);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (preds.length > 0) {
+      const lm = preds[0].landmarks;
+      drawHand(lm);
+
+      const n = countFingers(lm);
+      highlight(n);
+
+      if (n === 1)      { lbl.textContent = '☝️  1 JARI — HALOOO';       speak('Halooo'); }
+      else if (n === 2) { lbl.textContent = '✌️  2 JARI — HALO SEMUANYA'; speak('Halo semuanya'); }
+      else if (n === 5) { lbl.textContent = '🖐️  5 JARI — HAI!';          speak('Hai'); }
+      else {
+        lbl.textContent = n === 0 ? 'KEPALAN TERDETEKSI' : `${n} JARI TERDETEKSI`;
+        lastGesture = null;
+      }
+    } else {
+      lbl.textContent = 'ARAHKAN TANGAN KE KAMERA';
+      highlight(0);
+      lastGesture = null;
+    }
+  } catch(e) { /* silent */ }
+
+  requestAnimationFrame(loop);
+}
+
+btn.addEventListener('click', start);
 </script>
 </body>
 </html>
