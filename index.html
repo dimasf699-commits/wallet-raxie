@@ -1,488 +1,672 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hand Wave Hello</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Uang di Kepalamu 💸</title>
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
 
-  :root {
-    --bg: #0a0a0f;
-    --accent: #00ffcc;
-    --text: #e0e0e0;
-    --card: #12121a;
-  }
+:root {
+  --green:    #00c853;
+  --green-dk: #007c33;
+  --yellow:   #ffd600;
+  --dark:     #0d1117;
+  --card:     #161b22;
+  --border:   rgba(0,200,83,0.3);
+  --text:     #e6edf3;
+  --muted:    #8b949e;
+}
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Space Mono', monospace;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem 1rem;
-  }
+body {
+  min-height: 100vh;
+  background: var(--dark);
+  color: var(--text);
+  font-family: 'Nunito', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px 40px;
+  position: relative;
+  overflow-x: hidden;
+}
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: 
-      linear-gradient(rgba(0,255,204,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,255,204,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-  }
+/* ── Animated BG ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 10%, rgba(0,200,83,.12) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 50% at 80% 90%, rgba(255,214,0,.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
 
-  .title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(2.5rem, 8vw, 5rem);
-    letter-spacing: 0.1em;
-    color: var(--accent);
-    text-shadow: 0 0 40px rgba(0,255,204,0.4);
-    margin-bottom: 0.2em;
-    text-align: center;
-  }
+/* ── Floating coins BG ── */
+.coin-bg { position:fixed; pointer-events:none; z-index:0; font-size:1.4rem; animation: floatUp linear infinite; opacity:0.15; }
+@keyframes floatUp {
+  0%   { transform: translateY(110vh) rotate(0deg);   opacity:0; }
+  10%  { opacity: 0.15; }
+  90%  { opacity: 0.15; }
+  100% { transform: translateY(-10vh) rotate(360deg); opacity:0; }
+}
 
-  .subtitle {
-    font-size: 0.75rem;
-    letter-spacing: 0.3em;
-    color: rgba(224,224,224,0.4);
-    margin-bottom: 2.5rem;
-    text-transform: uppercase;
-    text-align: center;
-  }
+/* ── Header ── */
+.header {
+  position: relative; z-index:1;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.header-emoji { font-size: 3rem; display:block; animation: bounce 2s ease-in-out infinite; }
+@keyframes bounce {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+h1 {
+  font-family: 'Fredoka One', cursive;
+  font-size: clamp(1.8rem, 6vw, 3rem);
+  background: linear-gradient(135deg, var(--green) 0%, var(--yellow) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+.subtitle {
+  color: var(--muted);
+  font-size: .95rem;
+  font-weight: 600;
+}
 
-  .main-card {
-    background: var(--card);
-    border: 1px solid rgba(0,255,204,0.15);
-    border-radius: 4px;
-    padding: 2rem;
-    width: min(90vw, 560px);
-    position: relative;
-  }
+/* ── Camera wrapper ── */
+.cam-wrap {
+  position: relative; z-index:1;
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: 20px;
+}
 
-  .main-card::before, .main-card::after {
-    content: '';
-    position: absolute;
-    width: 20px; height: 20px;
-    border-color: var(--accent);
-    border-style: solid;
-  }
-  .main-card::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
-  .main-card::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+.cam-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: var(--card);
+  border-radius: 24px;
+  overflow: hidden;
+  border: 2px solid var(--border);
+  box-shadow: 0 0 0 1px rgba(0,200,83,.1), 0 20px 60px rgba(0,0,0,.6);
+}
 
-  #video-wrapper {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 4/3;
-    background: #000;
-    border-radius: 2px;
-    overflow: hidden;
-    display: none;
-    margin-bottom: 1.5rem;
-  }
+/* corner decorations */
+.cam-frame::before, .cam-frame::after,
+.cam-inner::before, .cam-inner::after {
+  content:'';
+  position:absolute;
+  width:20px; height:20px;
+  border-color: var(--green);
+  border-style: solid;
+  z-index:10;
+  pointer-events:none;
+}
+.cam-frame::before  { top:10px;    left:10px;  border-width:2px 0 0 2px; border-radius:4px 0 0 0; }
+.cam-frame::after   { top:10px;    right:10px; border-width:2px 2px 0 0; border-radius:0 4px 0 0; }
+.cam-inner::before  { bottom:10px; left:10px;  border-width:0 0 2px 2px; border-radius:0 0 0 4px; }
+.cam-inner::after   { bottom:10px; right:10px; border-width:0 2px 2px 0; border-radius:0 0 4px 0; }
 
-  #video-wrapper.active { display: block; }
+#video, #overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#overlay { z-index: 5; }
 
-  #video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scaleX(-1);
-    display: block;
-  }
+/* idle / loading state */
+.overlay-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 6;
+  background: rgba(13,17,23,.9);
+  backdrop-filter: blur(4px);
+}
+.state-icon { font-size: 3rem; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+.state-text { color: var(--muted); font-weight:700; font-size:.95rem; text-align:center; padding:0 20px; }
 
-  #canvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%;
-    height: 100%;
-    transform: scaleX(-1);
-  }
+/* spinner */
+.spinner {
+  width:48px; height:48px;
+  border: 4px solid rgba(0,200,83,.2);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
 
-  .scan-line {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    animation: scan 3s linear infinite;
-    opacity: 0.6;
-    pointer-events: none;
-  }
+/* ── Nominal badge ── */
+.nominal-box {
+  position: relative; z-index:1;
+  width:100%; max-width:480px;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  padding: 18px 24px;
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom: 20px;
+  opacity:0;
+  transform: translateY(12px);
+  transition: opacity .4s ease, transform .4s ease;
+  box-shadow: 0 4px 24px rgba(0,200,83,.1);
+}
+.nominal-box.show { opacity:1; transform:translateY(0); }
+.nominal-label { color:var(--muted); font-size:.85rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+.nominal-value {
+  font-family: 'Fredoka One', cursive;
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  background: linear-gradient(135deg, var(--green), var(--yellow));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
-  @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+/* ── Buttons ── */
+.btn-group {
+  position:relative; z-index:1;
+  display:flex; gap:12px; flex-wrap:wrap; justify-content:center;
+  margin-bottom: 24px;
+}
+.btn {
+  font-family:'Nunito',sans-serif;
+  font-weight:900;
+  font-size:1rem;
+  padding:14px 28px;
+  border-radius:50px;
+  border:none;
+  cursor:pointer;
+  display:flex; align-items:center; gap:8px;
+  transition: transform .15s ease, box-shadow .15s ease, opacity .15s;
+  position:relative;
+  overflow:hidden;
+}
+.btn:active { transform: scale(.96); }
+.btn:disabled { opacity:.4; cursor:not-allowed; }
 
-  .gesture-overlay {
-    position: absolute;
-    bottom: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,0.75);
-    border: 1px solid var(--accent);
-    padding: 0.4rem 1.2rem;
-    font-size: 0.7rem;
-    letter-spacing: 0.2em;
-    color: var(--accent);
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
+.btn-activate {
+  background: linear-gradient(135deg, var(--green), var(--green-dk));
+  color:#fff;
+  box-shadow: 0 4px 20px rgba(0,200,83,.4);
+}
+.btn-activate:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 28px rgba(0,200,83,.5); }
 
-  #start-btn {
-    display: block;
-    width: 100%;
-    padding: 1.1rem;
-    background: transparent;
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    font-family: 'Space Mono', monospace;
-    font-size: 0.85rem;
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 1.5rem;
-  }
+.btn-start {
+  background: linear-gradient(135deg, var(--yellow), #ffab00);
+  color:#111;
+  box-shadow: 0 4px 20px rgba(255,214,0,.35);
+}
+.btn-start:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 28px rgba(255,214,0,.5); }
 
-  #start-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--accent);
-    transform: translateX(-101%);
-    transition: transform 0.2s;
-    z-index: 0;
-  }
-  #start-btn:hover::before { transform: translateX(0); }
-  #start-btn:hover { color: var(--bg); }
-  #start-btn span { position: relative; z-index: 1; }
-  #start-btn.hidden { display: none; }
+.btn-stop {
+  background: var(--card);
+  color: var(--text);
+  border: 2px solid var(--border);
+}
+.btn-stop:hover:not(:disabled) { background:#1f2937; }
 
-  .legend {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
+.btn .icon { font-size:1.2rem; }
 
-  .legend-item {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 2px;
-    padding: 0.75rem 0.5rem;
-    text-align: center;
-    transition: all 0.3s;
-  }
+/* ── Error box ── */
+.error-box {
+  position:relative; z-index:1;
+  width:100%; max-width:480px;
+  background: rgba(255,61,0,.12);
+  border:2px solid rgba(255,61,0,.4);
+  border-radius:16px;
+  padding:16px 20px;
+  display:none;
+  align-items:center;
+  gap:12px;
+  margin-bottom:20px;
+  color: #ff6e40;
+  font-weight:700;
+}
+.error-box.show { display:flex; }
 
-  .legend-item.active-gesture {
-    border-color: var(--accent);
-    background: rgba(0,255,204,0.08);
-    box-shadow: 0 0 20px rgba(0,255,204,0.15);
-  }
+/* ── Tips ── */
+.tips {
+  position:relative; z-index:1;
+  max-width:480px;
+  text-align:center;
+  color:var(--muted);
+  font-size:.88rem;
+  line-height:1.6;
+}
+.tips strong { color: var(--text); }
 
-  .legend-icon  { font-size: 1.8rem; margin-bottom: 0.3rem; display: block; }
-  .legend-label { font-size: 0.6rem; letter-spacing: 0.2em; color: rgba(224,224,224,0.4); text-transform: uppercase; display: block; }
-  .legend-word  { font-size: 0.75rem; color: var(--accent); display: block; margin-top: 0.2rem; font-weight: 700; }
+/* ── Ripple shimmer on canvas ── */
+@keyframes shimmer {
+  0%   { filter: drop-shadow(0 0 6px rgba(255,214,0,.4)); }
+  50%  { filter: drop-shadow(0 0 18px rgba(255,214,0,.9)); }
+  100% { filter: drop-shadow(0 0 6px rgba(255,214,0,.4)); }
+}
+.glow { animation: shimmer 1.5s ease-in-out infinite; }
 
-  .status-bar {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.65rem;
-    letter-spacing: 0.15em;
-    color: rgba(224,224,224,0.3);
-    text-transform: uppercase;
-  }
-
-  .status-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.2);
-    flex-shrink: 0;
-    transition: all 0.3s;
-  }
-  .status-dot.online { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: blink 2s infinite; }
-  .status-dot.error  { background: #ff3366; box-shadow: 0 0 8px #ff3366; }
-
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-  .toast {
-    position: fixed;
-    top: 2rem;
-    left: 50%;
-    transform: translateX(-50%) translateY(-5rem);
-    background: var(--accent);
-    color: var(--bg);
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.5rem;
-    letter-spacing: 0.15em;
-    padding: 0.5rem 2.5rem;
-    border-radius: 2px;
-    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
-    z-index: 1000;
-    pointer-events: none;
-  }
-  .toast.show { transform: translateX(-50%) translateY(0); }
-
-  .loading-bar {
-    width: 100%;
-    height: 2px;
-    background: rgba(0,255,204,0.1);
-    margin-bottom: 1.5rem;
-    display: none;
-    position: relative;
-    overflow: hidden;
-  }
-  .loading-bar.active { display: block; }
-  .loading-bar::after {
-    content: '';
-    position: absolute;
-    top: 0; left: -100%;
-    width: 60%;
-    height: 100%;
-    background: var(--accent);
-    animation: loading 1.2s linear infinite;
-  }
-  @keyframes loading { to { left: 140%; } }
-
-  #error-box {
-    display: none;
-    background: rgba(255,51,102,0.1);
-    border: 1px solid #ff3366;
-    color: #ff7799;
-    padding: 1rem;
-    font-size: 0.72rem;
-    line-height: 1.8;
-    margin-bottom: 1rem;
-    border-radius: 2px;
-  }
-  #error-box.active { display: block; }
+/* mobile */
+@media(max-width:480px){
+  body { padding:16px 12px 32px; }
+}
 </style>
 </head>
 <body>
 
-<div class="toast" id="toast">HAI!</div>
+<!-- Floating coin background (generated by JS) -->
 
-<h1 class="title">HAND WAVE</h1>
-<p class="subtitle">// gesture detector v2.0 //</p>
+<div class="header">
+  <span class="header-emoji">💸</span>
+  <h1>Berapa Uangmu?</h1>
+  <p class="subtitle">Biarkan kamera menilai rezekimu hari ini</p>
+</div>
 
-<div class="main-card">
+<div class="cam-wrap">
+  <div class="cam-frame" id="camFrame">
+    <div class="cam-inner" id="camInner"></div>
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="overlay"></canvas>
 
-  <div id="error-box"></div>
-  <div class="loading-bar" id="loading-bar"></div>
-
-  <button id="start-btn"><span>▶ AKTIFKAN KAMERA</span></button>
-
-  <div id="video-wrapper">
-    <video id="video" playsinline autoplay muted></video>
-    <canvas id="canvas"></canvas>
-    <div class="scan-line"></div>
-    <div class="gesture-overlay" id="gesture-label">ARAHKAN TANGAN KE KAMERA</div>
-  </div>
-
-  <div class="legend">
-    <div class="legend-item" id="legend-1">
-      <span class="legend-icon">☝️</span>
-      <span class="legend-label">1 jari</span>
-      <span class="legend-word">"Halooo"</span>
+    <!-- idle -->
+    <div class="overlay-state" id="stateIdle">
+      <div class="state-icon">📷</div>
+      <p class="state-text">Kamera belum aktif.<br>Tekan tombol di bawah untuk mulai.</p>
     </div>
-    <div class="legend-item" id="legend-2">
-      <span class="legend-icon">✌️</span>
-      <span class="legend-label">2 jari</span>
-      <span class="legend-word">"Halo Semua"</span>
-    </div>
-    <div class="legend-item" id="legend-5">
-      <span class="legend-icon">🖐️</span>
-      <span class="legend-label">5 jari</span>
-      <span class="legend-word">"Hai!"</span>
-    </div>
-  </div>
 
-  <div class="status-bar">
-    <div class="status-dot" id="status-dot"></div>
-    <span id="status-text">KAMERA TIDAK AKTIF</span>
+    <!-- loading models -->
+    <div class="overlay-state" id="stateLoading" style="display:none">
+      <div class="spinner"></div>
+      <p class="state-text" id="loadingMsg">Memuat model deteksi wajah…</p>
+    </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose@0.0.7/dist/handpose.min.js"></script>
+<!-- Nominal -->
+<div class="nominal-box" id="nominalBox">
+  <span class="nominal-label">Rezekimu hari ini</span>
+  <span class="nominal-value" id="nominalVal">—</span>
+</div>
+
+<!-- Buttons -->
+<div class="btn-group">
+  <button class="btn btn-activate" id="btnActivate">
+    <span class="icon">📷</span> Aktifkan Kamera
+  </button>
+  <button class="btn btn-start" id="btnStart" style="display:none">
+    <span class="icon">✨</span> Mulai
+  </button>
+  <button class="btn btn-stop" id="btnStop" style="display:none">
+    <span class="icon">⏹</span> Berhenti
+  </button>
+</div>
+
+<!-- Error -->
+<div class="error-box" id="errorBox">
+  <span style="font-size:1.4rem">🚫</span>
+  <span id="errorMsg">Kamera tidak dapat diakses.</span>
+</div>
+
+<!-- Tips -->
+<p class="tips">
+  💡 Hadapkan wajahmu ke kamera, lalu tekan <strong>Mulai</strong>.<br>
+  Nominal uang akan muncul di atas kepalamu!
+</p>
 
 <script>
-const video   = document.getElementById('video');
-const canvas  = document.getElementById('canvas');
-const ctx     = canvas.getContext('2d');
-const btn     = document.getElementById('start-btn');
-const wrapper = document.getElementById('video-wrapper');
-const lbl     = document.getElementById('gesture-label');
-const dot     = document.getElementById('status-dot');
-const stxt    = document.getElementById('status-text');
-const toast   = document.getElementById('toast');
-const loadBar = document.getElementById('loading-bar');
-const errBox  = document.getElementById('error-box');
+/* ================================================================
+   CONFIG
+   ================================================================ */
+const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
 
-let model = null;
-let lastGesture = null;
-let lastSpeakTime = 0;
-const COOLDOWN = 2500;
-
-function showError(msg) {
-  errBox.innerHTML = msg;
-  errBox.classList.add('active');
-  dot.classList.remove('online');
-  dot.classList.add('error');
-  stxt.textContent = 'ERROR — COBA LAGI';
-}
-
-function speak(text) {
-  const now = Date.now();
-  if (text === lastGesture && now - lastSpeakTime < COOLDOWN) return;
-  lastGesture = text;
-  lastSpeakTime = now;
-
-  window.speechSynthesis && window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'id-ID';
-  u.rate = 0.85;
-  u.pitch = 1.1;
-  window.speechSynthesis && window.speechSynthesis.speak(u);
-
-  toast.textContent = text.toUpperCase();
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2000);
-}
-
-function highlight(n) {
-  [1,2,5].forEach(x => document.getElementById('legend-'+x).classList.remove('active-gesture'));
-  if ([1,2,5].includes(n)) document.getElementById('legend-'+n).classList.add('active-gesture');
-}
-
-function countFingers(lm) {
-  let count = 0;
-  // Thumb: horizontal distance
-  if (Math.abs(lm[4][0] - lm[2][0]) > 30) count++;
-  // 4 fingers: tip y < pip y means extended
-  if (lm[8][1]  < lm[6][1])  count++;
-  if (lm[12][1] < lm[10][1]) count++;
-  if (lm[16][1] < lm[14][1]) count++;
-  if (lm[20][1] < lm[18][1]) count++;
-  return count;
-}
-
-const CONN = [
-  [0,1],[1,2],[2,3],[3,4],
-  [0,5],[5,6],[6,7],[7,8],
-  [5,9],[9,10],[10,11],[11,12],
-  [9,13],[13,14],[14,15],[15,16],
-  [13,17],[17,18],[18,19],[19,20],[0,17]
+// Probability weights (total = 100)
+const NOMINALS = [
+  { label: 'Rp 5.000',  value:  5000, weight: 45 },
+  { label: 'Rp 10.000', value: 10000, weight: 30 },
+  { label: 'Rp 20.000', value: 20000, weight: 24 },
+  { label: 'Rp 50.000', value: 50000, weight:  1 },
 ];
 
-function drawHand(lm) {
-  const sx = canvas.width  / video.videoWidth;
-  const sy = canvas.height / video.videoHeight;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+/* ================================================================
+   STATE
+   ================================================================ */
+let stream      = null;
+let running     = false;
+let animFrame   = null;
+let currentNominal = null;
+let moneyImg    = null;
+let moneyAnim   = { scale: 0, opacity: 0, bounceT: 0 };
+let modelsLoaded = false;
 
-  ctx.strokeStyle = 'rgba(0,255,204,0.6)';
-  ctx.lineWidth = 2;
-  for (const [a,b] of CONN) {
-    ctx.beginPath();
-    ctx.moveTo(lm[a][0]*sx, lm[a][1]*sy);
-    ctx.lineTo(lm[b][0]*sx, lm[b][1]*sy);
-    ctx.stroke();
+/* ================================================================
+   ELEMENTS
+   ================================================================ */
+const video      = document.getElementById('video');
+const overlay    = document.getElementById('overlay');
+const ctx        = overlay.getContext('2d');
+const stateIdle  = document.getElementById('stateIdle');
+const stateLoad  = document.getElementById('stateLoading');
+const loadingMsg = document.getElementById('loadingMsg');
+const nominalBox = document.getElementById('nominalBox');
+const nominalVal = document.getElementById('nominalVal');
+const btnActivate= document.getElementById('btnActivate');
+const btnStart   = document.getElementById('btnStart');
+const btnStop    = document.getElementById('btnStop');
+const errorBox   = document.getElementById('errorBox');
+const errorMsg   = document.getElementById('errorMsg');
+
+/* ================================================================
+   FLOATING COIN BACKGROUND
+   ================================================================ */
+(function spawnCoins(){
+  const emojis = ['💵','💴','💶','💷','🪙','💰','💸'];
+  for(let i=0;i<12;i++){
+    const el = document.createElement('div');
+    el.className = 'coin-bg';
+    el.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    el.style.left = Math.random()*100 + 'vw';
+    el.style.animationDuration = (8+Math.random()*14) + 's';
+    el.style.animationDelay    = (Math.random()*12) + 's';
+    el.style.fontSize           = (1+Math.random()*1.5) + 'rem';
+    document.body.appendChild(el);
   }
-  for (const [x,y] of lm) {
-    ctx.beginPath();
-    ctx.arc(x*sx, y*sy, 4, 0, Math.PI*2);
-    ctx.fillStyle = '#00ffcc';
-    ctx.fill();
+})();
+
+/* ================================================================
+   WEIGHTED RANDOM NOMINAL
+   ================================================================ */
+function pickNominal(){
+  const total = NOMINALS.reduce((s,n)=>s+n.weight,0);
+  let r = Math.random()*total;
+  for(const n of NOMINALS){ r-=n.weight; if(r<=0) return n; }
+  return NOMINALS[0];
+}
+
+/* ================================================================
+   DRAW MONEY IMAGE ON CANVAS
+   ================================================================ */
+function buildMoneyImage(nominal){
+  const W=320, H=140;
+  const mc=document.createElement('canvas');
+  mc.width=W; mc.height=H;
+  const cx=mc.getContext('2d');
+
+  // determine color per nominal
+  const colors = {
+    5000:  { bg:'#8B4513', text:'#F5DEB3', accent:'#D2691E' },
+    10000: { bg:'#4A1942', text:'#E8C4E8', accent:'#8B2FC9' },
+    20000: { bg:'#1a472a', text:'#90EE90', accent:'#2d8a4e' },
+    50000: { bg:'#7B0D1E', text:'#FFD700', accent:'#C41E3A' },
+  };
+  const col = colors[nominal.value] || colors[5000];
+
+  // shadow
+  cx.shadowColor='rgba(0,0,0,.6)';
+  cx.shadowBlur=18;
+
+  // card body
+  const r=18;
+  cx.beginPath();
+  cx.moveTo(r,0); cx.lineTo(W-r,0);
+  cx.quadraticCurveTo(W,0,W,r);
+  cx.lineTo(W,H-r);
+  cx.quadraticCurveTo(W,H,W-r,H);
+  cx.lineTo(r,H);
+  cx.quadraticCurveTo(0,H,0,H-r);
+  cx.lineTo(0,r);
+  cx.quadraticCurveTo(0,0,r,0);
+  cx.closePath();
+
+  const grad=cx.createLinearGradient(0,0,W,H);
+  grad.addColorStop(0, col.bg);
+  grad.addColorStop(1, col.accent);
+  cx.fillStyle=grad;
+  cx.fill();
+
+  // inner border
+  cx.shadowBlur=0;
+  cx.strokeStyle=col.text+'55';
+  cx.lineWidth=2;
+  cx.beginPath();
+  cx.roundRect(6,6,W-12,H-12,12);
+  cx.stroke();
+
+  // watermark circles
+  cx.globalAlpha=0.12;
+  for(let i=0;i<5;i++){
+    cx.beginPath();
+    cx.arc(40+i*60,H/2,30,0,Math.PI*2);
+    cx.strokeStyle=col.text;
+    cx.lineWidth=3;
+    cx.stroke();
+  }
+  cx.globalAlpha=1;
+
+  // Garuda emoji placeholder (text)
+  cx.font='bold 30px serif';
+  cx.fillStyle=col.text+'cc';
+  cx.fillText('🦅',18,48);
+
+  // BANK INDONESIA text
+  cx.font='bold 11px sans-serif';
+  cx.fillStyle=col.text+'bb';
+  cx.letterSpacing='2px';
+  cx.fillText('BANK INDONESIA', 58, 32);
+
+  // Nominal text
+  cx.font='bold 38px "Fredoka One", cursive, sans-serif';
+  cx.fillStyle=col.text;
+  cx.shadowColor='rgba(0,0,0,.4)';
+  cx.shadowBlur=6;
+  cx.fillText(nominal.label, 18, 90);
+  cx.shadowBlur=0;
+
+  // small decoration dots
+  for(let i=0;i<6;i++){
+    cx.beginPath();
+    cx.arc(W-30, 20+i*18, 3, 0, Math.PI*2);
+    cx.fillStyle=col.text+'66';
+    cx.fill();
+  }
+
+  // SERI text bottom right
+  cx.font='10px monospace';
+  cx.fillStyle=col.text+'88';
+  cx.fillText('MH 000000 XX', W-130, H-14);
+
+  const img=new Image();
+  img.src=mc.toDataURL();
+  return img;
+}
+
+/* ================================================================
+   RESIZE CANVAS TO VIDEO
+   ================================================================ */
+function resizeCanvas(){
+  overlay.width  = video.videoWidth  || overlay.offsetWidth;
+  overlay.height = video.videoHeight || overlay.offsetHeight;
+}
+
+/* ================================================================
+   LOAD FACE-API MODELS
+   ================================================================ */
+async function loadModels(){
+  stateLoad.style.display='flex';
+  stateIdle.style.display='none';
+  try {
+    loadingMsg.textContent='Memuat model TinyFaceDetector…';
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    loadingMsg.textContent='Memuat model landmark wajah…';
+    await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
+    modelsLoaded=true;
+    stateLoad.style.display='none';
+  } catch(e){
+    showError('Gagal memuat model AI. Periksa koneksi internet Anda.');
+    stateLoad.style.display='none';
   }
 }
 
-async function start() {
-  errBox.classList.remove('active');
-  btn.classList.add('hidden');
-  loadBar.classList.add('active');
-  stxt.textContent = 'MEMUAT MODEL AI...';
+/* ================================================================
+   START CAMERA
+   ================================================================ */
+async function activateCamera(){
+  btnActivate.disabled=true;
+  hideError();
 
   try {
-    model = await handpose.load();
-    stxt.textContent = 'MENGAKSES KAMERA...';
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:'user', width:{ideal:640}, height:{ideal:480} },
+      audio:false
     });
+    video.srcObject=stream;
+    await new Promise(res=>{ video.onloadedmetadata=res; });
+    resizeCanvas();
 
-    video.srcObject = stream;
-    await new Promise(res => { video.onloadedmetadata = res; });
-    await video.play();
+    // load models (show loading overlay while camera runs)
+    if(!modelsLoaded) await loadModels();
 
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    loadBar.classList.remove('active');
-    wrapper.classList.add('active');
-    dot.classList.add('online');
-    stxt.textContent = 'MENDETEKSI TANGAN...';
-
-    loop();
-  } catch(err) {
-    loadBar.classList.remove('active');
-    btn.classList.remove('hidden');
-
-    let msg = `<b>⚠️ ${err.name}:</b> ${err.message}<br><br>`;
-    if (err.name === 'NotAllowedError') {
-      msg += '📌 <b>Solusi:</b> Klik ikon kamera/gembok di address bar, pilih <b>"Allow"</b>, lalu klik tombol lagi.';
-    } else if (err.name === 'NotFoundError') {
-      msg += '📌 <b>Solusi:</b> Kamera tidak terdeteksi. Cek koneksi kamera atau coba browser lain.';
-    } else if (location.protocol === 'file:') {
-      msg += '📌 <b>Masalah utama:</b> File dibuka langsung (file://). Browser memblokir kamera untuk file lokal.<br><br>';
-      msg += '✅ <b>Solusi paling mudah:</b><br>';
-      msg += '1. Install <a href="https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer" style="color:var(--accent)">Live Server</a> di VS Code, klik kanan file → Open with Live Server<br>';
-      msg += '2. Atau buka terminal di folder file, jalankan: <code style="background:#1a1a2e;padding:2px 6px">python -m http.server 8000</code> lalu buka <code style="background:#1a1a2e;padding:2px 6px">localhost:8000</code>';
+    if(modelsLoaded){
+      stateIdle.style.display='none';
+      btnStart.style.display='flex';
+      btnActivate.style.display='none';
     } else {
-      msg += '📌 Pastikan buka via <b>HTTPS</b> dan browser Chrome/Edge terbaru.';
+      btnActivate.disabled=false;
     }
-    showError(msg);
+
+  } catch(e){
+    btnActivate.disabled=false;
+    if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError')
+      showError('Izin kamera ditolak. Silakan izinkan akses kamera di pengaturan browser.');
+    else if(e.name==='NotFoundError')
+      showError('Kamera tidak ditemukan di perangkat ini.');
+    else
+      showError('Kamera tidak dapat diakses: '+e.message);
   }
 }
 
-async function loop() {
-  if (!model) return;
+/* ================================================================
+   DETECTION LOOP
+   ================================================================ */
+async function detectionLoop(){
+  if(!running) return;
+  if(video.readyState!==4){ animFrame=requestAnimationFrame(detectionLoop); return; }
+
+  resizeCanvas();
+  ctx.clearRect(0,0,overlay.width,overlay.height);
+
   try {
-    const preds = await model.estimateHands(video);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const det = await faceapi
+      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize:224, scoreThreshold:.4 }))
+      .withFaceLandmarks(true);
 
-    if (preds.length > 0) {
-      const lm = preds[0].landmarks;
-      drawHand(lm);
+    if(det && moneyImg && moneyImg.complete){
+      const box = det.detection.box;
 
-      const n = countFingers(lm);
-      highlight(n);
+      // Animate in
+      moneyAnim.bounceT += 0.06;
+      if(moneyAnim.scale < 1)    moneyAnim.scale   = Math.min(1, moneyAnim.scale+0.06);
+      if(moneyAnim.opacity < 1)  moneyAnim.opacity = Math.min(1, moneyAnim.opacity+0.05);
 
-      if (n === 1)      { lbl.textContent = '☝️  1 JARI — HALOOO';       speak('Halooo'); }
-      else if (n === 2) { lbl.textContent = '✌️  2 JARI — HALO SEMUANYA'; speak('Halo semuanya'); }
-      else if (n === 5) { lbl.textContent = '🖐️  5 JARI — HAI!';          speak('Hai'); }
-      else {
-        lbl.textContent = n === 0 ? 'KEPALAN TERDETEKSI' : `${n} JARI TERDETEKSI`;
-        lastGesture = null;
-      }
-    } else {
-      lbl.textContent = 'ARAHKAN TANGAN KE KAMERA';
-      highlight(0);
-      lastGesture = null;
+      const bounce  = Math.sin(moneyAnim.bounceT)*5;
+      const mW      = Math.max(box.width*1.4, 200);
+      const mH      = mW*(140/320);
+      const mX      = box.x + box.width/2 - mW/2;
+      const mY      = box.y - mH + bounce - 14;
+
+      ctx.save();
+      ctx.globalAlpha = moneyAnim.opacity;
+
+      // glow
+      ctx.shadowColor  = '#FFD600';
+      ctx.shadowBlur   = 18 + Math.sin(moneyAnim.bounceT*1.5)*8;
+
+      // scale from center
+      const cx2 = mX + mW/2, cy2 = mY + mH/2;
+      ctx.translate(cx2, cy2);
+      ctx.scale(moneyAnim.scale, moneyAnim.scale);
+      ctx.translate(-cx2,-cy2);
+
+      ctx.drawImage(moneyImg, mX, mY, mW, mH);
+      ctx.restore();
+
+      // face box subtle indicator
+      ctx.save();
+      ctx.strokeStyle='rgba(0,200,83,.35)';
+      ctx.lineWidth=2;
+      ctx.setLineDash([6,4]);
+      ctx.strokeRect(box.x, box.y, box.width, box.height);
+      ctx.restore();
     }
-  } catch(e) { /* silent */ }
+  } catch(_){}
 
-  requestAnimationFrame(loop);
+  animFrame=requestAnimationFrame(detectionLoop);
 }
 
-btn.addEventListener('click', start);
+/* ================================================================
+   START / STOP
+   ================================================================ */
+function startDetection(){
+  currentNominal = pickNominal();
+  moneyImg       = buildMoneyImage(currentNominal);
+  moneyAnim      = { scale:0, opacity:0, bounceT:0 };
+
+  nominalVal.textContent = currentNominal.label;
+  nominalBox.classList.add('show');
+
+  running   = true;
+  btnStart.style.display='none';
+  btnStop.style.display='flex';
+
+  detectionLoop();
+}
+
+function stopDetection(){
+  running=false;
+  cancelAnimationFrame(animFrame);
+  ctx.clearRect(0,0,overlay.width,overlay.height);
+
+  btnStop.style.display='none';
+  btnStart.style.display='flex';
+  nominalBox.classList.remove('show');
+}
+
+/* ================================================================
+   ERROR HELPERS
+   ================================================================ */
+function showError(msg){ errorMsg.textContent=msg; errorBox.classList.add('show'); }
+function hideError()   { errorBox.classList.remove('show'); }
+
+/* ================================================================
+   EVENT LISTENERS
+   ================================================================ */
+btnActivate.addEventListener('click', activateCamera);
+btnStart.addEventListener('click',    startDetection);
+btnStop.addEventListener('click',     stopDetection);
+
+// Handle video resize
+window.addEventListener('resize', resizeCanvas);
+
+/* ================================================================
+   CHECK BROWSER SUPPORT
+   ================================================================ */
+if(!navigator.mediaDevices?.getUserMedia){
+  showError('Browser ini tidak mendukung akses kamera. Coba Chrome atau Firefox terbaru.');
+  btnActivate.disabled=true;
+}
 </script>
 </body>
 </html>
