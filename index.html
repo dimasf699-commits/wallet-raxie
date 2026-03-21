@@ -4,696 +4,759 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Uang di Kepalamu 💸</title>
-<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
-:root{
-  --green:#00c853;--green-dk:#007c33;--yellow:#ffd600;
-  --dark:#0d1117;--card:#161b22;--border:rgba(0,200,83,0.3);
-  --text:#e6edf3;--muted:#8b949e;
-}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --green:#00c853;--yellow:#ffd600;--dark:#0d1117;
+  --card:#161b22;--text:#e6edf3;--muted:#8b949e;
+}
 body{
   min-height:100vh;background:var(--dark);color:var(--text);
   font-family:'Nunito',sans-serif;display:flex;flex-direction:column;
-  align-items:center;padding:20px 16px 40px;position:relative;overflow-x:hidden;
+  align-items:center;padding:16px 12px 36px;overflow-x:hidden;
 }
 body::before{
   content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   background:
-    radial-gradient(ellipse 60% 40% at 20% 10%,rgba(0,200,83,.12) 0%,transparent 70%),
-    radial-gradient(ellipse 50% 50% at 80% 90%,rgba(255,214,0,.08) 0%,transparent 70%);
+    radial-gradient(ellipse 60% 40% at 20% 10%,rgba(0,200,83,.13) 0%,transparent 70%),
+    radial-gradient(ellipse 50% 50% at 80% 90%,rgba(255,214,0,.09) 0%,transparent 70%);
 }
-.coin-bg{position:fixed;pointer-events:none;z-index:0;animation:floatUp linear infinite;opacity:.15;}
+
+/* floating coins bg */
+.coin-bg{position:fixed;pointer-events:none;z-index:0;animation:floatUp linear infinite;opacity:.12;}
 @keyframes floatUp{
-  0%{transform:translateY(110vh) rotate(0deg);opacity:0;}
-  10%{opacity:.15;}90%{opacity:.15;}
+  0%  {transform:translateY(110vh) rotate(0deg);  opacity:0;}
+  10% {opacity:.12;}90%{opacity:.12;}
   100%{transform:translateY(-10vh) rotate(360deg);opacity:0;}
 }
-.header{position:relative;z-index:1;text-align:center;margin-bottom:24px;}
-.header-emoji{font-size:3rem;display:block;animation:hbounce 2s ease-in-out infinite;}
-@keyframes hbounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+
+/* ── HEADER ── */
+.header{position:relative;z-index:1;text-align:center;margin-bottom:14px;}
+.header-emoji{font-size:2.5rem;display:block;animation:hb 2s ease-in-out infinite;}
+@keyframes hb{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
 h1{
-  font-family:'Fredoka One',cursive;font-size:clamp(1.8rem,6vw,3rem);
-  background:linear-gradient(135deg,var(--green) 0%,var(--yellow) 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  line-height:1.1;margin-bottom:6px;
-}
-.subtitle{color:var(--muted);font-size:.95rem;font-weight:600;}
-.cam-wrap{position:relative;z-index:1;width:100%;max-width:480px;margin-bottom:20px;}
-.cam-frame{
-  position:relative;width:100%;aspect-ratio:4/3;background:var(--card);
-  border-radius:24px;overflow:hidden;border:2px solid var(--border);
-  box-shadow:0 0 0 1px rgba(0,200,83,.1),0 20px 60px rgba(0,0,0,.6);
-}
-.cam-frame::before,.cam-frame::after,.cam-inner::before,.cam-inner::after{
-  content:'';position:absolute;width:20px;height:20px;border-color:var(--green);
-  border-style:solid;z-index:10;pointer-events:none;
-}
-.cam-frame::before{top:10px;left:10px;border-width:2px 0 0 2px;border-radius:4px 0 0 0;}
-.cam-frame::after{top:10px;right:10px;border-width:2px 2px 0 0;border-radius:0 4px 0 0;}
-.cam-inner::before{bottom:10px;left:10px;border-width:0 0 2px 2px;border-radius:0 0 0 4px;}
-.cam-inner::after{bottom:10px;right:10px;border-width:0 2px 2px 0;border-radius:0 0 4px 0;}
-#video,#overlay{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
-#overlay{z-index:5;}
-.overlay-state{
-  position:absolute;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:12px;z-index:6;
-  background:rgba(13,17,23,.9);backdrop-filter:blur(4px);
-}
-.state-icon{font-size:3rem;animation:pulse 2s ease-in-out infinite;}
-@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
-.state-text{color:var(--muted);font-weight:700;font-size:.95rem;text-align:center;padding:0 20px;}
-.spinner{width:48px;height:48px;border:4px solid rgba(0,200,83,.2);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.nominal-box{
-  position:relative;z-index:1;width:100%;max-width:480px;background:var(--card);
-  border:2px solid var(--border);border-radius:20px;padding:18px 24px;
-  display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;
-  opacity:0;transform:translateY(12px);transition:opacity .4s,transform .4s;
-  box-shadow:0 4px 24px rgba(0,200,83,.1);
-}
-.nominal-box.show{opacity:1;transform:translateY(0);}
-.nominal-box.jackpot{border-color:var(--yellow);box-shadow:0 0 30px rgba(255,214,0,.4);animation:jackpotBoxPulse .6s ease-in-out infinite;}
-@keyframes jackpotBoxPulse{0%,100%{box-shadow:0 0 20px rgba(255,214,0,.4);}50%{box-shadow:0 0 50px rgba(255,214,0,.8);}}
-.nominal-label{color:var(--muted);font-size:.85rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
-.nominal-value{
-  font-family:'Fredoka One',cursive;font-size:clamp(1.4rem,5vw,2rem);
+  font-family:'Fredoka One',cursive;font-size:clamp(1.6rem,5.5vw,2.6rem);
   background:linear-gradient(135deg,var(--green),var(--yellow));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  transition:all .3s;
+  margin-bottom:3px;
 }
-.nominal-value.spinning-text{
-  background:linear-gradient(135deg,#aaa,#fff,#aaa);
-  -webkit-background-clip:text;background-clip:text;
-  animation:spinText .15s linear infinite;
+.subtitle{color:var(--muted);font-size:.88rem;font-weight:600;}
+
+/* ── SLOT MACHINE (above camera) ── */
+.slot-wrap{
+  position:relative;z-index:2;
+  width:100%;max-width:500px;
+  margin-bottom:0;
+  height:0; /* collapses when idle */
+  overflow:hidden;
+  transition:height .35s cubic-bezier(.4,0,.2,1);
 }
-.nominal-value.jackpot-text{
+.slot-wrap.active{ height:130px; }
+.slot-wrap.reveal-mode{ height:110px; }
+
+.slot-machine{
+  width:100%;
+  background:linear-gradient(135deg,#0f1923,#1a2535);
+  border:2px solid rgba(255,214,0,.5);
+  border-bottom:none;
+  border-radius:18px 18px 0 0;
+  padding:10px 16px 14px;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  box-shadow:0 -4px 30px rgba(255,214,0,.15);
+}
+.slot-title{
+  font-size:.75rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(255,214,0,.6);
+}
+.slot-window{
+  width:100%;height:64px;
+  background:#0a0f15;border-radius:10px;
+  border:1.5px solid rgba(255,214,0,.3);
+  overflow:hidden;position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+/* scanline overlay */
+.slot-window::after{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(
+    to bottom,
+    transparent 0px,transparent 3px,
+    rgba(0,0,0,.18) 3px,rgba(0,0,0,.18) 4px
+  );
+  pointer-events:none;z-index:3;
+}
+/* side fade */
+.slot-window::before{
+  content:'';position:absolute;inset:0;z-index:4;
+  background:linear-gradient(to bottom,#0a0f15 0%,transparent 25%,transparent 75%,#0a0f15 100%);
+  pointer-events:none;
+}
+.slot-reel{
+  display:flex;flex-direction:column;align-items:center;gap:0;
+  transition:transform 0s;
+  will-change:transform;
+}
+.slot-item{
+  height:64px;min-height:64px;width:100%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fredoka One',cursive;
+  font-size:1.65rem;letter-spacing:.02em;
+  padding:0 12px;
+  flex-shrink:0;
+}
+/* spinning state colors */
+.slot-item.s5000 {color:#F5DEB3;text-shadow:0 0 12px rgba(245,222,179,.5);}
+.slot-item.s10000{color:#DDB6F8;text-shadow:0 0 12px rgba(221,182,248,.5);}
+.slot-item.s20000{color:#90EE90;text-shadow:0 0 12px rgba(144,238,144,.5);}
+.slot-item.s50000{color:#FFD700;text-shadow:0 0 18px rgba(255,215,0,.8);}
+.slot-item.s-spin{color:#fff;text-shadow:0 0 8px rgba(255,255,255,.4);}
+
+/* result revealed inside slot */
+.slot-reveal{
+  position:absolute;inset:0;z-index:5;
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:2px;
+  background:#0a0f15;
+  opacity:0;transition:opacity .3s;
+}
+.slot-reveal.show{opacity:1;}
+.slot-reveal-label{font-size:.7rem;color:rgba(255,214,0,.6);font-weight:900;letter-spacing:.1em;text-transform:uppercase;}
+.slot-reveal-val{
+  font-family:'Fredoka One',cursive;font-size:1.8rem;
+  background:linear-gradient(135deg,var(--green),var(--yellow));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.slot-reveal-val.jp{
   background:linear-gradient(135deg,#FFD600,#FF6B00,#FFD600);
   -webkit-background-clip:text;background-clip:text;
-  animation:jackpotPulse .4s ease-in-out infinite;
+  animation:jpPulse .5s ease-in-out infinite;
 }
-@keyframes spinText{0%{opacity:.6;}50%{opacity:1;}100%{opacity:.6;}}
-@keyframes jackpotPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
-.btn-group{position:relative;z-index:1;display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:24px;}
-.btn{
-  font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;
-  padding:14px 28px;border-radius:50px;border:none;cursor:pointer;
+@keyframes jpPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.07);}}
+
+/* ── CAMERA ── */
+.cam-wrap{position:relative;z-index:1;width:100%;max-width:500px;margin-bottom:0;}
+.cam-frame{
+  position:relative;width:100%;background:#000;
+  border-radius:0;overflow:hidden;
+  border-left:2px solid rgba(0,200,83,.35);
+  border-right:2px solid rgba(0,200,83,.35);
+}
+/* when slot is NOT active, top gets rounded */
+.cam-frame.rounded-top{border-radius:18px 18px 0 0;border-top:2px solid rgba(0,200,83,.35);}
+
+#video{display:block;width:100%;transform:scaleX(-1);aspect-ratio:4/3;object-fit:cover;}
+#overlay{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);}
+
+/* corner brackets */
+.cam-frame::before,.cam-frame::after,.brb::before,.brb::after{
+  content:'';position:absolute;width:18px;height:18px;
+  border-color:var(--green);border-style:solid;z-index:20;pointer-events:none;
+}
+.cam-frame::before{top:8px;left:8px;border-width:2px 0 0 2px;border-radius:4px 0 0 0;}
+.cam-frame::after {top:8px;right:8px;border-width:2px 2px 0 0;border-radius:0 4px 0 0;}
+.brb::before{bottom:8px;left:8px;border-width:0 0 2px 2px;border-radius:0 0 0 4px;}
+.brb::after {bottom:8px;right:8px;border-width:0 2px 2px 0;border-radius:0 0 4px 0;}
+
+/* overlay states */
+.overlay-state{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;z-index:30;
+  background:rgba(0,0,0,.88);backdrop-filter:blur(4px);
+}
+.state-icon{font-size:2.8rem;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+.state-text{color:var(--muted);font-weight:700;font-size:.9rem;text-align:center;padding:0 20px;}
+.spinner{width:44px;height:44px;border:4px solid rgba(0,200,83,.2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── BOTTOM BAR (below camera) ── */
+.bottom-bar{
+  width:100%;max-width:500px;
+  background:linear-gradient(135deg,#0f1923,#1a2535);
+  border:2px solid rgba(0,200,83,.35);
+  border-top:none;border-radius:0 0 18px 18px;
+  padding:14px 16px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  box-shadow:0 8px 30px rgba(0,0,0,.5);
+  margin-bottom:18px;
+}
+.face-status{
   display:flex;align-items:center;gap:8px;
-  transition:transform .15s,box-shadow .15s,opacity .15s;
+  font-size:.82rem;font-weight:700;color:var(--muted);
 }
-.btn:active{transform:scale(.96);}
-.btn:disabled{opacity:.4;cursor:not-allowed;}
-.btn-activate{background:linear-gradient(135deg,var(--green),var(--green-dk));color:#fff;box-shadow:0 4px 20px rgba(0,200,83,.4);}
-.btn-activate:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,200,83,.5);}
-.btn-start{background:linear-gradient(135deg,var(--yellow),#ffab00);color:#111;box-shadow:0 4px 20px rgba(255,214,0,.35);}
-.btn-start:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 28px rgba(255,214,0,.5);}
-.btn-stop{background:var(--card);color:var(--text);border:2px solid var(--border);}
+.face-dot{
+  width:9px;height:9px;border-radius:50%;background:#555;
+  transition:background .3s,box-shadow .3s;flex-shrink:0;
+}
+.face-dot.on{background:var(--green);box-shadow:0 0 8px var(--green);}
+.face-dot.spin-dot{background:var(--yellow);box-shadow:0 0 10px var(--yellow);animation:blinkDot .3s linear infinite;}
+@keyframes blinkDot{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+.btn{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.95rem;
+  padding:11px 22px;border-radius:50px;border:none;cursor:pointer;
+  display:flex;align-items:center;gap:7px;
+  transition:transform .15s,box-shadow .15s,opacity .2s;flex-shrink:0;
+}
+.btn:active{transform:scale(.95);}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn-activate{background:linear-gradient(135deg,#00c853,#007c33);color:#fff;box-shadow:0 3px 16px rgba(0,200,83,.4);}
+.btn-activate:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,200,83,.55);}
+.btn-start{background:linear-gradient(135deg,#ffd600,#ffab00);color:#111;box-shadow:0 3px 16px rgba(255,214,0,.4);}
+.btn-start:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 22px rgba(255,214,0,.55);}
+.btn-stop{background:var(--card);color:var(--text);border:2px solid rgba(0,200,83,.3);}
 .btn-stop:hover:not(:disabled){background:#1f2937;}
-.btn .icon{font-size:1.2rem;}
+.btn .icon{font-size:1.1rem;}
+
+/* error */
 .error-box{
-  position:relative;z-index:1;width:100%;max-width:480px;
-  background:rgba(255,61,0,.12);border:2px solid rgba(255,61,0,.4);
-  border-radius:16px;padding:16px 20px;display:none;align-items:center;
-  gap:12px;margin-bottom:20px;color:#ff6e40;font-weight:700;
+  position:relative;z-index:1;width:100%;max-width:500px;
+  background:rgba(255,61,0,.12);border:2px solid rgba(255,61,0,.45);
+  border-radius:14px;padding:13px 16px;display:none;
+  align-items:center;gap:10px;margin-bottom:14px;color:#ff6e40;font-weight:700;
 }
 .error-box.show{display:flex;}
-.tips{position:relative;z-index:1;max-width:480px;text-align:center;color:var(--muted);font-size:.88rem;line-height:1.6;}
+.tips{position:relative;z-index:1;max-width:500px;text-align:center;color:var(--muted);font-size:.84rem;line-height:1.65;}
 .tips strong{color:var(--text);}
-#revealFlash{
+
+/* flash */
+#flash{
   position:fixed;inset:0;z-index:999;pointer-events:none;
-  background:radial-gradient(circle,rgba(255,214,0,.75) 0%,transparent 65%);
-  opacity:0;transition:opacity .1s;
+  background:radial-gradient(circle,rgba(255,220,0,.85),transparent 65%);
+  opacity:0;transition:opacity .08s;
 }
-#revealFlash.flash{opacity:1;}
-@media(max-width:480px){body{padding:16px 12px 32px;}}
+#flash.go{opacity:1;}
+
+/* jackpot border on cam */
+.cam-frame.jackpot-border{border-color:#FFD700;box-shadow:0 0 0 3px rgba(255,215,0,.3);}
+
+@keyframes cfall{
+  0%  {transform:translateY(-20px) rotate(0deg);  opacity:1;}
+  100%{transform:translateY(105vh) rotate(760deg);opacity:0;}
+}
+@media(max-width:400px){.slot-item{font-size:1.35rem;}}
 </style>
 </head>
 <body>
 
-<div id="revealFlash"></div>
+<div id="flash"></div>
 
 <div class="header">
   <span class="header-emoji">💸</span>
-  <h1>Berapa Uangmu?</h1>
-  <p class="subtitle">Biarkan kamera menilai rezekimu hari ini</p>
+  <h1>Berapa THR mu</h1>
+  <p class="subtitle">BIARKAN MUKA MENILAI BERAPA THR MU?</p>
 </div>
 
-<div class="cam-wrap">
-  <div class="cam-frame" id="camFrame">
-    <div class="cam-inner" id="camInner"></div>
-    <video id="video" autoplay muted playsinline></video>
-    <canvas id="overlay"></canvas>
-    <div class="overlay-state" id="stateIdle">
-      <div class="state-icon">📷</div>
-      <p class="state-text">Kamera belum aktif.<br>Tekan tombol di bawah untuk mulai.</p>
-    </div>
-    <div class="overlay-state" id="stateLoading" style="display:none">
-      <div class="spinner"></div>
-      <p class="state-text" id="loadingMsg">Memuat model deteksi wajah…</p>
+<!-- SLOT MACHINE (above camera, hidden until spin) -->
+<div class="slot-wrap" id="slotWrap">
+  <div class="slot-machine">
+    <div class="slot-title">⚡ Memutar Nominal ⚡</div>
+    <div class="slot-window" id="slotWindow">
+      <div class="slot-reel" id="slotReel"></div>
+      <div class="slot-reveal" id="slotReveal">
+        <span class="slot-reveal-label">Rezekimu hari ini 🎉</span>
+        <span class="slot-reveal-val" id="slotRevealVal">—</span>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="nominal-box" id="nominalBox">
-  <span class="nominal-label" id="nominalLabel">Sedang memutar…</span>
-  <span class="nominal-value" id="nominalVal">🎰 ???</span>
+<!-- CAMERA -->
+<div class="cam-wrap">
+  <div class="cam-frame rounded-top" id="camFrame">
+    <div class="brb"></div>
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="overlay"></canvas>
+    <div class="overlay-state" id="stIdle">
+      <div class="state-icon">📷</div>
+      <p class="state-text">Kamera belum aktif.<br>Tekan tombol di bawah.</p>
+    </div>
+    <div class="overlay-state" id="stLoad" style="display:none">
+      <div class="spinner"></div>
+      <p class="state-text" id="loadMsg">Memuat model AI…</p>
+    </div>
+  </div>
 </div>
 
-<div class="btn-group">
-  <button class="btn btn-activate" id="btnActivate"><span class="icon">📷</span> Aktifkan Kamera</button>
-  <button class="btn btn-start"    id="btnStart"    style="display:none"><span class="icon">✨</span> Mulai</button>
-  <button class="btn btn-stop"     id="btnStop"     style="display:none"><span class="icon">🔄</span> Ulangi</button>
+<!-- BOTTOM BAR -->
+<div class="bottom-bar" id="bottomBar">
+  <div class="face-status">
+    <div class="face-dot" id="faceDot"></div>
+    <span id="faceStatusTxt">Belum aktif</span>
+  </div>
+  <button class="btn btn-activate" id="btnAct"><span class="icon">📷</span>Aktifkan</button>
+  <button class="btn btn-start"    id="btnGo"  style="display:none"><span class="icon">✨</span>Mulai!</button>
+  <button class="btn btn-stop"     id="btnRst" style="display:none"><span class="icon">🔄</span>Ulangi</button>
 </div>
 
-<div class="error-box" id="errorBox">
-  <span style="font-size:1.4rem">🚫</span>
-  <span id="errorMsg">Kamera tidak dapat diakses.</span>
+<div class="error-box" id="errBox">
+  <span style="font-size:1.4rem">🚫</span><span id="errMsg"></span>
 </div>
+<p class="tips">💡 Hadapkan wajahmu ke kamera, tekan <strong>Mulai!</strong> — nominal akan berputar di atas frame!</p>
 
-<p class="tips">💡 Hadapkan wajahmu ke kamera, lalu tekan <strong>Mulai</strong>.<br>Uang akan berputar dan berhenti di rezekimu!</p>
-
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js"></script>
 <script>
-/* ============================================================
-   CONFIG
-============================================================ */
-const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
-
-const NOMINALS = [
-  { label:'Rp 5.000',  value:5000,  weight:45 },
-  { label:'Rp 10.000', value:10000, weight:30 },
-  { label:'Rp 20.000', value:20000, weight:24 },
-  { label:'Rp 50.000', value:50000, weight:1  },
+/* ══════════════════════════════════════
+   NOMINALS
+══════════════════════════════════════ */
+const NOMINALS=[
+  {label:'Rp 5.000', value:5000,  weight:30, cls:'s5000'},
+  {label:'Rp 10.000',value:10000, weight:20, cls:'s10000'},
+  {label:'Rp 20.000',value:20000, weight:5, cls:'s20000'},
+  {label:'Rp 50.000',value:50000, weight:0.1,  cls:'s50000'},
 ];
+const BILL_COLORS={
+  5000: {bg1:'#7B4516',bg2:'#C0652A',txt:'#F5DEB3'},
+  10000:{bg1:'#3b1060',bg2:'#8B2FC9',txt:'#DDB6F8'},
+  20000:{bg1:'#1a472a',bg2:'#2d8a4e',txt:'#90EE90'},
+  50000:{bg1:'#7B0D1E',bg2:'#C41E3A',txt:'#FFD700'},
+};
 
-// Spin timing
-const FAST_DURATION  = 2200;  // ms rapid phase
-const FAST_INTERVAL  = 75;    // ms per swap (fast)
-const SLOW_TICKS     = 12;    // number of slow-down ticks
-const SLOW_START_MS  = 110;
-const SLOW_END_MS    = 480;
-
-/* ============================================================
-   STATE
-============================================================ */
-let stream        = null;
-let running       = false;
-let animFrame     = null;
-let modelsLoaded  = false;
-
-// 'idle' | 'spinning' | 'slowing' | 'reveal' | 'done'
-let phase         = 'idle';
-let displayNom    = null;   // currently rendered on canvas
-let finalNom      = null;   // the real result
-let spinImages    = {};     // pre-rendered canvas imgs keyed by value
-let spinTimer     = null;
-let bounceT       = 0;
-
-// Reveal animation
-let rev = { scale:0, opacity:0, shake:0, shakeDir:1, sparkT:0 };
-
-/* ============================================================
-   ELEMENTS
-============================================================ */
-const video       = document.getElementById('video');
-const overlay     = document.getElementById('overlay');
-const ctx         = overlay.getContext('2d');
-const stateIdle   = document.getElementById('stateIdle');
-const stateLoad   = document.getElementById('stateLoading');
-const loadingMsg  = document.getElementById('loadingMsg');
-const nominalBox  = document.getElementById('nominalBox');
-const nominalLabel= document.getElementById('nominalLabel');
-const nominalVal  = document.getElementById('nominalVal');
-const btnActivate = document.getElementById('btnActivate');
-const btnStart    = document.getElementById('btnStart');
-const btnStop     = document.getElementById('btnStop');
-const errorBox    = document.getElementById('errorBox');
-const errorMsg    = document.getElementById('errorMsg');
-const revealFlash = document.getElementById('revealFlash');
-
-/* ============================================================
-   FLOATING COINS BG
-============================================================ */
-(function(){
-  const emojis=['💵','💴','💶','💷','🪙','💰','💸'];
-  for(let i=0;i<14;i++){
-    const el=document.createElement('div');
-    el.className='coin-bg';
-    el.textContent=emojis[Math.floor(Math.random()*emojis.length)];
-    el.style.cssText=`left:${Math.random()*100}vw;font-size:${1+Math.random()*1.5}rem;`+
-      `animation-duration:${8+Math.random()*14}s;animation-delay:${Math.random()*12}s;`;
-    document.body.appendChild(el);
-  }
-})();
-
-/* ============================================================
-   HELPERS
-============================================================ */
 function pickFinal(){
-  const total=NOMINALS.reduce((s,n)=>s+n.weight,0);
-  let r=Math.random()*total;
-  for(const n of NOMINALS){r-=n.weight;if(r<=0)return n;}
-  return NOMINALS[0];
+  const tot=NOMINALS.reduce((s,n)=>s+n.weight,0);let r=Math.random()*tot;
+  for(const n of NOMINALS){r-=n.weight;if(r<=0)return n;}return NOMINALS[0];
 }
-function pickRandom(){
-  return NOMINALS[Math.floor(Math.random()*NOMINALS.length)];
-}
+function pickRand(){return NOMINALS[Math.floor(Math.random()*NOMINALS.length)];}
 
-/* ============================================================
-   BUILD MONEY IMAGE (canvas → img)
-============================================================ */
-function buildMoneyImage(nominal){
-  const W=320,H=140;
-  const mc=document.createElement('canvas');
-  mc.width=W;mc.height=H;
-  const cx=mc.getContext('2d');
-  const colors={
-    5000: {bg:'#7B4516',text:'#F5DEB3',accent:'#C0652A'},
-    10000:{bg:'#3b1060',text:'#DDB6F8',accent:'#8B2FC9'},
-    20000:{bg:'#1a472a',text:'#90EE90',accent:'#2d8a4e'},
-    50000:{bg:'#7B0D1E',text:'#FFD700',accent:'#C41E3A'},
-  };
-  const col=colors[nominal.value]||colors[5000];
-  cx.shadowColor='rgba(0,0,0,.6)';cx.shadowBlur=18;
-  const r=18;
-  cx.beginPath();
-  cx.moveTo(r,0);cx.lineTo(W-r,0);cx.quadraticCurveTo(W,0,W,r);
-  cx.lineTo(W,H-r);cx.quadraticCurveTo(W,H,W-r,H);
-  cx.lineTo(r,H);cx.quadraticCurveTo(0,H,0,H-r);
-  cx.lineTo(0,r);cx.quadraticCurveTo(0,0,r,0);cx.closePath();
-  const grad=cx.createLinearGradient(0,0,W,H);
-  grad.addColorStop(0,col.bg);grad.addColorStop(1,col.accent);
-  cx.fillStyle=grad;cx.fill();
-  cx.shadowBlur=0;
-  cx.strokeStyle=col.text+'44';cx.lineWidth=2;
-  cx.beginPath();cx.roundRect(6,6,W-12,H-12,12);cx.stroke();
-  cx.globalAlpha=0.1;
-  for(let i=0;i<5;i++){
-    cx.beginPath();cx.arc(40+i*60,H/2,30,0,Math.PI*2);
-    cx.strokeStyle=col.text;cx.lineWidth=3;cx.stroke();
+/* ══════════════════════════════════════
+   BUILD BILL IMAGE
+══════════════════════════════════════ */
+const billImgs={};
+function buildBill(nom){
+  const W=340,H=150,oc=document.createElement('canvas');
+  oc.width=W;oc.height=H;const x=oc.getContext('2d');
+  const c=BILL_COLORS[nom.value];
+  x.shadowColor='rgba(0,0,0,.55)';x.shadowBlur=20;
+  const rr=20;
+  x.beginPath();
+  x.moveTo(rr,0);x.lineTo(W-rr,0);x.quadraticCurveTo(W,0,W,rr);
+  x.lineTo(W,H-rr);x.quadraticCurveTo(W,H,W-rr,H);
+  x.lineTo(rr,H);x.quadraticCurveTo(0,H,0,H-rr);
+  x.lineTo(0,rr);x.quadraticCurveTo(0,0,rr,0);x.closePath();
+  const g=x.createLinearGradient(0,0,W,H);
+  g.addColorStop(0,c.bg1);g.addColorStop(1,c.bg2);x.fillStyle=g;x.fill();
+  x.shadowBlur=0;
+  x.save();x.beginPath();
+  x.moveTo(rr,0);x.lineTo(W-rr,0);x.quadraticCurveTo(W,0,W,rr);
+  x.lineTo(W,H-rr);x.quadraticCurveTo(W,H,W-rr,H);
+  x.lineTo(rr,H);x.quadraticCurveTo(0,H,0,H-rr);
+  x.lineTo(0,rr);x.quadraticCurveTo(0,0,rr,0);x.closePath();x.clip();
+  const sh=x.createLinearGradient(0,0,W,H);
+  sh.addColorStop(0,'rgba(255,255,255,.18)');sh.addColorStop(.45,'rgba(255,255,255,0)');sh.addColorStop(1,'rgba(0,0,0,.15)');
+  x.fillStyle=sh;x.fillRect(0,0,W,H);x.restore();
+  x.strokeStyle=c.txt+'44';x.lineWidth=1.5;x.beginPath();x.roundRect(6,6,W-12,H-12,14);x.stroke();
+  x.globalAlpha=.09;for(let i=0;i<5;i++){x.beginPath();x.arc(35+i*68,H/2,34,0,Math.PI*2);x.strokeStyle=c.txt;x.lineWidth=2.5;x.stroke();}x.globalAlpha=1;
+  x.font='28px serif';x.fillStyle=c.txt+'cc';x.fillText('🦅',12,46);
+  x.font='bold 9.5px sans-serif';x.fillStyle=c.txt+'99';x.fillText('BANK INDONESIA',54,28);
+  x.font='bold 40px "Fredoka One",cursive';x.fillStyle=c.txt;
+  x.shadowColor='rgba(0,0,0,.5)';x.shadowBlur=7;x.fillText(nom.label,12,96);x.shadowBlur=0;
+  x.font='9.5px monospace';x.fillStyle=c.txt+'66';x.fillText('MH '+(Math.random()*1e7|0)+' XX',W-145,H-11);
+  for(let i=0;i<5;i++){x.beginPath();x.arc(W-22,22+i*22,3.5,0,Math.PI*2);x.fillStyle=c.txt+'55';x.fill();}
+  const img=new Image();img.src=oc.toDataURL();return img;
+}
+function preload(){NOMINALS.forEach(n=>{billImgs[n.value]=buildBill(n);});}
+
+/* ══════════════════════════════════════
+   DOM REFS
+══════════════════════════════════════ */
+const video    =document.getElementById('video');
+const canvas   =document.getElementById('overlay');
+const ctx      =canvas.getContext('2d');
+const stIdle   =document.getElementById('stIdle');
+const stLoad   =document.getElementById('stLoad');
+const loadMsg  =document.getElementById('loadMsg');
+const slotWrap =document.getElementById('slotWrap');
+const slotReel =document.getElementById('slotReel');
+const slotReveal=document.getElementById('slotReveal');
+const slotRevVal=document.getElementById('slotRevealVal');
+const camFrame =document.getElementById('camFrame');
+const btnAct   =document.getElementById('btnAct');
+const btnGo    =document.getElementById('btnGo');
+const btnRst   =document.getElementById('btnRst');
+const errBox   =document.getElementById('errBox');
+const errMsg   =document.getElementById('errMsg');
+const faceDot  =document.getElementById('faceDot');
+const faceTxt  =document.getElementById('faceStatusTxt');
+const flashEl  =document.getElementById('flash');
+
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+let detector=null,stream=null,raf=null,spinTimer=null;
+let phase='idle'; // idle|spinning|slowing|reveal|done
+let finalNom=null;
+let lastFace=null;
+let bounceT=0;
+let revAnim={sc:0,op:0,shake:0,sd:1,st:0};
+let faceDetected=false;
+
+/* ══════════════════════════════════════
+   FLOATING COINS
+══════════════════════════════════════ */
+['💵','💴','💶','💷','🪙','💸','💰'].forEach((e,i)=>{
+  const el=document.createElement('div');el.className='coin-bg';el.textContent=e;
+  el.style.cssText=`left:${Math.random()*95}vw;font-size:${1+Math.random()*1.4}rem;`+
+    `animation-duration:${9+Math.random()*13}s;animation-delay:${i*1.4+Math.random()*5}s;`;
+  document.body.appendChild(el);
+});
+
+/* ══════════════════════════════════════
+   SLOT REEL — build DOM items
+══════════════════════════════════════ */
+// Fill reel with many items for smooth scroll illusion
+function buildReel(){
+  slotReel.innerHTML='';
+  // 40 items, cycling through nominals, for scrolling
+  for(let i=0;i<40;i++){
+    const n=NOMINALS[i%NOMINALS.length];
+    const div=document.createElement('div');
+    div.className=`slot-item ${n.cls}`;
+    div.textContent=n.label;
+    slotReel.appendChild(div);
   }
-  cx.globalAlpha=1;
-  cx.font='bold 28px serif';cx.fillStyle=col.text+'cc';cx.fillText('🦅',14,46);
-  cx.font='bold 10px sans-serif';cx.fillStyle=col.text+'99';
-  cx.fillText('BANK INDONESIA',56,30);
-  cx.font='bold 36px "Fredoka One",cursive,sans-serif';cx.fillStyle=col.text;
-  cx.shadowColor='rgba(0,0,0,.5)';cx.shadowBlur=6;
-  cx.fillText(nominal.label,14,88);cx.shadowBlur=0;
-  for(let i=0;i<6;i++){
-    cx.beginPath();cx.arc(W-28,18+i*18,3,0,Math.PI*2);
-    cx.fillStyle=col.text+'66';cx.fill();
+}
+
+// CSS-driven scroll spin
+let reelY=0;
+const ITEM_H=64;
+let reelRAF=null;
+let reelSpeed=0; // px per frame
+
+function startReelSpin(){
+  reelSpeed=18; // fast
+  spinReel();
+}
+function spinReel(){
+  if(phase!=='spinning'&&phase!=='slowing'){return;}
+  reelY-=reelSpeed;
+  // reset when scrolled far enough
+  const totalH=ITEM_H*40;
+  if(Math.abs(reelY)>=totalH/2) reelY=0;
+  slotReel.style.transform=`translateY(${reelY}px)`;
+  reelRAF=requestAnimationFrame(spinReel);
+}
+function slowReel(targetSpeed,duration){
+  const startSpeed=reelSpeed;
+  const start=performance.now();
+  function step(now){
+    const t=Math.min((now-start)/duration,1);
+    reelSpeed=startSpeed+(targetSpeed-startSpeed)*easeOut(t);
+    reelY-=reelSpeed;
+    const totalH=ITEM_H*40;
+    if(Math.abs(reelY)>=totalH/2) reelY=0;
+    slotReel.style.transform=`translateY(${reelY}px)`;
+    if(t<1) reelRAF=requestAnimationFrame(step);
+    else { reelSpeed=targetSpeed; if(targetSpeed>0) spinReel(); }
   }
-  cx.font='10px monospace';cx.fillStyle=col.text+'66';
-  cx.fillText('MH 000000 XX',W-132,H-12);
-  const img=new Image();img.src=mc.toDataURL();
-  return img;
+  cancelAnimationFrame(reelRAF);
+  reelRAF=requestAnimationFrame(step);
+}
+function easeOut(t){return 1-Math.pow(1-t,3);}
+function stopReel(){
+  cancelAnimationFrame(reelRAF);
+  // snap to clean position
+  reelY=Math.round(reelY/ITEM_H)*ITEM_H;
+  slotReel.style.transform=`translateY(${reelY}px)`;
 }
 
-function preloadImages(){
-  NOMINALS.forEach(n=>{ spinImages[n.value]=buildMoneyImage(n); });
-}
-
-/* ============================================================
+/* ══════════════════════════════════════
    CANVAS UTILS
-============================================================ */
-function resizeCanvas(){
-  overlay.width =video.videoWidth ||overlay.offsetWidth;
-  overlay.height=video.videoHeight||overlay.offsetHeight;
+══════════════════════════════════════ */
+function syncCanvas(){
+  canvas.width=video.videoWidth||video.clientWidth;
+  canvas.height=video.videoHeight||video.clientHeight;
 }
 
-function drawMoneyAt(box,nominal,opts={}){
-  const img=spinImages[nominal.value];
-  if(!img||!img.complete) return;
-  const {
-    opacity=1,scale=1,shakeX=0,
-    glowColor='rgba(255,220,0,.8)',glowBlur=16,
-    rollY=0,scaleY=1
-  }=opts;
-  const mW=Math.max(box.width*1.48,210);
-  const mH=mW*(140/320);
-  const mX=box.x+box.width/2-mW/2+shakeX;
-  const mY=box.y-mH-16+rollY;
-  const cx2=mX+mW/2, cy2=mY+mH/2;
+function drawBillOnFace(face,nom,opts={}){
+  const img=billImgs[nom.value];if(!img||!img.complete)return null;
+  const {op=1,sc=1,shX=0,glowC='rgba(255,220,0,.85)',glowB=18,dy=0}=opts;
+  const fx=face.topLeft[0],fy=face.topLeft[1];
+  const fw=face.bottomRight[0]-fx;
+  const bW=Math.max(fw*1.55,180);
+  const bH=bW*(150/340);
+  const bX=fx+fw/2-bW/2+shX;
+  const bY=fy-bH-12+dy;
+  const cx2=bX+bW/2,cy2=bY+bH/2;
   ctx.save();
-  ctx.globalAlpha=opacity;
-  ctx.shadowColor=glowColor;
-  ctx.shadowBlur=glowBlur;
-  ctx.translate(cx2,cy2);
-  ctx.scale(scale,scaleY);
-  ctx.translate(-cx2,-cy2);
-  ctx.drawImage(img,mX,mY,mW,mH);
-  ctx.restore();
+  ctx.globalAlpha=op;ctx.shadowColor=glowC;ctx.shadowBlur=glowB;
+  ctx.translate(cx2,cy2);ctx.scale(sc,1);ctx.translate(-cx2,-cy2);
+  ctx.drawImage(img,bX,bY,bW,bH);ctx.restore();
+  return {bX,bY,bW,bH,cx:cx2,cy:cy2};
 }
 
-/* ============================================================
-   FACE INDICATOR
-============================================================ */
-function drawFaceBox(box){
-  ctx.save();
-  ctx.strokeStyle=phase==='done'?'rgba(0,200,83,.4)':'rgba(255,214,0,.35)';
-  ctx.lineWidth=2;ctx.setLineDash([6,4]);
-  ctx.strokeRect(box.x,box.y,box.width,box.height);
-  ctx.restore();
+function drawFaceOutline(face,color='rgba(0,200,83,.4)'){
+  const fx=face.topLeft[0],fy=face.topLeft[1];
+  const fw=face.bottomRight[0]-fx,fh=face.bottomRight[1]-fy;
+  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.setLineDash([5,4]);
+  ctx.strokeRect(fx,fy,fw,fh);ctx.restore();
 }
 
-/* ============================================================
-   LOAD MODELS
-============================================================ */
-async function loadModels(){
-  stateLoad.style.display='flex';stateIdle.style.display='none';
+/* ══════════════════════════════════════
+   LOAD MODEL
+══════════════════════════════════════ */
+async function loadModel(){
+  stLoad.style.display='flex';stIdle.style.display='none';
   try{
-    loadingMsg.textContent='Memuat TinyFaceDetector…';
-    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-    loadingMsg.textContent='Memuat model landmark wajah…';
-    await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
-    modelsLoaded=true;stateLoad.style.display='none';
+    loadMsg.textContent='Memuat BlazeFace…';
+    detector=await blazeface.load();
+    stLoad.style.display='none';return true;
   }catch(e){
-    showError('Gagal memuat model AI. Periksa koneksi internet.');
-    stateLoad.style.display='none';
+    showErr('Gagal memuat model AI. Periksa koneksi internet.');
+    stLoad.style.display='none';return false;
   }
 }
 
-/* ============================================================
-   ACTIVATE CAMERA
-============================================================ */
-async function activateCamera(){
-  btnActivate.disabled=true;hideError();
+/* ══════════════════════════════════════
+   CAMERA
+══════════════════════════════════════ */
+async function activateCam(){
+  btnAct.disabled=true;hideErr();
   try{
     stream=await navigator.mediaDevices.getUserMedia({
       video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false
     });
     video.srcObject=stream;
-    await new Promise(res=>{video.onloadedmetadata=res;});
-    resizeCanvas();
-    if(!modelsLoaded) await loadModels();
-    if(modelsLoaded){
-      stateIdle.style.display='none';
-      btnStart.style.display='flex';
-      btnActivate.style.display='none';
-      preloadImages();
-    }else{ btnActivate.disabled=false; }
+    await new Promise(r=>{video.onloadedmetadata=r;});
+    video.play();await new Promise(r=>setTimeout(r,300));
+    syncCanvas();
+    const ok=await loadModel();
+    if(ok){
+      stIdle.style.display='none';
+      btnGo.style.display='flex';btnAct.style.display='none';
+      preload();buildReel();
+      passiveLoop();
+    }else{btnAct.disabled=false;}
   }catch(e){
-    btnActivate.disabled=false;
-    if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError')
-      showError('Izin kamera ditolak. Silakan izinkan akses kamera di pengaturan browser.');
-    else if(e.name==='NotFoundError')
-      showError('Kamera tidak ditemukan di perangkat ini.');
-    else showError('Kamera tidak dapat diakses: '+e.message);
+    btnAct.disabled=false;
+    if(e.name==='NotAllowedError') showErr('Izin kamera ditolak. Silakan izinkan di pengaturan browser.');
+    else if(e.name==='NotFoundError') showErr('Kamera tidak ditemukan.');
+    else showErr('Kamera error: '+e.message);
   }
 }
 
-/* ============================================================
-   SPIN MACHINE
-============================================================ */
+/* ══════════════════════════════════════
+   PASSIVE FACE LOOP (idle)
+══════════════════════════════════════ */
+async function passiveLoop(){
+  if(phase!=='idle'){return;}
+  if(video.readyState===4){
+    try{
+      const p=await detector.estimateFaces(video,false);
+      faceDetected=p&&p.length>0;
+      if(faceDetected){lastFace=p[0];}
+    }catch(_){}
+  }
+  updateFaceUI();
+  syncCanvas();ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(faceDetected&&lastFace) drawFaceOutline(lastFace);
+  raf=requestAnimationFrame(passiveLoop);
+}
+
+function updateFaceUI(){
+  if(phase==='spinning'||phase==='slowing'){
+    faceDot.className='face-dot spin-dot';
+    faceTxt.textContent='Memutar…';
+  } else if(faceDetected){
+    faceDot.className='face-dot on';
+    faceTxt.textContent='Wajah terdeteksi ✓';
+  } else {
+    faceDot.className='face-dot';
+    faceTxt.textContent='Arahkan wajah ke kamera';
+  }
+}
+
+/* ══════════════════════════════════════
+   RENDER LOOP (during spin/reveal/done)
+══════════════════════════════════════ */
+async function renderLoop(){
+  if(phase==='idle')return;
+  syncCanvas();ctx.clearRect(0,0,canvas.width,canvas.height);
+  bounceT+=0.065;
+
+  // detect face every frame
+  if(video.readyState===4){
+    try{
+      const p=await detector.estimateFaces(video,false);
+      if(p&&p.length>0){lastFace=p[0];faceDetected=true;}
+      else faceDetected=false;
+    }catch(_){}
+  }
+  updateFaceUI();
+
+  if(lastFace){
+    if(phase==='reveal') drawReveal(lastFace);
+    else if(phase==='done') drawDone(lastFace);
+    // spinning: only face outline on camera, slot machine above handles visuals
+    else drawFaceOutline(lastFace,'rgba(255,214,0,.35)');
+  }
+
+  raf=requestAnimationFrame(renderLoop);
+}
+
+/* ══════════════════════════════════════
+   DRAW REVEAL on canvas
+══════════════════════════════════════ */
+function drawReveal(face){
+  revAnim.st+=0.08;
+  if(revAnim.sc<1) revAnim.sc=Math.min(1,revAnim.sc+0.08);
+  if(revAnim.op<1) revAnim.op=Math.min(1,revAnim.op+0.10);
+  revAnim.shake*=0.78;const shX=revAnim.shake*revAnim.sd;revAnim.sd*=-1;
+  const dy=Math.sin(bounceT)*7;
+
+  const r=drawBillOnFace(face,finalNom,{
+    op:revAnim.op,sc:revAnim.sc,shX,
+    glowC:finalNom.value===50000?'#FFD700':'rgba(0,230,80,.95)',
+    glowB:38*(2-revAnim.sc)+8,dy
+  });
+
+  drawFaceOutline(face,`rgba(0,220,80,${0.4+Math.sin(revAnim.st*6)*.3})`);
+
+  if(r&&revAnim.sc>0.4){
+    const syms=['✦','★','✧','✶','❋','◆'];
+    ctx.save();
+    for(let s=0;s<6;s++){
+      const ang=revAnim.st*2.8+s*(Math.PI*2/6);
+      const sx=r.cx+Math.cos(ang)*r.bW*0.58;
+      const sy=r.cy+Math.sin(ang)*r.bH*0.42;
+      ctx.font=`${10+Math.sin(revAnim.st*3+s)*5}px serif`;
+      ctx.globalAlpha=0.7+Math.sin(revAnim.st*4+s)*0.3;
+      ctx.fillStyle=finalNom.value===50000?'#FFD700':'#a0ffb0';
+      ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8;
+      ctx.fillText(syms[s%6],sx,sy);
+    }ctx.restore();
+  }
+}
+
+function drawDone(face){
+  revAnim.st+=0.035;
+  const dy=Math.sin(bounceT)*5;
+  const r=drawBillOnFace(face,finalNom,{
+    op:1,glowC:finalNom.value===50000?'#FFD700':'rgba(255,220,0,.65)',
+    glowB:12+Math.sin(bounceT*1.5)*7,dy
+  });
+  drawFaceOutline(face,'rgba(0,200,83,.35)');
+  if(r){
+    ctx.save();
+    ['✦','✧'].forEach((sym,i)=>{
+      const ang=revAnim.st*1.3+i*Math.PI;
+      const sx=r.cx+Math.cos(ang)*r.bW*0.62;
+      const sy=r.cy+Math.sin(ang)*r.bH*0.52;
+      ctx.font='14px serif';
+      ctx.globalAlpha=0.6+Math.sin(revAnim.st*2+i)*0.4;
+      ctx.fillStyle=finalNom.value===50000?'#FFD700':'rgba(255,220,80,.9)';
+      ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8;
+      ctx.fillText(sym,sx,sy);
+    });ctx.restore();
+  }
+}
+
+/* ══════════════════════════════════════
+   START SPIN
+══════════════════════════════════════ */
 function startSpin(){
-  finalNom     = pickFinal();
-  displayNom   = pickRandom();
-  phase        = 'spinning';
-  bounceT      = 0;
-  rev          = {scale:0,opacity:0,shake:0,shakeDir:1,sparkT:0};
+  cancelAnimationFrame(raf);clearTimeout(spinTimer);
+  finalNom=pickFinal();
+  phase='spinning';bounceT=0;
+  revAnim={sc:0,op:0,shake:0,sd:1,st:0};
 
-  // Badge shows spinning state
-  nominalLabel.textContent='Sedang memutar…';
-  nominalVal.textContent='🎰 ???';
-  nominalVal.className='nominal-value spinning-text';
-  nominalBox.classList.add('show');
-  nominalBox.classList.remove('jackpot');
+  // show slot machine above camera
+  camFrame.classList.remove('rounded-top');
+  slotWrap.classList.add('active');
+  slotReveal.classList.remove('show');
+  slotReel.style.transform='translateY(0px)';
+  reelY=0;
 
-  btnStart.style.display='none';
-  btnStop.style.display='none';
-  running=true;
+  btnGo.style.display='none';btnRst.style.display='none';
 
-  // Fast spin ticker
-  let fastDone=false;
-  function fastTick(){
-    if(phase!=='spinning') return;
-    displayNom=pickRandom();
-    spinTimer=setTimeout(fastTick, FAST_INTERVAL);
-  }
-  fastTick();
+  startReelSpin();
+  renderLoop();
 
-  // After FAST_DURATION → slow down
-  setTimeout(()=>{
+  // after 2s slow down
+  spinTimer=setTimeout(()=>{
     phase='slowing';
-    clearTimeout(spinTimer);
-    let tick=0;
-
-    function slowTick(){
-      tick++;
-      const t=tick/SLOW_TICKS;
-      const interval=SLOW_START_MS+(SLOW_END_MS-SLOW_START_MS)*t;
-
-      // Last 3 ticks: lock to final
-      displayNom = tick>=SLOW_TICKS-2 ? finalNom : pickRandom();
-
-      // Update badge text each tick (slot roll feel in UI too)
-      nominalVal.textContent = tick>=SLOW_TICKS-2 ? finalNom.label : '🎰 ???';
-
-      if(tick<SLOW_TICKS){
-        spinTimer=setTimeout(slowTick,interval);
-      } else {
-        doReveal();
-      }
-    }
-    spinTimer=setTimeout(slowTick, SLOW_START_MS);
-  }, FAST_DURATION);
-
-  detectionLoop();
+    slowReel(4,1000); // slow over 1s
+    spinTimer=setTimeout(()=>{
+      slowReel(0,600); // stop over 0.6s
+      spinTimer=setTimeout(doReveal,700);
+    },1050);
+  },2000);
 }
 
-/* ============================================================
+/* ══════════════════════════════════════
    REVEAL
-============================================================ */
+══════════════════════════════════════ */
 function doReveal(){
-  phase      = 'reveal';
-  displayNom = finalNom;
-  rev        = {scale:0, opacity:0, shake:8, shakeDir:1, sparkT:0};
+  stopReel();phase='reveal';
+  revAnim={sc:0,op:0,shake:10,sd:1,st:0};
 
-  // Flash
-  revealFlash.classList.add('flash');
-  setTimeout(()=>revealFlash.classList.remove('flash'),250);
+  // show result in slot window
+  slotRevVal.textContent=finalNom.label;
+  slotRevVal.className='slot-reveal-val'+(finalNom.value===50000?' jp':'');
+  slotWrap.classList.remove('active');slotWrap.classList.add('reveal-mode');
+  slotReveal.classList.add('show');
 
-  // Badge reveal
-  nominalLabel.textContent='Rezekimu hari ini 🎉';
-  nominalVal.textContent=finalNom.label;
-  nominalVal.className='nominal-value'+(finalNom.value===50000?' jackpot-text':'');
+  // flash
+  flashEl.classList.add('go');setTimeout(()=>flashEl.classList.remove('go'),200);
+
   if(finalNom.value===50000){
-    nominalBox.classList.add('jackpot');
+    camFrame.classList.add('jackpot-border');
     spawnConfetti();
   }
 
-  // Show ulangi after settle
-  setTimeout(()=>{
-    phase='done';
-    btnStop.style.display='flex';
-  },1400);
+  setTimeout(()=>{phase='done';btnRst.style.display='flex';},1400);
 }
 
-/* ============================================================
-   CONFETTI (50k jackpot)
-============================================================ */
+/* ══════════════════════════════════════
+   CONFETTI
+══════════════════════════════════════ */
 function spawnConfetti(){
-  if(!document.querySelector('#confettiKF')){
-    const s=document.createElement('style');
-    s.id='confettiKF';
-    s.textContent=`@keyframes cfall{0%{transform:translateY(-10px) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}`;
-    document.head.appendChild(s);
-  }
   const cols=['#FFD600','#00c853','#ff3d00','#2979ff','#e040fb','#fff'];
-  for(let i=0;i<80;i++){
-    const el=document.createElement('div');
-    const sz=5+Math.random()*9;
-    el.style.cssText=`position:fixed;z-index:998;pointer-events:none;
+  for(let i=0;i<90;i++){
+    const d=document.createElement('div');const sz=5+Math.random()*9;
+    d.style.cssText=`position:fixed;z-index:998;pointer-events:none;
       width:${sz}px;height:${sz}px;border-radius:${Math.random()>.5?'50%':'2px'};
       background:${cols[Math.floor(Math.random()*cols.length)]};
-      left:${Math.random()*100}vw;top:0;
-      animation:cfall ${1.5+Math.random()*2.5}s ease-in forwards;
-      animation-delay:${Math.random()*.6}s;`;
-    document.body.appendChild(el);
-    setTimeout(()=>el.remove(),5000);
+      left:${Math.random()*100}vw;top:-10px;
+      animation:cfall ${1.6+Math.random()*2.5}s ease-in forwards;
+      animation-delay:${Math.random()*.7}s;`;
+    document.body.appendChild(d);setTimeout(()=>d.remove(),5500);
   }
 }
 
-/* ============================================================
-   DETECTION LOOP
-============================================================ */
-async function detectionLoop(){
-  if(!running) return;
-  if(video.readyState!==4){animFrame=requestAnimationFrame(detectionLoop);return;}
-  resizeCanvas();
-  ctx.clearRect(0,0,overlay.width,overlay.height);
-
-  try{
-    const det=await faceapi
-      .detectSingleFace(video,new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:.4}))
-      .withFaceLandmarks(true);
-
-    if(det){
-      const box=det.detection.box;
-      bounceT+=0.06;
-      drawFaceBox(box);
-
-      /* ─── FAST SPINNING ─── */
-      if(phase==='spinning'||phase==='slowing'){
-        if(!displayNom) displayNom=pickRandom();
-        const flicker=0.55+Math.abs(Math.sin(bounceT*10))*0.45;
-        const rollY=Math.sin(bounceT*16)*10;
-        const scaleFlick=0.88+Math.abs(Math.sin(bounceT*14))*0.12;
-
-        drawMoneyAt(box,displayNom,{
-          opacity:flicker,scale:scaleFlick,
-          glowColor:'rgba(255,214,0,.9)',glowBlur:8+Math.random()*18,
-          rollY
-        });
-
-        // Slot scan-lines
-        const mW=Math.max(box.width*1.48,210);
-        const mH=mW*(140/320);
-        const mX=box.x+box.width/2-mW/2;
-        const mY=box.y-mH-16;
-        ctx.save();
-        ctx.globalAlpha=0.10;
-        ctx.fillStyle='#fff';
-        const lineCount=6;
-        for(let l=0;l<lineCount;l++){
-          const ly=((bounceT*90)%(mH+lineCount*8))+l*(mH/lineCount)+mY;
-          if(ly>mY&&ly<mY+mH) ctx.fillRect(mX,ly,mW,2);
-        }
-        ctx.restore();
-
-        // Spinning question marks
-        ctx.save();
-        for(let q=0;q<4;q++){
-          const angle=bounceT*5+q*1.57;
-          const radius=box.width*0.65;
-          const qx=box.x+box.width/2+Math.cos(angle)*radius;
-          const qy=box.y-mH*0.3+Math.sin(angle)*radius*0.4;
-          const sz=14+Math.sin(bounceT*4+q)*4;
-          ctx.font=`bold ${sz}px Nunito`;
-          ctx.fillStyle=`rgba(255,214,0,${0.4+Math.sin(bounceT*3+q)*0.3})`;
-          ctx.fillText('?',qx,qy);
-        }
-        ctx.restore();
-
-        // Flying money emojis
-        ctx.save();
-        ctx.font='18px serif';
-        for(let e=0;e<3;e++){
-          const angle=bounceT*3+e*2.09;
-          const dist=box.width*0.9;
-          const ex=box.x+box.width/2+Math.cos(angle)*dist;
-          const ey=box.y+Math.sin(angle)*dist*0.5;
-          ctx.globalAlpha=Math.max(0,0.5+Math.sin(bounceT*4+e)*0.5);
-          ctx.fillText('💸',ex,ey);
-        }
-        ctx.restore();
-
-      /* ─── REVEAL ─── */
-      } else if(phase==='reveal'){
-        rev.sparkT+=0.1;
-        if(rev.scale<1)    rev.scale  =Math.min(1,rev.scale+0.09);
-        if(rev.opacity<1)  rev.opacity=Math.min(1,rev.opacity+0.12);
-        rev.shake*=0.80;
-        const shakeX=rev.shake*rev.shakeDir;
-        rev.shakeDir*=-1;
-
-        const bounce=Math.sin(bounceT)*6;
-        drawMoneyAt(box,finalNom,{
-          opacity:rev.opacity,scale:rev.scale,shakeX,
-          glowColor:finalNom.value===50000?'#FFD700':'rgba(0,220,80,.9)',
-          glowBlur:30*(2-rev.scale)+10,
-          rollY:bounce
-        });
-
-        // Sparkle ring
-        if(rev.scale>0.5){
-          const mW=Math.max(box.width*1.48,210);
-          const mH=mW*(140/320);
-          const cx2=box.x+box.width/2, cy2=box.y-mH*0.5-16;
-          const sparkSyms=['✦','★','✧','✶','❋'];
-          ctx.save();
-          for(let s=0;s<6;s++){
-            const angle=rev.sparkT*2.5+s*(Math.PI*2/6);
-            const dist=mW*0.58;
-            const sx=cx2+Math.cos(angle)*dist;
-            const sy=cy2+Math.sin(angle)*dist*0.45;
-            const sz=10+Math.sin(rev.sparkT*3+s)*5;
-            ctx.font=`${sz}px serif`;
-            ctx.globalAlpha=0.7+Math.sin(rev.sparkT*4+s)*0.3;
-            ctx.fillStyle=finalNom.value===50000?'#FFD700':'#90EE90';
-            ctx.fillText(sparkSyms[s%5],sx,sy);
-          }
-          ctx.restore();
-        }
-
-      /* ─── DONE ─── */
-      } else if(phase==='done'){
-        rev.sparkT+=0.04;
-        const bounce=Math.sin(bounceT)*5;
-        drawMoneyAt(box,finalNom,{
-          opacity:1,
-          glowColor:finalNom.value===50000?'#FFD700':'rgba(255,220,0,.6)',
-          glowBlur:14+Math.sin(bounceT*1.5)*7,
-          rollY:bounce
-        });
-
-        // Orbiting sparkles (calm)
-        const mW=Math.max(box.width*1.48,210);
-        const mH=mW*(140/320);
-        const cx2=box.x+box.width/2, cy2=box.y-mH*0.5-16;
-        ctx.save();
-        const orbSyms=['✦','✧'];
-        for(let s=0;s<2;s++){
-          const angle=rev.sparkT*1.2+s*Math.PI;
-          const sx=cx2+Math.cos(angle)*mW*0.58;
-          const sy=cy2+Math.sin(angle)*mH*0.5;
-          ctx.font='14px serif';
-          ctx.globalAlpha=0.65+Math.sin(rev.sparkT*2+s)*0.35;
-          ctx.fillStyle=finalNom.value===50000?'#FFD700':'rgba(255,220,0,.9)';
-          ctx.fillText(orbSyms[s],sx,sy);
-        }
-        ctx.restore();
-      }
-    }
-  }catch(_){}
-
-  animFrame=requestAnimationFrame(detectionLoop);
-}
-
-/* ============================================================
+/* ══════════════════════════════════════
    RESET
-============================================================ */
+══════════════════════════════════════ */
 function resetAll(){
-  running=false;
-  cancelAnimationFrame(animFrame);
-  clearTimeout(spinTimer);
-  ctx.clearRect(0,0,overlay.width,overlay.height);
-  phase='idle';
-  nominalLabel.textContent='Sedang memutar…';
-  nominalVal.textContent='🎰 ???';
-  nominalVal.className='nominal-value';
-  nominalBox.classList.remove('show','jackpot');
-  btnStop.style.display='none';
-  btnStart.style.display='flex';
+  cancelAnimationFrame(raf);cancelAnimationFrame(reelRAF);clearTimeout(spinTimer);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  phase='idle';finalNom=null;
+  slotWrap.classList.remove('active','reveal-mode');
+  slotReveal.classList.remove('show');
+  camFrame.classList.add('rounded-top');camFrame.classList.remove('jackpot-border');
+  btnRst.style.display='none';btnGo.style.display='flex';
+  faceDot.className='face-dot';faceTxt.textContent='Arahkan wajah ke kamera';
+  passiveLoop();
 }
 
-/* ============================================================
+/* ══════════════════════════════════════
    ERROR
-============================================================ */
-function showError(msg){errorMsg.textContent=msg;errorBox.classList.add('show');}
-function hideError(){errorBox.classList.remove('show');}
+══════════════════════════════════════ */
+function showErr(m){errMsg.textContent=m;errBox.classList.add('show');}
+function hideErr(){errBox.classList.remove('show');}
 
-/* ============================================================
+/* ══════════════════════════════════════
    EVENTS
-============================================================ */
-btnActivate.addEventListener('click',activateCamera);
-btnStart.addEventListener('click',startSpin);
-btnStop.addEventListener('click',resetAll);
-window.addEventListener('resize',resizeCanvas);
+══════════════════════════════════════ */
+btnAct.addEventListener('click',activateCam);
+btnGo.addEventListener('click',startSpin);
+btnRst.addEventListener('click',resetAll);
+window.addEventListener('resize',syncCanvas);
 
 if(!navigator.mediaDevices?.getUserMedia){
-  showError('Browser ini tidak mendukung akses kamera. Coba Chrome atau Firefox terbaru.');
-  btnActivate.disabled=true;
+  showErr('Browser tidak mendukung kamera. Coba Chrome/Firefox terbaru.');
+  btnAct.disabled=true;
 }
 </script>
 </body>
