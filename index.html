@@ -1,763 +1,651 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Uang di Kepalamu 💸</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foto Fuzzle — Hand Tracking</title>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-:root{
-  --green:#00c853;--yellow:#ffd600;--dark:#0d1117;
-  --card:#161b22;--text:#e6edf3;--muted:#8b949e;
-}
-body{
-  min-height:100vh;background:var(--dark);color:var(--text);
-  font-family:'Nunito',sans-serif;display:flex;flex-direction:column;
-  align-items:center;padding:16px 12px 36px;overflow-x:hidden;
-}
-body::before{
-  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:
-    radial-gradient(ellipse 60% 40% at 20% 10%,rgba(0,200,83,.13) 0%,transparent 70%),
-    radial-gradient(ellipse 50% 50% at 80% 90%,rgba(255,214,0,.09) 0%,transparent 70%);
-}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#fff;font-family:system-ui,sans-serif;overflow:hidden;height:100vh;width:100vw}
+#app{position:relative;width:100%;height:100%}
 
-/* floating coins bg */
-.coin-bg{position:fixed;pointer-events:none;z-index:0;animation:floatUp linear infinite;opacity:.12;}
-@keyframes floatUp{
-  0%  {transform:translateY(110vh) rotate(0deg);  opacity:0;}
-  10% {opacity:.12;}90%{opacity:.12;}
-  100%{transform:translateY(-10vh) rotate(360deg);opacity:0;}
-}
+/* VIDEO & OVERLAY */
+#videoEl{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none}
+#trackCanvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
+#photoCanvas{display:none}
 
-/* ── HEADER ── */
-.header{position:relative;z-index:1;text-align:center;margin-bottom:14px;}
-.header-emoji{font-size:2.5rem;display:block;animation:hb 2s ease-in-out infinite;}
-@keyframes hb{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
-h1{
-  font-family:'Fredoka One',cursive;font-size:clamp(1.6rem,5.5vw,2.6rem);
-  background:linear-gradient(135deg,var(--green),var(--yellow));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  margin-bottom:3px;
-}
-.subtitle{color:var(--muted);font-size:.88rem;font-weight:600;}
+/* SCREENS */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:5}
+.screen.hidden{display:none}
 
-/* ── SLOT MACHINE (above camera) ── */
-.slot-wrap{
-  position:relative;z-index:2;
-  width:100%;max-width:500px;
-  margin-bottom:0;
-  height:0; /* collapses when idle */
-  overflow:hidden;
-  transition:height .35s cubic-bezier(.4,0,.2,1);
-}
-.slot-wrap.active{ height:130px; }
-.slot-wrap.reveal-mode{ height:110px; }
+/* INTRO */
+#introScreen{background:#0a0a0f}
+#introScreen h1{font-size:3rem;font-weight:700;background:linear-gradient(135deg,#a78bfa,#60a5fa,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center}
+#introScreen p{color:#888;font-size:1.1rem;text-align:center;max-width:400px;line-height:1.6}
+#startBtn{padding:14px 40px;border:none;border-radius:50px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;font-size:1.1rem;cursor:pointer;transition:transform .2s,box-shadow .2s}
+#startBtn:hover{transform:scale(1.05);box-shadow:0 0 30px rgba(124,58,237,.5)}
 
-.slot-machine{
-  width:100%;
-  background:linear-gradient(135deg,#0f1923,#1a2535);
-  border:2px solid rgba(255,214,0,.5);
-  border-bottom:none;
-  border-radius:18px 18px 0 0;
-  padding:10px 16px 14px;
-  display:flex;flex-direction:column;align-items:center;gap:6px;
-  box-shadow:0 -4px 30px rgba(255,214,0,.15);
-}
-.slot-title{
-  font-size:.75rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase;
-  color:rgba(255,214,0,.6);
-}
-.slot-window{
-  width:100%;height:64px;
-  background:#0a0f15;border-radius:10px;
-  border:1.5px solid rgba(255,214,0,.3);
-  overflow:hidden;position:relative;
-  display:flex;align-items:center;justify-content:center;
-}
-/* scanline overlay */
-.slot-window::after{
-  content:'';position:absolute;inset:0;
-  background:repeating-linear-gradient(
-    to bottom,
-    transparent 0px,transparent 3px,
-    rgba(0,0,0,.18) 3px,rgba(0,0,0,.18) 4px
-  );
-  pointer-events:none;z-index:3;
-}
-/* side fade */
-.slot-window::before{
-  content:'';position:absolute;inset:0;z-index:4;
-  background:linear-gradient(to bottom,#0a0f15 0%,transparent 25%,transparent 75%,#0a0f15 100%);
-  pointer-events:none;
-}
-.slot-reel{
-  display:flex;flex-direction:column;align-items:center;gap:0;
-  transition:transform 0s;
-  will-change:transform;
-}
-.slot-item{
-  height:64px;min-height:64px;width:100%;
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Fredoka One',cursive;
-  font-size:1.65rem;letter-spacing:.02em;
-  padding:0 12px;
-  flex-shrink:0;
-}
-/* spinning state colors */
-.slot-item.s5000 {color:#F5DEB3;text-shadow:0 0 12px rgba(245,222,179,.5);}
-.slot-item.s10000{color:#DDB6F8;text-shadow:0 0 12px rgba(221,182,248,.5);}
-.slot-item.s20000{color:#90EE90;text-shadow:0 0 12px rgba(144,238,144,.5);}
-.slot-item.s50000{color:#FFD700;text-shadow:0 0 18px rgba(255,215,0,.8);}
-.slot-item.s-spin{color:#fff;text-shadow:0 0 8px rgba(255,255,255,.4);}
+/* CAMERA HUD */
+#cameraHud{position:absolute;inset:0;pointer-events:none;z-index:8}
+#statusBadge{position:absolute;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.15);border-radius:50px;padding:8px 24px;font-size:.95rem;color:#a78bfa;backdrop-filter:blur(10px);white-space:nowrap}
+#countdownRing{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:none}
+#countdownRing svg{animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(-90deg)}to{transform:rotate(270deg)}}
+#countdownNum{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:3rem;font-weight:700;color:#fff}
+#flashOverlay{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .05s}
+.hint{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.5);font-size:.85rem;text-align:center}
 
-/* result revealed inside slot */
-.slot-reveal{
-  position:absolute;inset:0;z-index:5;
-  display:flex;align-items:center;justify-content:center;
-  flex-direction:column;gap:2px;
-  background:#0a0f15;
-  opacity:0;transition:opacity .3s;
-}
-.slot-reveal.show{opacity:1;}
-.slot-reveal-label{font-size:.7rem;color:rgba(255,214,0,.6);font-weight:900;letter-spacing:.1em;text-transform:uppercase;}
-.slot-reveal-val{
-  font-family:'Fredoka One',cursive;font-size:1.8rem;
-  background:linear-gradient(135deg,var(--green),var(--yellow));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.slot-reveal-val.jp{
-  background:linear-gradient(135deg,#FFD600,#FF6B00,#FFD600);
-  -webkit-background-clip:text;background-clip:text;
-  animation:jpPulse .5s ease-in-out infinite;
-}
-@keyframes jpPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.07);}}
+/* SPREAD INDICATOR */
+#spreadMeter{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px}
+#spreadBar{width:200px;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
+#spreadFill{height:100%;width:0%;background:linear-gradient(90deg,#7c3aed,#34d399);border-radius:3px;transition:width .1s}
+#spreadLabel{font-size:.8rem;color:rgba(255,255,255,.5)}
 
-/* ── CAMERA ── */
-.cam-wrap{position:relative;z-index:1;width:100%;max-width:500px;margin-bottom:0;}
-.cam-frame{
-  position:relative;width:100%;background:#000;
-  border-radius:0;overflow:hidden;
-  border-left:2px solid rgba(0,200,83,.35);
-  border-right:2px solid rgba(0,200,83,.35);
-}
-/* when slot is NOT active, top gets rounded */
-.cam-frame.rounded-top{border-radius:18px 18px 0 0;border-top:2px solid rgba(0,200,83,.35);}
+/* PUZZLE SCREEN */
+#puzzleScreen{background:#0a0a0f}
+#puzzleContainer{position:relative;width:90vmin;height:90vmin;max-width:600px;max-height:600px}
+#puzzleBoard{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);gap:3px;background:#111;border:2px solid rgba(255,255,255,.1);border-radius:8px;overflow:hidden}
+.pCell{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:4px;transition:background .2s}
+.pCell.occupied{background:transparent;border:1px solid rgba(255,255,255,.15)}
+#piecesLayer{position:absolute;inset:0;pointer-events:none}
+.piece{position:absolute;cursor:none;transition:box-shadow .2s;border-radius:4px;overflow:hidden;background:#111}
+.piece.selected{box-shadow:0 0 0 3px #a78bfa,0 0 20px rgba(167,139,250,.5)}
+.piece.placed{box-shadow:none!important}
+.piece canvas{display:block;width:100%;height:100%}
+#puzzleTrackCanvas{position:absolute;inset:0;pointer-events:none;z-index:20}
+#puzzleHud{position:absolute;top:-50px;left:0;right:0;display:flex;justify-content:space-between;align-items:center}
+#puzzleProgress{color:#888;font-size:.9rem}
+#puzzleStatus{color:#a78bfa;font-size:.9rem}
 
-#video{display:block;width:100%;transform:scaleX(-1);aspect-ratio:4/3;object-fit:cover;}
-#overlay{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);}
+/* HOLOGRAM SCREEN */
+#hologramScreen{background:#000;perspective:800px}
+#holoWrap{position:relative;transform-style:preserve-3d;transition:transform .05s}
+#holoImg{display:block;max-width:80vmin;max-height:80vmin;border-radius:12px;box-shadow:0 0 60px rgba(96,165,250,.4),0 0 120px rgba(167,139,250,.2)}
+#holoGlow{position:absolute;inset:-20px;border-radius:20px;background:radial-gradient(ellipse,rgba(96,165,250,.15),transparent 70%);pointer-events:none;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+#holoHud{position:absolute;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);border:1px solid rgba(96,165,250,.3);border-radius:50px;padding:8px 24px;font-size:.9rem;color:#60a5fa;backdrop-filter:blur(10px)}
+#holoTrackCanvas{position:absolute;inset:0;pointer-events:none;z-index:10}
+#restartBtn{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);padding:10px 28px;border:1px solid rgba(255,255,255,.2);border-radius:50px;background:rgba(255,255,255,.05);color:#fff;cursor:pointer;font-size:.9rem;backdrop-filter:blur(10px)}
+#restartBtn:hover{background:rgba(255,255,255,.1)}
 
-/* corner brackets */
-.cam-frame::before,.cam-frame::after,.brb::before,.brb::after{
-  content:'';position:absolute;width:18px;height:18px;
-  border-color:var(--green);border-style:solid;z-index:20;pointer-events:none;
-}
-.cam-frame::before{top:8px;left:8px;border-width:2px 0 0 2px;border-radius:4px 0 0 0;}
-.cam-frame::after {top:8px;right:8px;border-width:2px 2px 0 0;border-radius:0 4px 0 0;}
-.brb::before{bottom:8px;left:8px;border-width:0 0 2px 2px;border-radius:0 0 0 4px;}
-.brb::after {bottom:8px;right:8px;border-width:0 2px 2px 0;border-radius:0 0 4px 0;}
+/* WIN FLASH */
+#winFlash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.9);z-index:100;opacity:0;pointer-events:none;transition:opacity .5s}
+#winFlash.show{opacity:1;pointer-events:all}
+#winFlash h2{font-size:2.5rem;font-weight:700;color:#34d399;margin-bottom:12px;animation:popIn .5s ease}
+@keyframes popIn{from{transform:scale(.5)}to{transform:scale(1)}}
+#winFlash p{color:#888}
 
-/* overlay states */
-.overlay-state{
-  position:absolute;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:12px;z-index:30;
-  background:rgba(0,0,0,.88);backdrop-filter:blur(4px);
-}
-.state-icon{font-size:2.8rem;animation:pulse 2s ease-in-out infinite;}
-@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
-.state-text{color:var(--muted);font-weight:700;font-size:.9rem;text-align:center;padding:0 20px;}
-.spinner{width:44px;height:44px;border:4px solid rgba(0,200,83,.2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-
-/* ── BOTTOM BAR (below camera) ── */
-.bottom-bar{
-  width:100%;max-width:500px;
-  background:linear-gradient(135deg,#0f1923,#1a2535);
-  border:2px solid rgba(0,200,83,.35);
-  border-top:none;border-radius:0 0 18px 18px;
-  padding:14px 16px;
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-  box-shadow:0 8px 30px rgba(0,0,0,.5);
-  margin-bottom:18px;
-}
-.face-status{
-  display:flex;align-items:center;gap:8px;
-  font-size:.82rem;font-weight:700;color:var(--muted);
-}
-.face-dot{
-  width:9px;height:9px;border-radius:50%;background:#555;
-  transition:background .3s,box-shadow .3s;flex-shrink:0;
-}
-.face-dot.on{background:var(--green);box-shadow:0 0 8px var(--green);}
-.face-dot.spin-dot{background:var(--yellow);box-shadow:0 0 10px var(--yellow);animation:blinkDot .3s linear infinite;}
-@keyframes blinkDot{0%,100%{opacity:1;}50%{opacity:.3;}}
-
-.btn{
-  font-family:'Nunito',sans-serif;font-weight:900;font-size:.95rem;
-  padding:11px 22px;border-radius:50px;border:none;cursor:pointer;
-  display:flex;align-items:center;gap:7px;
-  transition:transform .15s,box-shadow .15s,opacity .2s;flex-shrink:0;
-}
-.btn:active{transform:scale(.95);}
-.btn:disabled{opacity:.35;cursor:not-allowed;}
-.btn-activate{background:linear-gradient(135deg,#00c853,#007c33);color:#fff;box-shadow:0 3px 16px rgba(0,200,83,.4);}
-.btn-activate:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,200,83,.55);}
-.btn-start{background:linear-gradient(135deg,#ffd600,#ffab00);color:#111;box-shadow:0 3px 16px rgba(255,214,0,.4);}
-.btn-start:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 22px rgba(255,214,0,.55);}
-.btn-stop{background:var(--card);color:var(--text);border:2px solid rgba(0,200,83,.3);}
-.btn-stop:hover:not(:disabled){background:#1f2937;}
-.btn .icon{font-size:1.1rem;}
-
-/* error */
-.error-box{
-  position:relative;z-index:1;width:100%;max-width:500px;
-  background:rgba(255,61,0,.12);border:2px solid rgba(255,61,0,.45);
-  border-radius:14px;padding:13px 16px;display:none;
-  align-items:center;gap:10px;margin-bottom:14px;color:#ff6e40;font-weight:700;
-}
-.error-box.show{display:flex;}
-.tips{position:relative;z-index:1;max-width:500px;text-align:center;color:var(--muted);font-size:.84rem;line-height:1.65;}
-.tips strong{color:var(--text);}
-
-/* flash */
-#flash{
-  position:fixed;inset:0;z-index:999;pointer-events:none;
-  background:radial-gradient(circle,rgba(255,220,0,.85),transparent 65%);
-  opacity:0;transition:opacity .08s;
-}
-#flash.go{opacity:1;}
-
-/* jackpot border on cam */
-.cam-frame.jackpot-border{border-color:#FFD700;box-shadow:0 0 0 3px rgba(255,215,0,.3);}
-
-@keyframes cfall{
-  0%  {transform:translateY(-20px) rotate(0deg);  opacity:1;}
-  100%{transform:translateY(105vh) rotate(760deg);opacity:0;}
-}
-@media(max-width:400px){.slot-item{font-size:1.35rem;}}
+/* HAND CURSOR */
+#handCursor{position:fixed;width:24px;height:24px;border-radius:50%;background:rgba(167,139,250,.6);border:2px solid #a78bfa;pointer-events:none;transform:translate(-50%,-50%);z-index:50;transition:width .1s,height .1s,background .1s;display:none}
+#handCursor.pinch{width:16px;height:16px;background:rgba(52,211,153,.8);border-color:#34d399}
+#handCursor2{position:fixed;width:20px;height:20px;border-radius:50%;background:rgba(96,165,250,.5);border:2px solid #60a5fa;pointer-events:none;transform:translate(-50%,-50%);z-index:50;transition:width .1s;display:none}
 </style>
 </head>
 <body>
+<div id="app">
 
-<div id="flash"></div>
+  <!-- HAND CURSORS -->
+  <div id="handCursor"></div>
+  <div id="handCursor2"></div>
 
-<div class="header">
-  <span class="header-emoji">💸</span>
-  <h1>Berapa THR Mu</h1>
-  <p class="subtitle">BIARKAN MUKA MENILAI BERAPA THR MU</p>
-</div>
+  <!-- VIDEO -->
+  <video id="videoEl" playsinline></video>
+  <canvas id="trackCanvas"></canvas>
+  <canvas id="photoCanvas"></canvas>
 
-<!-- SLOT MACHINE (above camera, hidden until spin) -->
-<div class="slot-wrap" id="slotWrap">
-  <div class="slot-machine">
-    <div class="slot-title">⚡ Memutar Nominal ⚡</div>
-    <div class="slot-window" id="slotWindow">
-      <div class="slot-reel" id="slotReel"></div>
-      <div class="slot-reveal" id="slotReveal">
-        <span class="slot-reveal-label">Rezekimu hari ini 🎉</span>
-        <span class="slot-reveal-val" id="slotRevealVal">—</span>
+  <!-- INTRO -->
+  <div id="introScreen" class="screen">
+    <h1>📸 Foto Fuzzle</h1>
+    <p>Arahkan tangan ke kamera, buka tangan lebar untuk memotret. Susun puzzle dengan tangan, lalu hologramkan fotomu!</p>
+    <button id="startBtn">Mulai Kamera</button>
+  </div>
+
+  <!-- CAMERA HUD -->
+  <div id="cameraHud" class="hidden">
+    <div id="statusBadge">Arahkan tangan ke kamera...</div>
+    <div id="countdownRing">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="6"/>
+        <circle id="cRing" cx="60" cy="60" r="54" fill="none" stroke="#a78bfa" stroke-width="6"
+          stroke-dasharray="339.3" stroke-dashoffset="339.3" stroke-linecap="round"
+          style="transform-origin:center;transform:rotate(-90deg);transition:stroke-dashoffset .1s"/>
+      </svg>
+      <div id="countdownNum">3</div>
+    </div>
+    <div id="spreadMeter">
+      <div id="spreadLabel">Buka tangan untuk foto</div>
+      <div id="spreadBar"><div id="spreadFill"></div></div>
+    </div>
+    <div id="flashOverlay"></div>
+    <div class="hint">✋ Buka jari lebar-lebar → foto otomatis</div>
+  </div>
+
+  <!-- PUZZLE SCREEN -->
+  <div id="puzzleScreen" class="screen hidden">
+    <div id="puzzleContainer">
+      <div id="puzzleHud">
+        <div id="puzzleProgress">0 / 12 tersusun</div>
+        <div id="puzzleStatus">Cubit & geser potongan puzzle</div>
       </div>
+      <div id="puzzleBoard"></div>
+      <div id="piecesLayer"></div>
+      <canvas id="puzzleTrackCanvas"></canvas>
     </div>
+  </div>
+
+  <!-- HOLOGRAM SCREEN -->
+  <div id="hologramScreen" class="screen hidden">
+    <div id="holoHud">🖐 Gerakkan kedua tangan untuk memutar hologram</div>
+    <div id="holoWrap">
+      <img id="holoImg" src="" alt="hologram">
+      <div id="holoGlow"></div>
+    </div>
+    <canvas id="holoTrackCanvas"></canvas>
+    <button id="restartBtn">🔄 Foto Lagi</button>
+  </div>
+
+  <!-- WIN FLASH -->
+  <div id="winFlash">
+    <h2>🎉 Puzzle Selesai!</h2>
+    <p>Foto kamu menyatu! Siap jadi hologram...</p>
   </div>
 </div>
 
-<!-- CAMERA -->
-<div class="cam-wrap">
-  <div class="cam-frame rounded-top" id="camFrame">
-    <div class="brb"></div>
-    <video id="video" autoplay muted playsinline></video>
-    <canvas id="overlay"></canvas>
-    <div class="overlay-state" id="stIdle">
-      <div class="state-icon">📷</div>
-      <p class="state-text">Kamera belum aktif.<br>Tekan tombol di bawah.</p>
-    </div>
-    <div class="overlay-state" id="stLoad" style="display:none">
-      <div class="spinner"></div>
-      <p class="state-text" id="loadMsg">Memuat model AI…</p>
-    </div>
-  </div>
-</div>
-
-<!-- BOTTOM BAR -->
-<div class="bottom-bar" id="bottomBar">
-  <div class="face-status">
-    <div class="face-dot" id="faceDot"></div>
-    <span id="faceStatusTxt">Belum aktif</span>
-  </div>
-  <button class="btn btn-activate" id="btnAct"><span class="icon">📷</span>Aktifkan</button>
-  <button class="btn btn-start"    id="btnGo"  style="display:none"><span class="icon">✨</span>Mulai!</button>
-  <button class="btn btn-stop"     id="btnRst" style="display:none"><span class="icon">🔄</span>Ulangi</button>
-</div>
-
-<div class="error-box" id="errBox">
-  <span style="font-size:1.4rem">🚫</span><span id="errMsg"></span>
-</div>
-<p class="tips">💡 Hadapkan wajahmu ke kamera, tekan <strong>Mulai!</strong> — nominal akan berputar di atas frame!</p>
-
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js"></script>
 <script>
-/* ══════════════════════════════════════
-   NOMINALS
-══════════════════════════════════════ */
-const NOMINALS=[
-  {label:'Rp 10.000', value:5000,  weight:35, cls:'s10000'},
-  {label:'Rp 15.000',value:10000, weight:25, cls:'s15000'},
-  {label:'Rp 20.000',value:20000, weight:10, cls:'s20000'},
-  {label:'Rp 50.000',value:50000, weight:0.1,  cls:'s50000'},
-];
-const BILL_COLORS={
-  5000: {bg1:'#7B4516',bg2:'#C0652A',txt:'#F5DEB3'},
-  10000:{bg1:'#3b1060',bg2:'#8B2FC9',txt:'#DDB6F8'},
-  20000:{bg1:'#1a472a',bg2:'#2d8a4e',txt:'#90EE90'},
-  50000:{bg1:'#7B0D1E',bg2:'#C41E3A',txt:'#FFD700'},
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const S = {
+  mode: 'intro',      // intro | camera | puzzle | hologram
+  hands: [],
+  photoDataUrl: null,
+  pieces: [],         // {id, correctCol, correctRow, currentCol, currentRow, placed, el, canv}
+  selectedPiece: null,
+  grabbedByHand: null,
+  placedCount: 0,
+  spreadHold: 0,
+  countdownActive: false,
+  holoRotX: 0,
+  holoRotY: 0,
+  lastTwoHands: null,
+  pinchDist0: null,
+  pinchMidX0: null,
+  pinchMidY0: null,
+  handVisible: false,
+};
+const COLS = 4, ROWS = 3, TOTAL = 12;
+const SPREAD_THRESHOLD = 0.38;
+const SPREAD_HOLD_MS = 1000;
+
+// ─── DOM ─────────────────────────────────────────────────────────────────────
+const video       = document.getElementById('videoEl');
+const trackCanvas = document.getElementById('trackCanvas');
+const photoCanvas = document.getElementById('photoCanvas');
+const tCtx        = trackCanvas.getContext('2d');
+const pCtx        = photoCanvas.getContext('2d');
+const cameraHud   = document.getElementById('cameraHud');
+const statusBadge = document.getElementById('statusBadge');
+const spreadFill  = document.getElementById('spreadFill');
+const spreadLabel = document.getElementById('spreadLabel');
+const cRing       = document.getElementById('cRing');
+const cdNum       = document.getElementById('countdownNum');
+const cdRing      = document.getElementById('countdownRing');
+const flashOverlay= document.getElementById('flashOverlay');
+const introScreen = document.getElementById('introScreen');
+const puzzleScreen= document.getElementById('puzzleScreen');
+const hologramScreen= document.getElementById('hologramScreen');
+const puzzleBoard = document.getElementById('puzzleBoard');
+const piecesLayer = document.getElementById('piecesLayer');
+const ptCanvas    = document.getElementById('puzzleTrackCanvas');
+const ptCtx       = ptCanvas.getContext('2d');
+const holoImg     = document.getElementById('holoImg');
+const holoWrap    = document.getElementById('holoWrap');
+const htCanvas    = document.getElementById('holoTrackCanvas');
+const htCtx       = htCanvas.getContext('2d');
+const winFlash    = document.getElementById('winFlash');
+const handCursor  = document.getElementById('handCursor');
+const handCursor2 = document.getElementById('handCursor2');
+const progressEl  = document.getElementById('puzzleProgress');
+const puzzleStatusEl = document.getElementById('puzzleStatus');
+
+// ─── MEDIAPIPE HANDS ─────────────────────────────────────────────────────────
+let handsModel, cameraUtil;
+
+function initMediaPipe() {
+  handsModel = new Hands({locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+  handsModel.setOptions({maxNumHands:2, modelComplexity:1, minDetectionConfidence:.7, minTrackingConfidence:.6});
+  handsModel.onResults(onHandResults);
+
+  cameraUtil = new Camera(video, {
+    onFrame: async () => { if(S.mode!=='intro') await handsModel.send({image:video}); },
+    width: 1280, height: 720
+  });
+  cameraUtil.start();
+}
+
+// ─── RESIZE ──────────────────────────────────────────────────────────────────
+function resizeCanvases() {
+  [trackCanvas, htCanvas].forEach(c => { c.width=innerWidth; c.height=innerHeight; });
+  const pc = document.getElementById('puzzleContainer');
+  if(pc){ ptCanvas.width=pc.offsetWidth; ptCanvas.height=pc.offsetHeight; }
+}
+window.addEventListener('resize', resizeCanvases);
+resizeCanvases();
+
+// ─── HAND RESULT HANDLER ─────────────────────────────────────────────────────
+function onHandResults(results) {
+  S.hands = results.multiHandLandmarks || [];
+  S.handVisible = S.hands.length > 0;
+
+  if(S.mode === 'camera') handleCameraHands();
+  else if(S.mode === 'puzzle') handlePuzzleHands();
+  else if(S.mode === 'hologram') handleHologramHands();
+
+  drawTrackingOverlay();
+}
+
+// ─── UTILITY ─────────────────────────────────────────────────────────────────
+function lm(hand, idx) {
+  const l = hand[idx];
+  return { x: (1-l.x)*innerWidth, y: l.y*innerHeight }; // mirror
+}
+function dist(a, b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+function spreadScore(hand) {
+  // ratio: avg tip-to-wrist vs wrist-to-middle-mcp
+  const wrist = hand[0], tips = [4,8,12,16,20];
+  const ref = dist(hand[0], hand[9]);
+  if(ref < 0.01) return 0;
+  const avg = tips.reduce((s,i) => s + dist(hand[i], hand[0]), 0) / tips.length;
+  return Math.min(avg / ref / 2.2, 1);
+}
+function pinchDist(hand) { return dist(lm(hand,4), lm(hand,8)); }
+function isPinching(hand) { return pinchDist(hand) < 40; }
+function midPoint(hand) {
+  const t = lm(hand,4), i = lm(hand,8);
+  return { x:(t.x+i.x)/2, y:(t.y+i.y)/2 };
+}
+
+// ─── CAMERA HANDS ────────────────────────────────────────────────────────────
+let spreadTimer = null;
+function handleCameraHands() {
+  if(!S.hands.length){ S.countdownActive=false; clearTimeout(spreadTimer); cdRing.style.display='none'; statusBadge.textContent='Arahkan tangan ke kamera...'; spreadFill.style.width='0%'; return; }
+  const hand = S.hands[0];
+  const ss = spreadScore(hand);
+  spreadFill.style.width = (ss*100)+'%';
+
+  if(ss > SPREAD_THRESHOLD) {
+    statusBadge.textContent = '👋 Tahan... sedang mengambil foto';
+    spreadLabel.textContent = 'Pertahankan!';
+    if(!spreadTimer) {
+      let start = performance.now();
+      cdRing.style.display = 'block';
+      S.countdownActive = true;
+      spreadTimer = setInterval(()=>{
+        const elapsed = performance.now()-start;
+        const frac = elapsed/SPREAD_HOLD_MS;
+        cRing.style.strokeDashoffset = 339.3*(1-frac);
+        cdNum.textContent = Math.max(1,Math.ceil(3*(1-frac)));
+        if(frac >= 1) { clearInterval(spreadTimer); spreadTimer=null; takePhoto(); }
+      }, 50);
+    }
+  } else {
+    spreadLabel.textContent = 'Buka tangan untuk foto';
+    statusBadge.textContent = ss > 0.2 ? '✋ Buka lebih lebar...' : '✋ Tangan terdeteksi!';
+    clearInterval(spreadTimer); spreadTimer=null;
+    cdRing.style.display='none'; S.countdownActive=false;
+  }
+
+  // update cursor
+  const mp = midPoint(hand);
+  handCursor.style.display='block';
+  handCursor.style.left = mp.x+'px';
+  handCursor.style.top  = mp.y+'px';
+}
+
+// ─── TAKE PHOTO ───────────────────────────────────────────────────────────────
+function takePhoto() {
+  cdRing.style.display='none';
+  // flash
+  flashOverlay.style.opacity='1';
+  setTimeout(()=>{ flashOverlay.style.transition='opacity .4s'; flashOverlay.style.opacity='0'; setTimeout(()=>{ flashOverlay.style.transition='opacity .05s'; },500); },80);
+
+  // capture from video
+  photoCanvas.width = video.videoWidth;
+  photoCanvas.height = video.videoHeight;
+  pCtx.save(); pCtx.translate(photoCanvas.width,0); pCtx.scale(-1,1);
+  pCtx.drawImage(video,0,0);
+  pCtx.restore();
+  S.photoDataUrl = photoCanvas.toDataURL('image/jpeg',0.92);
+
+  setTimeout(()=>{ switchToPuzzle(); }, 600);
+}
+
+// ─── SWITCH TO PUZZLE ────────────────────────────────────────────────────────
+function switchToPuzzle() {
+  S.mode='puzzle';
+  cameraHud.classList.add('hidden');
+  handCursor.style.display='none';
+  introScreen.classList.add('hidden');
+  puzzleScreen.classList.remove('hidden');
+  video.style.display='none';
+  trackCanvas.style.display='none';
+  resizeCanvases();
+  buildPuzzle();
+}
+
+// ─── BUILD PUZZLE ─────────────────────────────────────────────────────────────
+function buildPuzzle() {
+  puzzleBoard.innerHTML=''; piecesLayer.innerHTML=''; S.pieces=[]; S.placedCount=0;
+  const img = new Image();
+  img.onload = () => {
+    const iw=img.width, ih=img.height;
+    const pw=iw/COLS, ph=ih/ROWS;
+    const container = document.getElementById('puzzleContainer');
+    const bw=container.offsetWidth, bh=container.offsetHeight;
+    const cw=bw/COLS, ch=bh/ROWS;
+
+    // board cells
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const cell=document.createElement('div');
+      cell.className='pCell';
+      cell.dataset.r=r; cell.dataset.c=c;
+      puzzleBoard.appendChild(cell);
+    }
+
+    // create pieces
+    const ids = [...Array(TOTAL).keys()];
+    shuffle(ids);
+
+    ids.forEach((id,i)=>{
+      const correctCol = id%COLS, correctRow = Math.floor(id/COLS);
+      const canv = document.createElement('canvas');
+      canv.width=pw; canv.height=ph;
+      const ctx=canv.getContext('2d');
+      ctx.drawImage(img, correctCol*pw, correctRow*ph, pw, ph, 0,0, pw,ph);
+
+      const el=document.createElement('div');
+      el.className='piece';
+      el.style.width=cw+'px'; el.style.height=ch+'px';
+      const pc=document.createElement('canvas');
+      pc.width=cw; pc.height=ch;
+      pc.getContext('2d').drawImage(canv,0,0,pw,ph,0,0,cw,ch);
+      el.appendChild(pc);
+
+      // scatter randomly outside board area or shuffled
+      const angle = (i/TOTAL)*Math.PI*2;
+      const rx = bw/2 + Math.cos(angle)*(bw*0.65);
+      const ry = bh/2 + Math.sin(angle)*(bh*0.55);
+      el.style.left = Math.max(0,Math.min(bw-cw,rx-cw/2))+'px';
+      el.style.top  = Math.max(0,Math.min(bh-ch,ry-ch/2))+'px';
+      piecesLayer.appendChild(el);
+
+      S.pieces.push({ id, correctCol, correctRow, currentCol:-1, currentRow:-1, placed:false, el, cw, ch });
+    });
+    updateProgress();
+  };
+  img.src = S.photoDataUrl;
+}
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+// ─── PUZZLE HANDS ────────────────────────────────────────────────────────────
+let lastGrabTime=0;
+function handlePuzzleHands() {
+  if(!S.hands.length){ releasePiece(); return; }
+  const hand=S.hands[0];
+  const container=document.getElementById('puzzleContainer');
+  const rect=container.getBoundingClientRect();
+  const mp = midPoint(hand);
+  const pinching = isPinching(hand);
+
+  // cursor
+  handCursor.style.display='block';
+  handCursor.style.left=mp.x+'px';
+  handCursor.style.top=mp.y+'px';
+  handCursor.className = pinching ? 'pinch' : '';
+
+  // local coords inside container
+  const lx=mp.x-rect.left, ly=mp.y-rect.top;
+
+  if(pinching) {
+    if(!S.selectedPiece) {
+      // grab nearest unplaced piece
+      const now=Date.now();
+      if(now-lastGrabTime>300) {
+        let best=null, bestD=60;
+        S.pieces.forEach(p=>{
+          if(p.placed) return;
+          const el=p.el;
+          const px=parseFloat(el.style.left)+p.cw/2;
+          const py=parseFloat(el.style.top)+p.ch/2;
+          const d=Math.hypot(lx-px,ly-py);
+          if(d<bestD){ bestD=d; best=p; }
+        });
+        if(best){ S.selectedPiece=best; best.el.classList.add('selected'); lastGrabTime=Date.now(); }
+      }
+    }
+    if(S.selectedPiece && !S.selectedPiece.placed) {
+      const p=S.selectedPiece;
+      p.el.style.left=(lx-p.cw/2)+'px';
+      p.el.style.top =(ly-p.ch/2)+'px';
+      p.el.style.zIndex=999;
+      puzzleStatusEl.textContent='Lepaskan di atas sel yang benar!';
+    }
+  } else {
+    if(S.selectedPiece) {
+      // snap to nearest cell
+      const p=S.selectedPiece;
+      const bw=container.offsetWidth, bh=container.offsetHeight;
+      const cw=bw/COLS, ch=bh/ROWS;
+      const pcx=parseFloat(p.el.style.left)+p.cw/2;
+      const pcy=parseFloat(p.el.style.top)+p.ch/2;
+      const col=Math.round(pcx/cw-0.5), row=Math.round(pcy/ch-0.5);
+      const snapCol=Math.max(0,Math.min(COLS-1,col));
+      const snapRow=Math.max(0,Math.min(ROWS-1,row));
+
+      // check if correct
+      if(snapCol===p.correctCol && snapRow===p.correctRow) {
+        // check not already occupied by placed piece
+        const occupied=S.pieces.find(op=>op.placed&&op.correctCol===snapCol&&op.correctRow===snapRow);
+        if(!occupied) {
+          p.placed=true; p.currentCol=snapCol; p.currentRow=snapRow;
+          p.el.style.left=(snapCol*cw)+'px';
+          p.el.style.top =(snapRow*ch)+'px';
+          p.el.style.zIndex=1;
+          p.el.classList.remove('selected'); p.el.classList.add('placed');
+          S.placedCount++;
+          updateProgress();
+          if(S.placedCount===TOTAL) setTimeout(onPuzzleComplete,800);
+        } else { bounceBack(p); }
+      } else { bounceBack(p); }
+      S.selectedPiece=null;
+      puzzleStatusEl.textContent='Cubit & geser potongan puzzle';
+    }
+  }
+
+  // second hand cursor
+  if(S.hands.length>1){
+    const h2=S.hands[1];
+    const mp2=midPoint(h2);
+    handCursor2.style.display='block';
+    handCursor2.style.left=mp2.x+'px';
+    handCursor2.style.top=mp2.y+'px';
+  } else { handCursor2.style.display='none'; }
+
+  drawPuzzleTracking();
+}
+
+function releasePiece() {
+  if(S.selectedPiece){ S.selectedPiece.el.classList.remove('selected'); S.selectedPiece=null; }
+  handCursor.style.display='none';
+}
+
+function bounceBack(p) {
+  p.el.style.transition='left .3s,top .3s'; 
+  const bw=document.getElementById('puzzleContainer').offsetWidth;
+  const bh=document.getElementById('puzzleContainer').offsetHeight;
+  p.el.style.left=Math.max(0,Math.min(bw-p.cw,parseFloat(p.el.style.left)))+'px';
+  p.el.style.top =Math.max(0,Math.min(bh-p.ch,parseFloat(p.el.style.top)))+'px';
+  setTimeout(()=>{ p.el.style.transition=''; },350);
+}
+
+function updateProgress() {
+  progressEl.textContent = `${S.placedCount} / ${TOTAL} tersusun`;
+}
+
+// ─── PUZZLE COMPLETE ─────────────────────────────────────────────────────────
+function onPuzzleComplete() {
+  winFlash.classList.add('show');
+  setTimeout(()=>{
+    winFlash.classList.remove('show');
+    switchToHologram();
+  }, 2200);
+}
+
+// ─── HOLOGRAM ────────────────────────────────────────────────────────────────
+function switchToHologram() {
+  S.mode='hologram';
+  puzzleScreen.classList.add('hidden');
+  hologramScreen.classList.remove('hidden');
+  holoImg.src=S.photoDataUrl;
+  S.holoRotX=0; S.holoRotY=0;
+  S.lastTwoHands=null; S.pinchDist0=null;
+  htCanvas.width=innerWidth; htCanvas.height=innerHeight;
+  handCursor.style.display='none';
+}
+
+function handleHologramHands() {
+  if(S.hands.length===0) { S.lastTwoHands=null; S.pinchDist0=null; return; }
+
+  if(S.hands.length>=2) {
+    // two hands: rotate with mid-point delta
+    const h1=S.hands[0], h2=S.hands[1];
+    const m1=midPoint(h1), m2=midPoint(h2);
+    const mx=(m1.x+m2.x)/2, my=(m1.y+m2.y)/2;
+
+    // update cursors
+    handCursor.style.display='block';
+    handCursor.style.left=m1.x+'px'; handCursor.style.top=m1.y+'px';
+    handCursor2.style.display='block';
+    handCursor2.style.left=m2.x+'px'; handCursor2.style.top=m2.y+'px';
+
+    if(S.lastTwoHands) {
+      const pm1=S.lastTwoHands[0], pm2=S.lastTwoHands[1];
+      const pmx=(pm1.x+pm2.x)/2, pmy=(pm1.y+pm2.y)/2;
+      const dx=mx-pmx, dy=my-pmy;
+      S.holoRotY += dx*0.4;
+      S.holoRotX -= dy*0.4;
+      S.holoRotX = Math.max(-45,Math.min(45,S.holoRotX));
+    }
+    S.lastTwoHands=[m1,m2];
+  } else {
+    // one hand: drag
+    const h=S.hands[0];
+    const mp=midPoint(h);
+    handCursor.style.display='block';
+    handCursor.style.left=mp.x+'px'; handCursor.style.top=mp.y+'px';
+    handCursor2.style.display='none';
+
+    if(S.lastTwoHands && S.lastTwoHands.length===1) {
+      const prev=S.lastTwoHands[0];
+      S.holoRotY += (mp.x-prev.x)*0.5;
+      S.holoRotX -= (mp.y-prev.y)*0.5;
+      S.holoRotX=Math.max(-40,Math.min(40,S.holoRotX));
+    }
+    S.lastTwoHands=[mp];
+  }
+
+  holoWrap.style.transform=`rotateX(${S.holoRotX}deg) rotateY(${S.holoRotY}deg)`;
+  drawHoloTracking();
+}
+
+// ─── DRAW TRACKING OVERLAYS ──────────────────────────────────────────────────
+function drawTrackingOverlay() {
+  tCtx.clearRect(0,0,trackCanvas.width,trackCanvas.height);
+  if(S.mode!=='camera') return;
+  S.hands.forEach(hand=>{
+    drawHandSkeleton(tCtx, hand, trackCanvas.width, trackCanvas.height);
+  });
+}
+
+function drawPuzzleTracking() {
+  ptCtx.clearRect(0,0,ptCanvas.width,ptCanvas.height);
+  if(S.mode!=='puzzle') return;
+  const container=document.getElementById('puzzleContainer');
+  const rect=container.getBoundingClientRect();
+  S.hands.forEach(hand=>{
+    drawHandSkeletonLocal(ptCtx, hand, rect, ptCanvas.width, ptCanvas.height);
+  });
+}
+
+function drawHoloTracking() {
+  htCtx.clearRect(0,0,htCanvas.width,htCanvas.height);
+  S.hands.forEach(hand=>{
+    drawHandSkeleton(htCtx, hand, htCanvas.width, htCanvas.height);
+  });
+}
+
+const CONNECTIONS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+const TIPS=[4,8,12,16,20];
+
+function drawHandSkeleton(ctx, hand, w, h) {
+  ctx.save();
+  ctx.strokeStyle='rgba(167,139,250,.7)'; ctx.lineWidth=2;
+  CONNECTIONS.forEach(([a,b])=>{
+    const pa=hand[a], pb=hand[b];
+    ctx.beginPath();
+    ctx.moveTo((1-pa.x)*w, pa.y*h);
+    ctx.lineTo((1-pb.x)*w, pb.y*h);
+    ctx.stroke();
+  });
+  hand.forEach((lp,i)=>{
+    const x=(1-lp.x)*w, y=lp.y*h;
+    const r=TIPS.includes(i)?7:4;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=TIPS.includes(i)?'rgba(52,211,153,.9)':'rgba(167,139,250,.9)';
+    ctx.fill();
+  });
+  ctx.restore();
+}
+
+function drawHandSkeletonLocal(ctx, hand, rect, cw, ch) {
+  ctx.save();
+  ctx.strokeStyle='rgba(167,139,250,.7)'; ctx.lineWidth=2;
+  const toLocal=(lp)=>({ x:(1-lp.x)*innerWidth - rect.left, y:lp.y*innerHeight - rect.top });
+  CONNECTIONS.forEach(([a,b])=>{
+    const pa=toLocal(hand[a]), pb=toLocal(hand[b]);
+    ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.stroke();
+  });
+  hand.forEach((lp,i)=>{
+    const p=toLocal(lp);
+    ctx.beginPath(); ctx.arc(p.x,p.y,TIPS.includes(i)?6:3,0,Math.PI*2);
+    ctx.fillStyle=TIPS.includes(i)?'rgba(52,211,153,.9)':'rgba(167,139,250,.9)';
+    ctx.fill();
+  });
+  ctx.restore();
+}
+
+// ─── START ────────────────────────────────────────────────────────────────────
+document.getElementById('startBtn').onclick = () => {
+  S.mode='camera';
+  introScreen.classList.add('hidden');
+  cameraHud.classList.remove('hidden');
+  video.style.display='block';
+  trackCanvas.style.display='block';
+  initMediaPipe();
 };
 
-function pickFinal(){
-  const tot=NOMINALS.reduce((s,n)=>s+n.weight,0);let r=Math.random()*tot;
-  for(const n of NOMINALS){r-=n.weight;if(r<=0)return n;}return NOMINALS[0];
-}
-function pickRand(){return NOMINALS[Math.floor(Math.random()*NOMINALS.length)];}
-
-/* ══════════════════════════════════════
-   BUILD BILL IMAGE
-══════════════════════════════════════ */
-const billImgs={};
-function buildBill(nom){
-  const W=340,H=150,oc=document.createElement('canvas');
-  oc.width=W;oc.height=H;const x=oc.getContext('2d');
-  const c=BILL_COLORS[nom.value];
-  x.shadowColor='rgba(0,0,0,.55)';x.shadowBlur=20;
-  const rr=20;
-  x.beginPath();
-  x.moveTo(rr,0);x.lineTo(W-rr,0);x.quadraticCurveTo(W,0,W,rr);
-  x.lineTo(W,H-rr);x.quadraticCurveTo(W,H,W-rr,H);
-  x.lineTo(rr,H);x.quadraticCurveTo(0,H,0,H-rr);
-  x.lineTo(0,rr);x.quadraticCurveTo(0,0,rr,0);x.closePath();
-  const g=x.createLinearGradient(0,0,W,H);
-  g.addColorStop(0,c.bg1);g.addColorStop(1,c.bg2);x.fillStyle=g;x.fill();
-  x.shadowBlur=0;
-  x.save();x.beginPath();
-  x.moveTo(rr,0);x.lineTo(W-rr,0);x.quadraticCurveTo(W,0,W,rr);
-  x.lineTo(W,H-rr);x.quadraticCurveTo(W,H,W-rr,H);
-  x.lineTo(rr,H);x.quadraticCurveTo(0,H,0,H-rr);
-  x.lineTo(0,rr);x.quadraticCurveTo(0,0,rr,0);x.closePath();x.clip();
-  const sh=x.createLinearGradient(0,0,W,H);
-  sh.addColorStop(0,'rgba(255,255,255,.18)');sh.addColorStop(.45,'rgba(255,255,255,0)');sh.addColorStop(1,'rgba(0,0,0,.15)');
-  x.fillStyle=sh;x.fillRect(0,0,W,H);x.restore();
-  x.strokeStyle=c.txt+'44';x.lineWidth=1.5;x.beginPath();x.roundRect(6,6,W-12,H-12,14);x.stroke();
-  x.globalAlpha=.09;for(let i=0;i<5;i++){x.beginPath();x.arc(35+i*68,H/2,34,0,Math.PI*2);x.strokeStyle=c.txt;x.lineWidth=2.5;x.stroke();}x.globalAlpha=1;
-  x.font='28px serif';x.fillStyle=c.txt+'cc';x.fillText('🦅',12,46);
-  x.font='bold 9.5px sans-serif';x.fillStyle=c.txt+'99';x.fillText('BANK INDONESIA',54,28);
-  x.font='bold 40px "Fredoka One",cursive';x.fillStyle=c.txt;
-  x.shadowColor='rgba(0,0,0,.5)';x.shadowBlur=7;x.fillText(nom.label,12,96);x.shadowBlur=0;
-  x.font='9.5px monospace';x.fillStyle=c.txt+'66';x.fillText('MH '+(Math.random()*1e7|0)+' XX',W-145,H-11);
-  for(let i=0;i<5;i++){x.beginPath();x.arc(W-22,22+i*22,3.5,0,Math.PI*2);x.fillStyle=c.txt+'55';x.fill();}
-  const img=new Image();img.src=oc.toDataURL();return img;
-}
-function preload(){NOMINALS.forEach(n=>{billImgs[n.value]=buildBill(n);});}
-
-/* ══════════════════════════════════════
-   DOM REFS
-══════════════════════════════════════ */
-const video    =document.getElementById('video');
-const canvas   =document.getElementById('overlay');
-const ctx      =canvas.getContext('2d');
-const stIdle   =document.getElementById('stIdle');
-const stLoad   =document.getElementById('stLoad');
-const loadMsg  =document.getElementById('loadMsg');
-const slotWrap =document.getElementById('slotWrap');
-const slotReel =document.getElementById('slotReel');
-const slotReveal=document.getElementById('slotReveal');
-const slotRevVal=document.getElementById('slotRevealVal');
-const camFrame =document.getElementById('camFrame');
-const btnAct   =document.getElementById('btnAct');
-const btnGo    =document.getElementById('btnGo');
-const btnRst   =document.getElementById('btnRst');
-const errBox   =document.getElementById('errBox');
-const errMsg   =document.getElementById('errMsg');
-const faceDot  =document.getElementById('faceDot');
-const faceTxt  =document.getElementById('faceStatusTxt');
-const flashEl  =document.getElementById('flash');
-
-/* ══════════════════════════════════════
-   STATE
-══════════════════════════════════════ */
-let detector=null,stream=null,raf=null,spinTimer=null;
-let phase='idle'; // idle|spinning|slowing|reveal|done
-let finalNom=null;
-let lastFace=null;
-let bounceT=0;
-let revAnim={sc:0,op:0,shake:0,sd:1,st:0};
-let faceDetected=false;
-
-/* ══════════════════════════════════════
-   FLOATING COINS
-══════════════════════════════════════ */
-['💵','💴','💶','💷','🪙','💸','💰'].forEach((e,i)=>{
-  const el=document.createElement('div');el.className='coin-bg';el.textContent=e;
-  el.style.cssText=`left:${Math.random()*95}vw;font-size:${1+Math.random()*1.4}rem;`+
-    `animation-duration:${9+Math.random()*13}s;animation-delay:${i*1.4+Math.random()*5}s;`;
-  document.body.appendChild(el);
-});
-
-/* ══════════════════════════════════════
-   SLOT REEL — build DOM items
-══════════════════════════════════════ */
-// Fill reel with many items for smooth scroll illusion
-function buildReel(){
-  slotReel.innerHTML='';
-  // 40 items, cycling through nominals, for scrolling
-  for(let i=0;i<40;i++){
-    const n=NOMINALS[i%NOMINALS.length];
-    const div=document.createElement('div');
-    div.className=`slot-item ${n.cls}`;
-    div.textContent=n.label;
-    slotReel.appendChild(div);
-  }
-}
-
-// CSS-driven scroll spin
-let reelY=0;
-const ITEM_H=64;
-let reelRAF=null;
-let reelSpeed=0; // px per frame
-
-function startReelSpin(){
-  reelSpeed=18; // fast
-  spinReel();
-}
-function spinReel(){
-  if(phase!=='spinning'&&phase!=='slowing'){return;}
-  reelY-=reelSpeed;
-  // reset when scrolled far enough
-  const totalH=ITEM_H*40;
-  if(Math.abs(reelY)>=totalH/2) reelY=0;
-  slotReel.style.transform=`translateY(${reelY}px)`;
-  reelRAF=requestAnimationFrame(spinReel);
-}
-function slowReel(targetSpeed,duration){
-  const startSpeed=reelSpeed;
-  const start=performance.now();
-  function step(now){
-    const t=Math.min((now-start)/duration,1);
-    reelSpeed=startSpeed+(targetSpeed-startSpeed)*easeOut(t);
-    reelY-=reelSpeed;
-    const totalH=ITEM_H*40;
-    if(Math.abs(reelY)>=totalH/2) reelY=0;
-    slotReel.style.transform=`translateY(${reelY}px)`;
-    if(t<1) reelRAF=requestAnimationFrame(step);
-    else { reelSpeed=targetSpeed; if(targetSpeed>0) spinReel(); }
-  }
-  cancelAnimationFrame(reelRAF);
-  reelRAF=requestAnimationFrame(step);
-}
-function easeOut(t){return 1-Math.pow(1-t,3);}
-function stopReel(){
-  cancelAnimationFrame(reelRAF);
-  // snap to clean position
-  reelY=Math.round(reelY/ITEM_H)*ITEM_H;
-  slotReel.style.transform=`translateY(${reelY}px)`;
-}
-
-/* ══════════════════════════════════════
-   CANVAS UTILS
-══════════════════════════════════════ */
-function syncCanvas(){
-  canvas.width=video.videoWidth||video.clientWidth;
-  canvas.height=video.videoHeight||video.clientHeight;
-}
-
-function drawBillOnFace(face,nom,opts={}){
-  const img=billImgs[nom.value];if(!img||!img.complete)return null;
-  const {op=1,sc=1,shX=0,glowC='rgba(255,220,0,.85)',glowB=18,dy=0}=opts;
-  const fx=face.topLeft[0],fy=face.topLeft[1];
-  const fw=face.bottomRight[0]-fx;
-  const bW=Math.max(fw*1.55,180);
-  const bH=bW*(150/340);
-  const bX=fx+fw/2-bW/2+shX;
-  const bY=fy-bH-12+dy;
-  const cx2=bX+bW/2,cy2=bY+bH/2;
-  ctx.save();
-  ctx.globalAlpha=op;ctx.shadowColor=glowC;ctx.shadowBlur=glowB;
-  ctx.translate(cx2,cy2);ctx.scale(sc,1);ctx.translate(-cx2,-cy2);
-  ctx.drawImage(img,bX,bY,bW,bH);ctx.restore();
-  return {bX,bY,bW,bH,cx:cx2,cy:cy2};
-}
-
-function drawFaceOutline(face,color='rgba(0,200,83,.4)'){
-  const fx=face.topLeft[0],fy=face.topLeft[1];
-  const fw=face.bottomRight[0]-fx,fh=face.bottomRight[1]-fy;
-  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.setLineDash([5,4]);
-  ctx.strokeRect(fx,fy,fw,fh);ctx.restore();
-}
-
-/* ══════════════════════════════════════
-   LOAD MODEL
-══════════════════════════════════════ */
-async function loadModel(){
-  stLoad.style.display='flex';stIdle.style.display='none';
-  try{
-    loadMsg.textContent='Memuat BlazeFace…';
-    detector=await blazeface.load();
-    stLoad.style.display='none';return true;
-  }catch(e){
-    showErr('Gagal memuat model AI. Periksa koneksi internet.');
-    stLoad.style.display='none';return false;
-  }
-}
-
-/* ══════════════════════════════════════
-   CAMERA
-══════════════════════════════════════ */
-async function activateCam(){
-  btnAct.disabled=true;hideErr();
-  try{
-    stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false
-    });
-    video.srcObject=stream;
-    await new Promise(r=>{video.onloadedmetadata=r;});
-    video.play();await new Promise(r=>setTimeout(r,300));
-    syncCanvas();
-    const ok=await loadModel();
-    if(ok){
-      stIdle.style.display='none';
-      btnGo.style.display='flex';btnAct.style.display='none';
-      preload();buildReel();
-      passiveLoop();
-    }else{btnAct.disabled=false;}
-  }catch(e){
-    btnAct.disabled=false;
-    if(e.name==='NotAllowedError') showErr('Izin kamera ditolak. Silakan izinkan di pengaturan browser.');
-    else if(e.name==='NotFoundError') showErr('Kamera tidak ditemukan.');
-    else showErr('Kamera error: '+e.message);
-  }
-}
-
-/* ══════════════════════════════════════
-   PASSIVE FACE LOOP (idle)
-══════════════════════════════════════ */
-async function passiveLoop(){
-  if(phase!=='idle'){return;}
-  if(video.readyState===4){
-    try{
-      const p=await detector.estimateFaces(video,false);
-      faceDetected=p&&p.length>0;
-      if(faceDetected){lastFace=p[0];}
-    }catch(_){}
-  }
-  updateFaceUI();
-  syncCanvas();ctx.clearRect(0,0,canvas.width,canvas.height);
-  if(faceDetected&&lastFace) drawFaceOutline(lastFace);
-  raf=requestAnimationFrame(passiveLoop);
-}
-
-function updateFaceUI(){
-  if(phase==='spinning'||phase==='slowing'){
-    faceDot.className='face-dot spin-dot';
-    faceTxt.textContent='Memutar…';
-  } else if(faceDetected){
-    faceDot.className='face-dot on';
-    faceTxt.textContent='Wajah terdeteksi ✓';
-  } else {
-    faceDot.className='face-dot';
-    faceTxt.textContent='Arahkan wajah ke kamera';
-  }
-}
-
-/* ══════════════════════════════════════
-   RENDER LOOP (during spin/reveal/done)
-══════════════════════════════════════ */
-async function renderLoop(){
-  if(phase==='idle')return;
-  syncCanvas();ctx.clearRect(0,0,canvas.width,canvas.height);
-  bounceT+=0.065;
-
-  // detect face every frame
-  if(video.readyState===4){
-    try{
-      const p=await detector.estimateFaces(video,false);
-      if(p&&p.length>0){lastFace=p[0];faceDetected=true;}
-      else faceDetected=false;
-    }catch(_){}
-  }
-  updateFaceUI();
-
-  if(lastFace){
-    if(phase==='reveal') drawReveal(lastFace);
-    else if(phase==='done') drawDone(lastFace);
-    // spinning: only face outline on camera, slot machine above handles visuals
-    else drawFaceOutline(lastFace,'rgba(255,214,0,.35)');
-  }
-
-  raf=requestAnimationFrame(renderLoop);
-}
-
-/* ══════════════════════════════════════
-   DRAW REVEAL on canvas
-══════════════════════════════════════ */
-function drawReveal(face){
-  revAnim.st+=0.08;
-  if(revAnim.sc<1) revAnim.sc=Math.min(1,revAnim.sc+0.08);
-  if(revAnim.op<1) revAnim.op=Math.min(1,revAnim.op+0.10);
-  revAnim.shake*=0.78;const shX=revAnim.shake*revAnim.sd;revAnim.sd*=-1;
-  const dy=Math.sin(bounceT)*7;
-
-  const r=drawBillOnFace(face,finalNom,{
-    op:revAnim.op,sc:revAnim.sc,shX,
-    glowC:finalNom.value===50000?'#FFD700':'rgba(0,230,80,.95)',
-    glowB:38*(2-revAnim.sc)+8,dy
-  });
-
-  drawFaceOutline(face,`rgba(0,220,80,${0.4+Math.sin(revAnim.st*6)*.3})`);
-
-  if(r&&revAnim.sc>0.4){
-    const syms=['✦','★','✧','✶','❋','◆'];
-    ctx.save();
-    for(let s=0;s<6;s++){
-      const ang=revAnim.st*2.8+s*(Math.PI*2/6);
-      const sx=r.cx+Math.cos(ang)*r.bW*0.58;
-      const sy=r.cy+Math.sin(ang)*r.bH*0.42;
-      ctx.font=`${10+Math.sin(revAnim.st*3+s)*5}px serif`;
-      ctx.globalAlpha=0.7+Math.sin(revAnim.st*4+s)*0.3;
-      ctx.fillStyle=finalNom.value===50000?'#FFD700':'#a0ffb0';
-      ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8;
-      ctx.fillText(syms[s%6],sx,sy);
-    }ctx.restore();
-  }
-}
-
-function drawDone(face){
-  revAnim.st+=0.035;
-  const dy=Math.sin(bounceT)*5;
-  const r=drawBillOnFace(face,finalNom,{
-    op:1,glowC:finalNom.value===50000?'#FFD700':'rgba(255,220,0,.65)',
-    glowB:12+Math.sin(bounceT*1.5)*7,dy
-  });
-  drawFaceOutline(face,'rgba(0,200,83,.35)');
-  if(r){
-    ctx.save();
-    ['✦','✧'].forEach((sym,i)=>{
-      const ang=revAnim.st*1.3+i*Math.PI;
-      const sx=r.cx+Math.cos(ang)*r.bW*0.62;
-      const sy=r.cy+Math.sin(ang)*r.bH*0.52;
-      ctx.font='14px serif';
-      ctx.globalAlpha=0.6+Math.sin(revAnim.st*2+i)*0.4;
-      ctx.fillStyle=finalNom.value===50000?'#FFD700':'rgba(255,220,80,.9)';
-      ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8;
-      ctx.fillText(sym,sx,sy);
-    });ctx.restore();
-  }
-}
-
-/* ══════════════════════════════════════
-   START SPIN
-══════════════════════════════════════ */
-function startSpin(){
-  cancelAnimationFrame(raf);clearTimeout(spinTimer);
-  finalNom=pickFinal();
-  phase='spinning';bounceT=0;
-  revAnim={sc:0,op:0,shake:0,sd:1,st:0};
-
-  // show slot machine above camera
-  camFrame.classList.remove('rounded-top');
-  slotWrap.classList.add('active');
-  slotReveal.classList.remove('show');
-  slotReel.style.transform='translateY(0px)';
-  reelY=0;
-
-  btnGo.style.display='none';btnRst.style.display='none';
-
-  startReelSpin();
-  renderLoop();
-
-  // after 2s slow down
-  spinTimer=setTimeout(()=>{
-    phase='slowing';
-    slowReel(4,1000); // slow over 1s
-    spinTimer=setTimeout(()=>{
-      slowReel(0,600); // stop over 0.6s
-      spinTimer=setTimeout(doReveal,700);
-    },1050);
-  },2000);
-}
-
-/* ══════════════════════════════════════
-   REVEAL
-══════════════════════════════════════ */
-function doReveal(){
-  stopReel();phase='reveal';
-  revAnim={sc:0,op:0,shake:10,sd:1,st:0};
-
-  // show result in slot window
-  slotRevVal.textContent=finalNom.label;
-  slotRevVal.className='slot-reveal-val'+(finalNom.value===50000?' jp':'');
-  slotWrap.classList.remove('active');slotWrap.classList.add('reveal-mode');
-  slotReveal.classList.add('show');
-
-  // flash
-  flashEl.classList.add('go');setTimeout(()=>flashEl.classList.remove('go'),200);
-
-  if(finalNom.value===50000){
-    camFrame.classList.add('jackpot-border');
-    spawnConfetti();
-  }
-
-  setTimeout(()=>{phase='done';btnRst.style.display='flex';},1400);
-}
-
-/* ══════════════════════════════════════
-   CONFETTI
-══════════════════════════════════════ */
-function spawnConfetti(){
-  const cols=['#FFD600','#00c853','#ff3d00','#2979ff','#e040fb','#fff'];
-  for(let i=0;i<90;i++){
-    const d=document.createElement('div');const sz=5+Math.random()*9;
-    d.style.cssText=`position:fixed;z-index:998;pointer-events:none;
-      width:${sz}px;height:${sz}px;border-radius:${Math.random()>.5?'50%':'2px'};
-      background:${cols[Math.floor(Math.random()*cols.length)]};
-      left:${Math.random()*100}vw;top:-10px;
-      animation:cfall ${1.6+Math.random()*2.5}s ease-in forwards;
-      animation-delay:${Math.random()*.7}s;`;
-    document.body.appendChild(d);setTimeout(()=>d.remove(),5500);
-  }
-}
-
-/* ══════════════════════════════════════
-   RESET
-══════════════════════════════════════ */
-function resetAll(){
-  cancelAnimationFrame(raf);cancelAnimationFrame(reelRAF);clearTimeout(spinTimer);
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  phase='idle';finalNom=null;
-  slotWrap.classList.remove('active','reveal-mode');
-  slotReveal.classList.remove('show');
-  camFrame.classList.add('rounded-top');camFrame.classList.remove('jackpot-border');
-  btnRst.style.display='none';btnGo.style.display='flex';
-  faceDot.className='face-dot';faceTxt.textContent='Arahkan wajah ke kamera';
-  passiveLoop();
-}
-
-/* ══════════════════════════════════════
-   ERROR
-══════════════════════════════════════ */
-function showErr(m){errMsg.textContent=m;errBox.classList.add('show');}
-function hideErr(){errBox.classList.remove('show');}
-
-/* ══════════════════════════════════════
-   EVENTS
-══════════════════════════════════════ */
-btnAct.addEventListener('click',activateCam);
-btnGo.addEventListener('click',startSpin);
-btnRst.addEventListener('click',resetAll);
-window.addEventListener('resize',syncCanvas);
-
-if(!navigator.mediaDevices?.getUserMedia){
-  showErr('Browser tidak mendukung kamera. Coba Chrome/Firefox terbaru.');
-  btnAct.disabled=true;
-}
+document.getElementById('restartBtn').onclick = () => {
+  S.mode='camera';
+  hologramScreen.classList.add('hidden');
+  cameraHud.classList.remove('hidden');
+  video.style.display='block';
+  trackCanvas.style.display='block';
+  S.hands=[]; S.photoDataUrl=null; spreadFill.style.width='0%';
+  statusBadge.textContent='Arahkan tangan ke kamera...';
+  S.lastTwoHands=null;
+};
 </script>
 </body>
 </html>
