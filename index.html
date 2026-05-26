@@ -6,129 +6,233 @@
 <title>Foto Fuzzle — Hand Tracking</title>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
+:root{
+  --c0:#000;--c1:#0a0a12;--c2:#12121e;
+  --accent:#00ffcc;--accent2:#ff3cac;--accent3:#7b61ff;
+  --glow:rgba(0,255,204,0.18);
+  --glow2:rgba(255,60,172,0.18);
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0f;color:#fff;font-family:system-ui,sans-serif;overflow:hidden;height:100vh;width:100vw}
-#app{position:relative;width:100%;height:100%}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--c0)}
+body{font-family:'Syne',sans-serif;color:#fff}
+#app{position:relative;width:100vw;height:100vh}
 
-/* VIDEO & OVERLAY */
-#videoEl{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none}
-#trackCanvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
+/* VIDEO */
+#videoEl{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:none;opacity:0}
+#trackCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:10}
 #photoCanvas{display:none}
 
 /* SCREENS */
-.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:5}
-.screen.hidden{display:none}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:5}
+.screen.hidden{display:none!important}
 
-/* INTRO */
-#introScreen{background:#0a0a0f}
-#introScreen h1{font-size:3rem;font-weight:700;background:linear-gradient(135deg,#a78bfa,#60a5fa,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center}
-#introScreen p{color:#888;font-size:1.1rem;text-align:center;max-width:400px;line-height:1.6}
-#startBtn{padding:14px 40px;border:none;border-radius:50px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;font-size:1.1rem;cursor:pointer;transition:transform .2s,box-shadow .2s}
-#startBtn:hover{transform:scale(1.05);box-shadow:0 0 30px rgba(124,58,237,.5)}
+/* ─── INTRO ─── */
+#introScreen{background:var(--c0)}
+.intro-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.intro-bg canvas{position:absolute;inset:0;width:100%;height:100%}
+.logo{position:relative;z-index:2;text-align:center}
+.logo h1{font-size:clamp(2.5rem,7vw,5rem);font-weight:800;letter-spacing:-.03em;
+  background:linear-gradient(135deg,var(--accent),var(--accent3),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 40px rgba(0,255,204,.3));
+  line-height:1}
+.logo span{font-family:'Space Mono';font-size:.8rem;letter-spacing:.3em;color:rgba(255,255,255,.3);text-transform:uppercase;display:block;margin-top:8px}
+.intro-desc{position:relative;z-index:2;color:rgba(255,255,255,.45);font-size:1rem;text-align:center;max-width:360px;line-height:1.7;font-weight:400}
+#startBtn{position:relative;z-index:2;padding:14px 48px;border:1px solid rgba(0,255,204,.3);border-radius:2px;
+  background:transparent;color:var(--accent);font-family:'Space Mono';font-size:.85rem;letter-spacing:.15em;
+  cursor:pointer;text-transform:uppercase;transition:all .2s;overflow:hidden}
+#startBtn::before{content:'';position:absolute;inset:0;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .25s ease;z-index:-1}
+#startBtn:hover{color:#000}
+#startBtn:hover::before{transform:scaleX(1)}
 
-/* CAMERA HUD */
+/* ─── CAMERA HUD ─── */
 #cameraHud{position:absolute;inset:0;pointer-events:none;z-index:8}
-#statusBadge{position:absolute;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.15);border-radius:50px;padding:8px 24px;font-size:.95rem;color:#a78bfa;backdrop-filter:blur(10px);white-space:nowrap}
-#countdownRing{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:none}
-#countdownRing svg{animation:spin 1s linear infinite}
-@keyframes spin{from{transform:rotate(-90deg)}to{transform:rotate(270deg)}}
-#countdownNum{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:3rem;font-weight:700;color:#fff}
-#flashOverlay{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .05s}
-.hint{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.5);font-size:.85rem;text-align:center}
+#statusBadge{position:absolute;top:24px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.75);border:1px solid rgba(255,255,255,.1);border-radius:2px;
+  padding:10px 28px;font-family:'Space Mono';font-size:.78rem;letter-spacing:.12em;
+  color:var(--accent);backdrop-filter:blur(12px);white-space:nowrap;text-transform:uppercase}
 
-/* SPREAD INDICATOR */
-#spreadMeter{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px}
-#spreadBar{width:200px;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
-#spreadFill{height:100%;width:0%;background:linear-gradient(90deg,#7c3aed,#34d399);border-radius:3px;transition:width .1s}
-#spreadLabel{font-size:.8rem;color:rgba(255,255,255,.5)}
+/* Two-hands proximity indicator */
+#proximityWrap{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:16px;pointer-events:none}
+#proximityViz{width:220px;height:60px;position:relative}
+.hand-dot{position:absolute;width:20px;height:20px;border-radius:50%;top:50%;transform:translateY(-50%);
+  border:2px solid var(--accent);background:rgba(0,255,204,.15);transition:left .05s linear}
+#handDotL{left:20px}
+#handDotR{right:20px;left:auto}
+#proximityLine{position:absolute;top:50%;height:1px;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  transform:translateY(-50%);transition:all .05s linear;left:30px;right:30px}
+#proximityLabel{font-family:'Space Mono';font-size:.72rem;letter-spacing:.15em;color:rgba(255,255,255,.4);text-transform:uppercase}
 
-/* PUZZLE SCREEN */
-#puzzleScreen{background:#0a0a0f}
-#puzzleContainer{position:relative;width:90vmin;height:90vmin;max-width:600px;max-height:600px}
-#puzzleBoard{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);gap:3px;background:#111;border:2px solid rgba(255,255,255,.1);border-radius:8px;overflow:hidden}
-.pCell{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:4px;transition:background .2s}
-.pCell.occupied{background:transparent;border:1px solid rgba(255,255,255,.15)}
+/* countdown */
+#countdownWrap{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+#countdownSvg{position:relative}
+#countdownSvg svg{display:block}
+#cdNum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:3.5rem;font-weight:800;color:#fff;font-family:'Space Mono'}
+#flashOverlay{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+
+/* ─── PUZZLE SCREEN ─── */
+#puzzleScreen{background:var(--c0)}
+#puzzleContainer{position:relative;width:min(90vmin,560px);height:min(90vmin,560px)}
+#puzzleHud{position:absolute;top:-44px;left:0;right:0;display:flex;justify-content:space-between;align-items:center}
+#puzzleProgress{font-family:'Space Mono';font-size:.78rem;color:rgba(255,255,255,.4);letter-spacing:.08em}
+#puzzleStatus{font-family:'Space Mono';font-size:.78rem;color:var(--accent);letter-spacing:.08em}
+#puzzleBoard{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);gap:2px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:4px;overflow:hidden}
+.pCell{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);border-radius:2px;transition:background .15s,box-shadow .15s}
+.pCell.highlight{background:rgba(0,255,204,.06);box-shadow:inset 0 0 12px rgba(0,255,204,.15)}
 #piecesLayer{position:absolute;inset:0;pointer-events:none}
-.piece{position:absolute;cursor:none;transition:box-shadow .2s;border-radius:4px;overflow:hidden;background:#111}
-.piece.selected{box-shadow:0 0 0 3px #a78bfa,0 0 20px rgba(167,139,250,.5)}
-.piece.placed{box-shadow:none!important}
+.piece{position:absolute;cursor:none;border-radius:3px;overflow:hidden;background:#111;will-change:transform}
+.piece.selected{box-shadow:0 0 0 2px var(--accent),0 0 24px rgba(0,255,204,.4)}
+.piece.placed{box-shadow:none!important;transition:box-shadow .2s}
 .piece canvas{display:block;width:100%;height:100%}
-#puzzleTrackCanvas{position:absolute;inset:0;pointer-events:none;z-index:20}
-#puzzleHud{position:absolute;top:-50px;left:0;right:0;display:flex;justify-content:space-between;align-items:center}
-#puzzleProgress{color:#888;font-size:.9rem}
-#puzzleStatus{color:#a78bfa;font-size:.9rem}
+#puzzleTrackCanvas{position:absolute;inset:0;pointer-events:none;z-index:20;border-radius:4px}
 
-/* HOLOGRAM SCREEN */
-#hologramScreen{background:#000;perspective:800px}
-#holoWrap{position:relative;transform-style:preserve-3d;transition:transform .05s}
-#holoImg{display:block;max-width:80vmin;max-height:80vmin;border-radius:12px;box-shadow:0 0 60px rgba(96,165,250,.4),0 0 120px rgba(167,139,250,.2)}
-#holoGlow{position:absolute;inset:-20px;border-radius:20px;background:radial-gradient(ellipse,rgba(96,165,250,.15),transparent 70%);pointer-events:none;animation:pulse 2s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
-#holoHud{position:absolute;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);border:1px solid rgba(96,165,250,.3);border-radius:50px;padding:8px 24px;font-size:.9rem;color:#60a5fa;backdrop-filter:blur(10px)}
-#holoTrackCanvas{position:absolute;inset:0;pointer-events:none;z-index:10}
-#restartBtn{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);padding:10px 28px;border:1px solid rgba(255,255,255,.2);border-radius:50px;background:rgba(255,255,255,.05);color:#fff;cursor:pointer;font-size:.9rem;backdrop-filter:blur(10px)}
-#restartBtn:hover{background:rgba(255,255,255,.1)}
+/* ─── HOLOGRAM SCREEN ─── */
+#hologramScreen{background:#000;overflow:hidden}
+#holoBg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 70% at 50% 50%, #060614 0%, #000 100%)}
+#holoParticles{position:absolute;inset:0;pointer-events:none}
+#holoStage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;perspective:900px;perspective-origin:50% 50%}
+#holoWrap{position:relative;transform-style:preserve-3d;will-change:transform}
+#holoFrame{position:relative;transform-style:preserve-3d}
 
-/* WIN FLASH */
-#winFlash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.9);z-index:100;opacity:0;pointer-events:none;transition:opacity .5s}
+/* base photo */
+#holoImg{display:block;max-width:min(72vmin,480px);max-height:min(72vmin,480px);
+  border-radius:4px;position:relative;z-index:2}
+
+/* hologram layers */
+.holo-layer{position:absolute;inset:0;border-radius:4px;pointer-events:none}
+#holoR{background:rgba(255,0,60,.07);mix-blend-mode:screen;transform:translate(3px,-1px);filter:blur(.5px)}
+#holoG{background:rgba(0,255,120,.06);mix-blend-mode:screen;transform:translate(-2px,1px);filter:blur(.5px)}
+#holoB{background:rgba(0,100,255,.08);mix-blend-mode:screen;transform:translate(1px,2px);filter:blur(.5px)}
+#holoScan{position:absolute;inset:0;border-radius:4px;pointer-events:none;overflow:hidden}
+#holoScan::before{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,255,204,.025) 3px,rgba(0,255,204,.025) 4px);
+  pointer-events:none}
+#holoScan::after{content:'';position:absolute;left:0;right:0;height:60px;
+  background:linear-gradient(to bottom,transparent,rgba(0,255,204,.08),transparent);
+  animation:scanMove 3s linear infinite;top:-60px}
+@keyframes scanMove{to{top:calc(100% + 60px)}}
+
+#holoEdge{position:absolute;inset:-3px;border-radius:6px;
+  box-shadow:0 0 0 1px rgba(0,255,204,.2),
+             0 0 20px rgba(0,255,204,.12),
+             0 0 60px rgba(0,255,204,.06),
+             inset 0 0 20px rgba(0,255,204,.04);
+  pointer-events:none;z-index:3}
+#holoSheen{position:absolute;inset:0;border-radius:4px;pointer-events:none;z-index:4;
+  background:linear-gradient(125deg,rgba(255,255,255,.06) 0%,transparent 40%,transparent 60%,rgba(0,255,204,.04) 100%);
+  animation:sheenShift 8s ease-in-out infinite}
+@keyframes sheenShift{0%,100%{opacity:.6}50%{opacity:1}}
+
+#holoReflect{position:absolute;top:100%;left:0;right:0;height:60%;border-radius:0 0 4px 4px;
+  overflow:hidden;pointer-events:none;z-index:1;transform:scaleY(-1);opacity:0;
+  mask-image:linear-gradient(to bottom,rgba(0,0,0,.35),transparent 80%);
+  -webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.35),transparent 80%)}
+#holoReflectImg{display:block;width:100%;height:auto;filter:blur(1px)}
+
+/* corner decorations */
+.holo-corner{position:absolute;width:18px;height:18px;pointer-events:none;z-index:5}
+.holo-corner::before,.holo-corner::after{content:'';position:absolute;background:var(--accent)}
+.holo-corner::before{width:100%;height:1px}
+.holo-corner::after{width:1px;height:100%}
+.holo-corner.tl{top:-6px;left:-6px}.holo-corner.tl::before{top:0;left:0}.holo-corner.tl::after{top:0;left:0}
+.holo-corner.tr{top:-6px;right:-6px}.holo-corner.tr::before{top:0;right:0}.holo-corner.tr::after{top:0;right:0}
+.holo-corner.bl{bottom:-6px;left:-6px}.holo-corner.bl::before{bottom:0;left:0}.holo-corner.bl::after{bottom:0;left:0}
+.holo-corner.br{bottom:-6px;right:-6px}.holo-corner.br::before{bottom:0;right:0}.holo-corner.br::after{bottom:0;right:0}
+
+/* data readout */
+#holoReadout{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+  font-family:'Space Mono';font-size:.68rem;letter-spacing:.12em;color:rgba(0,255,204,.4);
+  text-align:center;text-transform:uppercase;line-height:1.8;pointer-events:none;z-index:10}
+#holoHud{position:absolute;top:20px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.7);border:1px solid rgba(0,255,204,.15);border-radius:2px;
+  padding:8px 20px;font-family:'Space Mono';font-size:.72rem;color:rgba(0,255,204,.6);
+  backdrop-filter:blur(10px);letter-spacing:.1em;text-transform:uppercase;z-index:10}
+#htCanvas{position:absolute;inset:0;pointer-events:none;z-index:8}
+#restartBtn{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);
+  padding:10px 28px;border:1px solid rgba(255,255,255,.12);border-radius:2px;
+  background:rgba(255,255,255,.04);color:rgba(255,255,255,.5);
+  cursor:pointer;font-family:'Space Mono';font-size:.75rem;letter-spacing:.12em;
+  backdrop-filter:blur(10px);text-transform:uppercase;transition:all .2s;z-index:10}
+#restartBtn:hover{border-color:rgba(0,255,204,.3);color:var(--accent);background:rgba(0,255,204,.05)}
+
+/* WIN */
+#winFlash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.92);z-index:100;opacity:0;pointer-events:none;transition:opacity .4s;gap:16px}
 #winFlash.show{opacity:1;pointer-events:all}
-#winFlash h2{font-size:2.5rem;font-weight:700;color:#34d399;margin-bottom:12px;animation:popIn .5s ease}
-@keyframes popIn{from{transform:scale(.5)}to{transform:scale(1)}}
-#winFlash p{color:#888}
+#winFlash h2{font-size:2.5rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:popIn .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+#winFlash p{color:rgba(255,255,255,.4);font-family:'Space Mono';font-size:.82rem;letter-spacing:.1em}
 
-/* HAND CURSOR */
-#handCursor{position:fixed;width:24px;height:24px;border-radius:50%;background:rgba(167,139,250,.6);border:2px solid #a78bfa;pointer-events:none;transform:translate(-50%,-50%);z-index:50;transition:width .1s,height .1s,background .1s;display:none}
-#handCursor.pinch{width:16px;height:16px;background:rgba(52,211,153,.8);border-color:#34d399}
-#handCursor2{position:fixed;width:20px;height:20px;border-radius:50%;background:rgba(96,165,250,.5);border:2px solid #60a5fa;pointer-events:none;transform:translate(-50%,-50%);z-index:50;transition:width .1s;display:none}
+/* HAND CURSORS */
+.hcursor{position:fixed;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);z-index:50;display:none;will-change:transform}
+#handCursor{width:22px;height:22px;background:rgba(0,255,204,.25);border:1.5px solid var(--accent)}
+#handCursor.pinch{width:14px;height:14px;background:rgba(255,60,172,.4);border-color:var(--accent2)}
+#handCursor2{width:18px;height:18px;background:rgba(123,97,255,.25);border:1.5px solid var(--accent3)}
 </style>
 </head>
 <body>
 <div id="app">
+  <div class="hcursor" id="handCursor"></div>
+  <div class="hcursor" id="handCursor2"></div>
 
-  <!-- HAND CURSORS -->
-  <div id="handCursor"></div>
-  <div id="handCursor2"></div>
-
-  <!-- VIDEO -->
   <video id="videoEl" playsinline></video>
   <canvas id="trackCanvas"></canvas>
   <canvas id="photoCanvas"></canvas>
 
   <!-- INTRO -->
   <div id="introScreen" class="screen">
-    <h1>📸 Foto Fuzzle</h1>
-    <p>Arahkan tangan ke kamera, buka tangan lebar untuk memotret. Susun puzzle dengan tangan, lalu hologramkan fotomu!</p>
-    <button id="startBtn">Mulai Kamera</button>
+    <div class="intro-bg"><canvas id="introBgCanvas"></canvas></div>
+    <div class="logo">
+      <h1>FOTO FUZZLE</h1>
+      <span>Hand Tracking · AR Hologram</span>
+    </div>
+    <p class="intro-desc">Hadapkan dua tangan ke kamera, satukan lalu pisahkan — foto diambil otomatis. Susun puzzle, hasilnya jadi hologram.</p>
+    <button id="startBtn">Aktifkan Kamera</button>
   </div>
 
   <!-- CAMERA HUD -->
   <div id="cameraHud" class="hidden">
-    <div id="statusBadge">Arahkan tangan ke kamera...</div>
-    <div id="countdownRing">
-      <svg width="120" height="120" viewBox="0 0 120 120">
-        <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="6"/>
-        <circle id="cRing" cx="60" cy="60" r="54" fill="none" stroke="#a78bfa" stroke-width="6"
-          stroke-dasharray="339.3" stroke-dashoffset="339.3" stroke-linecap="round"
-          style="transform-origin:center;transform:rotate(-90deg);transition:stroke-dashoffset .1s"/>
-      </svg>
-      <div id="countdownNum">3</div>
+    <div id="statusBadge">Tampilkan dua tangan...</div>
+    <div id="proximityWrap">
+      <div id="proximityViz">
+        <div class="hand-dot" id="handDotL"></div>
+        <div class="hand-dot" id="handDotR"></div>
+        <div id="proximityLine"></div>
+      </div>
+      <div id="proximityLabel">Dekatkan lalu pisahkan kedua tangan</div>
     </div>
-    <div id="spreadMeter">
-      <div id="spreadLabel">Buka tangan untuk foto</div>
-      <div id="spreadBar"><div id="spreadFill"></div></div>
+    <div id="countdownWrap">
+      <div id="countdownSvg">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="62" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="5"/>
+          <circle id="cRing" cx="70" cy="70" r="62" fill="none" stroke="url(#ringGrad)" stroke-width="5"
+            stroke-dasharray="389.6" stroke-dashoffset="389.6" stroke-linecap="round"
+            style="transform-origin:center;transform:rotate(-90deg)"/>
+          <defs>
+            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#00ffcc"/>
+              <stop offset="100%" stop-color="#7b61ff"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div id="cdNum">3</div>
+      </div>
     </div>
     <div id="flashOverlay"></div>
-    <div class="hint">✋ Buka jari lebar-lebar → foto otomatis</div>
   </div>
 
   <!-- PUZZLE SCREEN -->
   <div id="puzzleScreen" class="screen hidden">
     <div id="puzzleContainer">
       <div id="puzzleHud">
-        <div id="puzzleProgress">0 / 12 tersusun</div>
-        <div id="puzzleStatus">Cubit & geser potongan puzzle</div>
+        <div id="puzzleProgress">0 / 12</div>
+        <div id="puzzleStatus">Cubit &amp; geser puzzle</div>
       </div>
       <div id="puzzleBoard"></div>
       <div id="piecesLayer"></div>
@@ -138,496 +242,566 @@ body{background:#0a0a0f;color:#fff;font-family:system-ui,sans-serif;overflow:hid
 
   <!-- HOLOGRAM SCREEN -->
   <div id="hologramScreen" class="screen hidden">
-    <div id="holoHud">🖐 Gerakkan kedua tangan untuk memutar hologram</div>
-    <div id="holoWrap">
-      <img id="holoImg" src="" alt="hologram">
-      <div id="holoGlow"></div>
+    <div id="holoBg"></div>
+    <canvas id="holoParticles"></canvas>
+    <div id="holoStage">
+      <div id="holoWrap">
+        <div id="holoFrame">
+          <img id="holoImg" src="" alt="">
+          <div class="holo-layer" id="holoR"></div>
+          <div class="holo-layer" id="holoG"></div>
+          <div class="holo-layer" id="holoB"></div>
+          <div id="holoScan"></div>
+          <div id="holoEdge"></div>
+          <div id="holoSheen"></div>
+          <div class="holo-corner tl"></div>
+          <div class="holo-corner tr"></div>
+          <div class="holo-corner bl"></div>
+          <div class="holo-corner br"></div>
+          <div id="holoReflect"><img id="holoReflectImg" src="" alt=""></div>
+        </div>
+      </div>
     </div>
-    <canvas id="holoTrackCanvas"></canvas>
-    <button id="restartBtn">🔄 Foto Lagi</button>
+    <canvas id="htCanvas"></canvas>
+    <div id="holoHud">Gerakkan tangan untuk memutar hologram</div>
+    <div id="holoReadout" id="holoReadout">ROT X: 0° &nbsp; ROT Y: 0°</div>
+    <button id="restartBtn">↺ &nbsp; Foto Ulang</button>
   </div>
 
-  <!-- WIN FLASH -->
+  <!-- WIN -->
   <div id="winFlash">
-    <h2>🎉 Puzzle Selesai!</h2>
-    <p>Foto kamu menyatu! Siap jadi hologram...</p>
+    <h2>PUZZLE SELESAI</h2>
+    <p>Merender hologram...</p>
   </div>
 </div>
 
 <script>
-// ─── STATE ───────────────────────────────────────────────────────────────────
-const S = {
-  mode: 'intro',      // intro | camera | puzzle | hologram
-  hands: [],
-  photoDataUrl: null,
-  pieces: [],         // {id, correctCol, correctRow, currentCol, currentRow, placed, el, canv}
-  selectedPiece: null,
-  grabbedByHand: null,
-  placedCount: 0,
-  spreadHold: 0,
-  countdownActive: false,
-  holoRotX: 0,
-  holoRotY: 0,
-  lastTwoHands: null,
-  pinchDist0: null,
-  pinchMidX0: null,
-  pinchMidY0: null,
-  handVisible: false,
+// ─── INTRO BG PARTICLES ───────────────────────────────────────────────────────
+(function(){
+  const c=document.getElementById('introBgCanvas');
+  const ctx=c.getContext('2d');
+  let pts=[];
+  function resize(){c.width=innerWidth;c.height=innerHeight;}
+  resize();window.addEventListener('resize',resize);
+  for(let i=0;i<80;i++)pts.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*1.5+.3,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,o:Math.random()*.4+.1});
+  function draw(){
+    c.width=c.width;
+    pts.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0)p.x=innerWidth;if(p.x>innerWidth)p.x=0;
+      if(p.y<0)p.y=innerHeight;if(p.y>innerHeight)p.y=0;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(0,255,204,${p.o})`;ctx.fill();
+    });
+    // connections
+    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
+      const d=Math.hypot(pts[i].x-pts[j].x,pts[i].y-pts[j].y);
+      if(d<120){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);
+        ctx.strokeStyle=`rgba(0,255,204,${.12*(1-d/120)})`;ctx.lineWidth=.6;ctx.stroke();}
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ─── HOLO PARTICLES ──────────────────────────────────────────────────────────
+let holoParticleCtx, holoParticlePts=[], holoParticleRAF;
+function initHoloParticles(){
+  const c=document.getElementById('holoParticles');
+  c.width=innerWidth;c.height=innerHeight;
+  holoParticleCtx=c.getContext('2d');
+  holoParticlePts=[];
+  for(let i=0;i<120;i++){
+    holoParticlePts.push({
+      x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+      r:Math.random()*1.2+.2,vx:(Math.random()-.5)*.15,vy:-Math.random()*.4-.1,
+      o:Math.random()*.5+.1,color:Math.random()<.5?'0,255,204':'123,97,255'
+    });
+  }
+  function drawHP(){
+    const c2=document.getElementById('holoParticles');
+    c2.width=c2.width;
+    holoParticlePts.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.y<-5){p.y=innerHeight+5;p.x=Math.random()*innerWidth;}
+      if(p.x<0)p.x=innerWidth;if(p.x>innerWidth)p.x=0;
+      holoParticleCtx.beginPath();holoParticleCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      holoParticleCtx.fillStyle=`rgba(${p.color},${p.o})`;holoParticleCtx.fill();
+    });
+    holoParticleRAF=requestAnimationFrame(drawHP);
+  }
+  drawHP();
+}
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const S={
+  mode:'intro',
+  hands:[],
+  photoDataUrl:null,
+  pieces:[],
+  selectedPiece:null,
+  placedCount:0,
+  holoRotX:0,holoRotY:0,
+  lastHandPos:null,
+  // two-hand trigger
+  twoHandPhase:'idle', // idle | close | spreading | countdown
+  closeStartDist:0,
+  countdownTimer:null,
+  countdownStart:0,
 };
-const COLS = 4, ROWS = 3, TOTAL = 12;
-const SPREAD_THRESHOLD = 0.38;
-const SPREAD_HOLD_MS = 1000;
+const COLS=4,ROWS=3,TOTAL=12;
+const CLOSE_THRESHOLD=120;    // px — hands must be closer than this
+const SPREAD_THRESHOLD=180;   // px — then spread past this to start CD
+const CD_MS=3000;
 
-// ─── DOM ─────────────────────────────────────────────────────────────────────
-const video       = document.getElementById('videoEl');
-const trackCanvas = document.getElementById('trackCanvas');
-const photoCanvas = document.getElementById('photoCanvas');
-const tCtx        = trackCanvas.getContext('2d');
-const pCtx        = photoCanvas.getContext('2d');
-const cameraHud   = document.getElementById('cameraHud');
-const statusBadge = document.getElementById('statusBadge');
-const spreadFill  = document.getElementById('spreadFill');
-const spreadLabel = document.getElementById('spreadLabel');
-const cRing       = document.getElementById('cRing');
-const cdNum       = document.getElementById('countdownNum');
-const cdRing      = document.getElementById('countdownRing');
-const flashOverlay= document.getElementById('flashOverlay');
-const introScreen = document.getElementById('introScreen');
-const puzzleScreen= document.getElementById('puzzleScreen');
-const hologramScreen= document.getElementById('hologramScreen');
-const puzzleBoard = document.getElementById('puzzleBoard');
-const piecesLayer = document.getElementById('piecesLayer');
-const ptCanvas    = document.getElementById('puzzleTrackCanvas');
-const ptCtx       = ptCanvas.getContext('2d');
-const holoImg     = document.getElementById('holoImg');
-const holoWrap    = document.getElementById('holoWrap');
-const htCanvas    = document.getElementById('holoTrackCanvas');
-const htCtx       = htCanvas.getContext('2d');
-const winFlash    = document.getElementById('winFlash');
-const handCursor  = document.getElementById('handCursor');
-const handCursor2 = document.getElementById('handCursor2');
-const progressEl  = document.getElementById('puzzleProgress');
-const puzzleStatusEl = document.getElementById('puzzleStatus');
+// ─── DOM ──────────────────────────────────────────────────────────────────────
+const video=document.getElementById('videoEl');
+const trackCanvas=document.getElementById('trackCanvas');
+const photoCanvas=document.getElementById('photoCanvas');
+const tCtx=trackCanvas.getContext('2d');
+const pCtx=photoCanvas.getContext('2d');
+const cameraHud=document.getElementById('cameraHud');
+const statusBadge=document.getElementById('statusBadge');
+const proximityWrap=document.getElementById('proximityWrap');
+const handDotL=document.getElementById('handDotL');
+const handDotR=document.getElementById('handDotR');
+const proximityLine=document.getElementById('proximityLine');
+const proximityLabel=document.getElementById('proximityLabel');
+const countdownWrap=document.getElementById('countdownWrap');
+const cRing=document.getElementById('cRing');
+const cdNum=document.getElementById('cdNum');
+const flashOverlay=document.getElementById('flashOverlay');
+const introScreen=document.getElementById('introScreen');
+const puzzleScreen=document.getElementById('puzzleScreen');
+const hologramScreen=document.getElementById('hologramScreen');
+const puzzleBoard=document.getElementById('puzzleBoard');
+const piecesLayer=document.getElementById('piecesLayer');
+const ptCanvas=document.getElementById('puzzleTrackCanvas');
+const ptCtx2=ptCanvas.getContext('2d');
+const holoImg=document.getElementById('holoImg');
+const holoReflectImg=document.getElementById('holoReflectImg');
+const holoWrap=document.getElementById('holoWrap');
+const htCanvas=document.getElementById('htCanvas');
+const htCtx=htCanvas.getContext('2d');
+const winFlash=document.getElementById('winFlash');
+const handCursor=document.getElementById('handCursor');
+const handCursor2=document.getElementById('handCursor2');
+const progressEl=document.getElementById('puzzleProgress');
+const puzzleStatusEl=document.getElementById('puzzleStatus');
+const holoReadout=document.getElementById('holoReadout');
 
-// ─── MEDIAPIPE HANDS ─────────────────────────────────────────────────────────
-let handsModel, cameraUtil;
-
-function initMediaPipe() {
-  handsModel = new Hands({locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
-  handsModel.setOptions({maxNumHands:2, modelComplexity:1, minDetectionConfidence:.7, minTrackingConfidence:.6});
-  handsModel.onResults(onHandResults);
-
-  cameraUtil = new Camera(video, {
-    onFrame: async () => { if(S.mode!=='intro') await handsModel.send({image:video}); },
-    width: 1280, height: 720
-  });
-  cameraUtil.start();
+// ─── RESIZE ───────────────────────────────────────────────────────────────────
+function resizeCanvases(){
+  trackCanvas.width=innerWidth;trackCanvas.height=innerHeight;
+  htCanvas.width=innerWidth;htCanvas.height=innerHeight;
+  const pc=document.getElementById('puzzleContainer');
+  if(pc){ptCanvas.width=pc.offsetWidth;ptCanvas.height=pc.offsetHeight;}
+  const hp=document.getElementById('holoParticles');
+  if(hp){hp.width=innerWidth;hp.height=innerHeight;}
 }
-
-// ─── RESIZE ──────────────────────────────────────────────────────────────────
-function resizeCanvases() {
-  [trackCanvas, htCanvas].forEach(c => { c.width=innerWidth; c.height=innerHeight; });
-  const pc = document.getElementById('puzzleContainer');
-  if(pc){ ptCanvas.width=pc.offsetWidth; ptCanvas.height=pc.offsetHeight; }
-}
-window.addEventListener('resize', resizeCanvases);
+window.addEventListener('resize',resizeCanvases);
 resizeCanvases();
 
-// ─── HAND RESULT HANDLER ─────────────────────────────────────────────────────
-function onHandResults(results) {
-  S.hands = results.multiHandLandmarks || [];
-  S.handVisible = S.hands.length > 0;
+// ─── MEDIAPIPE ────────────────────────────────────────────────────────────────
+let handsModel;
+function initMediaPipe(){
+  handsModel=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+  handsModel.setOptions({maxNumHands:2,modelComplexity:1,minDetectionConfidence:.65,minTrackingConfidence:.55});
+  handsModel.onResults(onHandResults);
+  const cam=new Camera(video,{
+    onFrame:async()=>{ if(S.mode!=='intro') await handsModel.send({image:video}); },
+    width:1280,height:720
+  });
+  cam.start();
+}
 
-  if(S.mode === 'camera') handleCameraHands();
-  else if(S.mode === 'puzzle') handlePuzzleHands();
-  else if(S.mode === 'hologram') handleHologramHands();
+// ─── HAND UTILS ───────────────────────────────────────────────────────────────
+function lm(hand,idx){const l=hand[idx];return{x:(1-l.x)*innerWidth,y:l.y*innerHeight};}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function midPoint(hand){const t=lm(hand,4),i=lm(hand,8);return{x:(t.x+i.x)/2,y:(t.y+i.y)/2};}
+function wristPoint(hand){return lm(hand,0);}
+function isPinching(hand){return dist(lm(hand,4),lm(hand,8))<42;}
 
+// ─── HAND RESULTS ─────────────────────────────────────────────────────────────
+function onHandResults(results){
+  S.hands=results.multiHandLandmarks||[];
+  if(S.mode==='camera') handleCameraHands();
+  else if(S.mode==='puzzle') handlePuzzleHands();
+  else if(S.mode==='hologram') handleHologramHands();
   drawTrackingOverlay();
 }
 
-// ─── UTILITY ─────────────────────────────────────────────────────────────────
-function lm(hand, idx) {
-  const l = hand[idx];
-  return { x: (1-l.x)*innerWidth, y: l.y*innerHeight }; // mirror
-}
-function dist(a, b){ return Math.hypot(a.x-b.x, a.y-b.y); }
-function spreadScore(hand) {
-  // ratio: avg tip-to-wrist vs wrist-to-middle-mcp
-  const wrist = hand[0], tips = [4,8,12,16,20];
-  const ref = dist(hand[0], hand[9]);
-  if(ref < 0.01) return 0;
-  const avg = tips.reduce((s,i) => s + dist(hand[i], hand[0]), 0) / tips.length;
-  return Math.min(avg / ref / 2.2, 1);
-}
-function pinchDist(hand) { return dist(lm(hand,4), lm(hand,8)); }
-function isPinching(hand) { return pinchDist(hand) < 40; }
-function midPoint(hand) {
-  const t = lm(hand,4), i = lm(hand,8);
-  return { x:(t.x+i.x)/2, y:(t.y+i.y)/2 };
-}
-
-// ─── CAMERA HANDS ────────────────────────────────────────────────────────────
-let spreadTimer = null;
-function handleCameraHands() {
-  if(!S.hands.length){ S.countdownActive=false; clearTimeout(spreadTimer); cdRing.style.display='none'; statusBadge.textContent='Arahkan tangan ke kamera...'; spreadFill.style.width='0%'; return; }
-  const hand = S.hands[0];
-  const ss = spreadScore(hand);
-  spreadFill.style.width = (ss*100)+'%';
-
-  if(ss > SPREAD_THRESHOLD) {
-    statusBadge.textContent = '👋 Tahan... sedang mengambil foto';
-    spreadLabel.textContent = 'Pertahankan!';
-    if(!spreadTimer) {
-      let start = performance.now();
-      cdRing.style.display = 'block';
-      S.countdownActive = true;
-      spreadTimer = setInterval(()=>{
-        const elapsed = performance.now()-start;
-        const frac = elapsed/SPREAD_HOLD_MS;
-        cRing.style.strokeDashoffset = 339.3*(1-frac);
-        cdNum.textContent = Math.max(1,Math.ceil(3*(1-frac)));
-        if(frac >= 1) { clearInterval(spreadTimer); spreadTimer=null; takePhoto(); }
-      }, 50);
-    }
-  } else {
-    spreadLabel.textContent = 'Buka tangan untuk foto';
-    statusBadge.textContent = ss > 0.2 ? '✋ Buka lebih lebar...' : '✋ Tangan terdeteksi!';
-    clearInterval(spreadTimer); spreadTimer=null;
-    cdRing.style.display='none'; S.countdownActive=false;
+// ─── CAMERA HANDS — Two-Hand Trigger ─────────────────────────────────────────
+function handleCameraHands(){
+  if(S.hands.length<2){
+    resetTwoHand();
+    statusBadge.textContent='Tampilkan dua tangan ke kamera...';
+    proximityWrap.style.display='flex';
+    countdownWrap.style.display='none';
+    handCursor.style.display='none';handCursor2.style.display='none';
+    updateProximityViz(null);
+    return;
   }
 
-  // update cursor
-  const mp = midPoint(hand);
-  handCursor.style.display='block';
-  handCursor.style.left = mp.x+'px';
-  handCursor.style.top  = mp.y+'px';
+  const h1=S.hands[0], h2=S.hands[1];
+  const w1=wristPoint(h1), w2=wristPoint(h2);
+  const d=dist(w1,w2);
+
+  // cursors
+  const mp1=midPoint(h1),mp2=midPoint(h2);
+  handCursor.style.display='block';handCursor.style.left=mp1.x+'px';handCursor.style.top=mp1.y+'px';
+  handCursor2.style.display='block';handCursor2.style.left=mp2.x+'px';handCursor2.style.top=mp2.y+'px';
+
+  updateProximityViz({w1,w2,d});
+
+  if(S.twoHandPhase==='idle'||S.twoHandPhase==='close'){
+    if(d<CLOSE_THRESHOLD){
+      S.twoHandPhase='close';
+      statusBadge.textContent='✓ Tangan berdekatan — pisahkan!';
+      proximityLabel.textContent='Sekarang pisahkan kedua tangan';
+      countdownWrap.style.display='none';
+    } else {
+      statusBadge.textContent='Dekatkan kedua tangan terlebih dahulu...';
+      proximityLabel.textContent='Dekatkan lalu pisahkan kedua tangan';
+    }
+  }
+
+  if(S.twoHandPhase==='close'&&d>SPREAD_THRESHOLD){
+    // hands were close, now spread → start countdown
+    S.twoHandPhase='countdown';
+    proximityWrap.style.display='none';
+    countdownWrap.style.display='flex';
+    S.countdownStart=performance.now();
+    statusBadge.textContent='Tahan posisi... mengambil foto';
+    runCountdown();
+  }
+
+  if(S.twoHandPhase==='countdown'){
+    // if they close hands again, cancel
+    if(d<CLOSE_THRESHOLD){
+      resetTwoHand();
+      statusBadge.textContent='Dibatalkan — coba lagi!';
+    }
+  }
+}
+
+function runCountdown(){
+  if(S.twoHandPhase!=='countdown')return;
+  const elapsed=performance.now()-S.countdownStart;
+  const frac=Math.min(elapsed/CD_MS,1);
+  cRing.style.strokeDashoffset=389.6*(1-frac);
+  cdNum.textContent=Math.max(1,Math.ceil(3*(1-frac)));
+  if(frac>=1){takePhoto();return;}
+  requestAnimationFrame(runCountdown);
+}
+
+function resetTwoHand(){
+  S.twoHandPhase='idle';
+  countdownWrap.style.display='none';
+  proximityWrap.style.display='flex';
+  cRing.style.strokeDashoffset=389.6;
+  cdNum.textContent='3';
+}
+
+function updateProximityViz(data){
+  const vizW=220;
+  if(!data){
+    handDotL.style.left='20px';handDotR.style.left='180px';
+    proximityLine.style.left='30px';proximityLine.style.right='30px';
+    return;
+  }
+  const {d}=data;
+  const maxD=300;
+  const pct=Math.min(d/maxD,1);
+  const lx=10+pct*(vizW/2-20);
+  const rx=vizW-30-pct*(vizW/2-20);
+  handDotL.style.left=lx+'px';
+  handDotR.style.left=rx+'px';
+  proximityLine.style.left=(lx+10)+'px';
+  proximityLine.style.right=(vizW-rx-10)+'px';
+  const close=d<CLOSE_THRESHOLD;
+  handDotL.style.borderColor=close?'#ff3cac':'#00ffcc';
+  handDotR.style.borderColor=close?'#ff3cac':'#00ffcc';
 }
 
 // ─── TAKE PHOTO ───────────────────────────────────────────────────────────────
-function takePhoto() {
-  cdRing.style.display='none';
-  // flash
+function takePhoto(){
+  countdownWrap.style.display='none';
+  flashOverlay.style.transition='none';
   flashOverlay.style.opacity='1';
-  setTimeout(()=>{ flashOverlay.style.transition='opacity .4s'; flashOverlay.style.opacity='0'; setTimeout(()=>{ flashOverlay.style.transition='opacity .05s'; },500); },80);
-
-  // capture from video
-  photoCanvas.width = video.videoWidth;
-  photoCanvas.height = video.videoHeight;
-  pCtx.save(); pCtx.translate(photoCanvas.width,0); pCtx.scale(-1,1);
-  pCtx.drawImage(video,0,0);
-  pCtx.restore();
-  S.photoDataUrl = photoCanvas.toDataURL('image/jpeg',0.92);
-
-  setTimeout(()=>{ switchToPuzzle(); }, 600);
+  setTimeout(()=>{flashOverlay.style.transition='opacity .5s';flashOverlay.style.opacity='0';},100);
+  photoCanvas.width=video.videoWidth;photoCanvas.height=video.videoHeight;
+  pCtx.save();pCtx.translate(photoCanvas.width,0);pCtx.scale(-1,1);
+  pCtx.drawImage(video,0,0);pCtx.restore();
+  S.photoDataUrl=photoCanvas.toDataURL('image/jpeg',.92);
+  setTimeout(switchToPuzzle,700);
 }
 
-// ─── SWITCH TO PUZZLE ────────────────────────────────────────────────────────
-function switchToPuzzle() {
+// ─── PUZZLE ───────────────────────────────────────────────────────────────────
+function switchToPuzzle(){
   S.mode='puzzle';
   cameraHud.classList.add('hidden');
-  handCursor.style.display='none';
-  introScreen.classList.add('hidden');
+  video.style.display='none';trackCanvas.style.display='none';
+  handCursor.style.display='none';handCursor2.style.display='none';
   puzzleScreen.classList.remove('hidden');
-  video.style.display='none';
-  trackCanvas.style.display='none';
   resizeCanvases();
   buildPuzzle();
 }
 
-// ─── BUILD PUZZLE ─────────────────────────────────────────────────────────────
-function buildPuzzle() {
-  puzzleBoard.innerHTML=''; piecesLayer.innerHTML=''; S.pieces=[]; S.placedCount=0;
-  const img = new Image();
-  img.onload = () => {
-    const iw=img.width, ih=img.height;
-    const pw=iw/COLS, ph=ih/ROWS;
-    const container = document.getElementById('puzzleContainer');
-    const bw=container.offsetWidth, bh=container.offsetHeight;
-    const cw=bw/COLS, ch=bh/ROWS;
-
-    // board cells
-    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
-      const cell=document.createElement('div');
-      cell.className='pCell';
-      cell.dataset.r=r; cell.dataset.c=c;
-      puzzleBoard.appendChild(cell);
+function buildPuzzle(){
+  puzzleBoard.innerHTML='';piecesLayer.innerHTML='';S.pieces=[];S.placedCount=0;
+  const img=new Image();
+  img.onload=()=>{
+    const iw=img.width,ih=img.height,pw=iw/COLS,ph=ih/ROWS;
+    const cont=document.getElementById('puzzleContainer');
+    const bw=cont.offsetWidth,bh=cont.offsetHeight;
+    const cw=bw/COLS,ch=bh/ROWS;
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const cell=document.createElement('div');cell.className='pCell';
+      cell.dataset.r=r;cell.dataset.c=c;puzzleBoard.appendChild(cell);
     }
-
-    // create pieces
-    const ids = [...Array(TOTAL).keys()];
-    shuffle(ids);
-
+    const ids=[...Array(TOTAL).keys()];shuffle(ids);
     ids.forEach((id,i)=>{
-      const correctCol = id%COLS, correctRow = Math.floor(id/COLS);
-      const canv = document.createElement('canvas');
-      canv.width=pw; canv.height=ph;
-      const ctx=canv.getContext('2d');
-      ctx.drawImage(img, correctCol*pw, correctRow*ph, pw, ph, 0,0, pw,ph);
-
-      const el=document.createElement('div');
-      el.className='piece';
-      el.style.width=cw+'px'; el.style.height=ch+'px';
-      const pc=document.createElement('canvas');
-      pc.width=cw; pc.height=ch;
-      pc.getContext('2d').drawImage(canv,0,0,pw,ph,0,0,cw,ch);
-      el.appendChild(pc);
-
-      // scatter randomly outside board area or shuffled
-      const angle = (i/TOTAL)*Math.PI*2;
-      const rx = bw/2 + Math.cos(angle)*(bw*0.65);
-      const ry = bh/2 + Math.sin(angle)*(bh*0.55);
-      el.style.left = Math.max(0,Math.min(bw-cw,rx-cw/2))+'px';
-      el.style.top  = Math.max(0,Math.min(bh-ch,ry-ch/2))+'px';
+      const cCol=id%COLS,cRow=Math.floor(id/COLS);
+      const src=document.createElement('canvas');src.width=pw;src.height=ph;
+      src.getContext('2d').drawImage(img,cCol*pw,cRow*ph,pw,ph,0,0,pw,ph);
+      const el=document.createElement('div');el.className='piece';
+      el.style.width=cw+'px';el.style.height=ch+'px';
+      const dc=document.createElement('canvas');dc.width=cw;dc.height=ch;
+      dc.getContext('2d').drawImage(src,0,0,pw,ph,0,0,cw,ch);
+      el.appendChild(dc);
+      const angle=(i/TOTAL)*Math.PI*2;
+      const rx=bw/2+Math.cos(angle)*(bw*.62);
+      const ry=bh/2+Math.sin(angle)*(bh*.52);
+      el.style.left=Math.max(0,Math.min(bw-cw,rx-cw/2))+'px';
+      el.style.top=Math.max(0,Math.min(bh-ch,ry-ch/2))+'px';
       piecesLayer.appendChild(el);
-
-      S.pieces.push({ id, correctCol, correctRow, currentCol:-1, currentRow:-1, placed:false, el, cw, ch });
+      S.pieces.push({id,correctCol:cCol,correctRow:cRow,placed:false,el,cw,ch});
     });
-    updateProgress();
+    progressEl.textContent=`0 / ${TOTAL}`;
   };
-  img.src = S.photoDataUrl;
+  img.src=S.photoDataUrl;
 }
 
-function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
-// ─── PUZZLE HANDS ────────────────────────────────────────────────────────────
 let lastGrabTime=0;
-function handlePuzzleHands() {
-  if(!S.hands.length){ releasePiece(); return; }
+function handlePuzzleHands(){
+  if(!S.hands.length){releasePiece();return;}
   const hand=S.hands[0];
-  const container=document.getElementById('puzzleContainer');
-  const rect=container.getBoundingClientRect();
-  const mp = midPoint(hand);
-  const pinching = isPinching(hand);
+  const cont=document.getElementById('puzzleContainer');
+  const rect=cont.getBoundingClientRect();
+  const mp=midPoint(hand);
+  const pinching=isPinching(hand);
 
-  // cursor
   handCursor.style.display='block';
-  handCursor.style.left=mp.x+'px';
-  handCursor.style.top=mp.y+'px';
-  handCursor.className = pinching ? 'pinch' : '';
+  handCursor.style.left=mp.x+'px';handCursor.style.top=mp.y+'px';
+  handCursor.className='hcursor'+(pinching?' pinch':'');
 
-  // local coords inside container
-  const lx=mp.x-rect.left, ly=mp.y-rect.top;
+  const lx=mp.x-rect.left,ly=mp.y-rect.top;
 
-  if(pinching) {
-    if(!S.selectedPiece) {
-      // grab nearest unplaced piece
+  // highlight target cell
+  const bw=cont.offsetWidth,bh=cont.offsetHeight;
+  const cw=bw/COLS,ch=bh/ROWS;
+  document.querySelectorAll('.pCell').forEach(c=>c.classList.remove('highlight'));
+  if(S.selectedPiece){
+    const pcx=parseFloat(S.selectedPiece.el.style.left)+S.selectedPiece.cw/2;
+    const pcy=parseFloat(S.selectedPiece.el.style.top)+S.selectedPiece.ch/2;
+    const col=Math.min(COLS-1,Math.max(0,Math.floor(pcx/cw)));
+    const row=Math.min(ROWS-1,Math.max(0,Math.floor(pcy/ch)));
+    const cell=puzzleBoard.querySelector(`[data-r="${row}"][data-c="${col}"]`);
+    if(cell)cell.classList.add('highlight');
+  }
+
+  if(pinching){
+    if(!S.selectedPiece){
       const now=Date.now();
-      if(now-lastGrabTime>300) {
-        let best=null, bestD=60;
+      if(now-lastGrabTime>250){
+        let best=null,bestD=65;
         S.pieces.forEach(p=>{
-          if(p.placed) return;
-          const el=p.el;
-          const px=parseFloat(el.style.left)+p.cw/2;
-          const py=parseFloat(el.style.top)+p.ch/2;
+          if(p.placed)return;
+          const px=parseFloat(p.el.style.left)+p.cw/2;
+          const py=parseFloat(p.el.style.top)+p.ch/2;
           const d=Math.hypot(lx-px,ly-py);
-          if(d<bestD){ bestD=d; best=p; }
+          if(d<bestD){bestD=d;best=p;}
         });
-        if(best){ S.selectedPiece=best; best.el.classList.add('selected'); lastGrabTime=Date.now(); }
+        if(best){S.selectedPiece=best;best.el.classList.add('selected');lastGrabTime=Date.now();}
       }
     }
-    if(S.selectedPiece && !S.selectedPiece.placed) {
+    if(S.selectedPiece&&!S.selectedPiece.placed){
       const p=S.selectedPiece;
-      p.el.style.left=(lx-p.cw/2)+'px';
-      p.el.style.top =(ly-p.ch/2)+'px';
+      p.el.style.left=(lx-p.cw/2)+'px';p.el.style.top=(ly-p.ch/2)+'px';
       p.el.style.zIndex=999;
-      puzzleStatusEl.textContent='Lepaskan di atas sel yang benar!';
+      puzzleStatusEl.textContent='Lepaskan di posisi yang benar';
     }
   } else {
-    if(S.selectedPiece) {
-      // snap to nearest cell
+    if(S.selectedPiece){
       const p=S.selectedPiece;
-      const bw=container.offsetWidth, bh=container.offsetHeight;
-      const cw=bw/COLS, ch=bh/ROWS;
       const pcx=parseFloat(p.el.style.left)+p.cw/2;
       const pcy=parseFloat(p.el.style.top)+p.ch/2;
-      const col=Math.round(pcx/cw-0.5), row=Math.round(pcy/ch-0.5);
-      const snapCol=Math.max(0,Math.min(COLS-1,col));
-      const snapRow=Math.max(0,Math.min(ROWS-1,row));
-
-      // check if correct
-      if(snapCol===p.correctCol && snapRow===p.correctRow) {
-        // check not already occupied by placed piece
-        const occupied=S.pieces.find(op=>op.placed&&op.correctCol===snapCol&&op.correctRow===snapRow);
-        if(!occupied) {
-          p.placed=true; p.currentCol=snapCol; p.currentRow=snapRow;
-          p.el.style.left=(snapCol*cw)+'px';
-          p.el.style.top =(snapRow*ch)+'px';
-          p.el.style.zIndex=1;
-          p.el.classList.remove('selected'); p.el.classList.add('placed');
+      const snapCol=Math.max(0,Math.min(COLS-1,Math.floor(pcx/cw)));
+      const snapRow=Math.max(0,Math.min(ROWS-1,Math.floor(pcy/ch)));
+      if(snapCol===p.correctCol&&snapRow===p.correctRow){
+        const occ=S.pieces.find(op=>op.placed&&op.correctCol===snapCol&&op.correctRow===snapRow);
+        if(!occ){
+          p.placed=true;p.el.style.left=(snapCol*cw)+'px';p.el.style.top=(snapRow*ch)+'px';
+          p.el.style.zIndex=1;p.el.classList.remove('selected');p.el.classList.add('placed');
           S.placedCount++;
-          updateProgress();
-          if(S.placedCount===TOTAL) setTimeout(onPuzzleComplete,800);
+          progressEl.textContent=`${S.placedCount} / ${TOTAL}`;
+          if(S.placedCount===TOTAL)setTimeout(onPuzzleComplete,600);
         } else { bounceBack(p); }
       } else { bounceBack(p); }
       S.selectedPiece=null;
-      puzzleStatusEl.textContent='Cubit & geser potongan puzzle';
+      puzzleStatusEl.textContent='Cubit & geser puzzle';
     }
   }
 
-  // second hand cursor
   if(S.hands.length>1){
-    const h2=S.hands[1];
-    const mp2=midPoint(h2);
-    handCursor2.style.display='block';
-    handCursor2.style.left=mp2.x+'px';
-    handCursor2.style.top=mp2.y+'px';
+    const mp2=midPoint(S.hands[1]);
+    handCursor2.style.display='block';handCursor2.style.left=mp2.x+'px';handCursor2.style.top=mp2.y+'px';
   } else { handCursor2.style.display='none'; }
 
   drawPuzzleTracking();
 }
 
-function releasePiece() {
-  if(S.selectedPiece){ S.selectedPiece.el.classList.remove('selected'); S.selectedPiece=null; }
+function releasePiece(){
+  if(S.selectedPiece){S.selectedPiece.el.classList.remove('selected');S.selectedPiece=null;}
   handCursor.style.display='none';
 }
-
-function bounceBack(p) {
-  p.el.style.transition='left .3s,top .3s'; 
-  const bw=document.getElementById('puzzleContainer').offsetWidth;
-  const bh=document.getElementById('puzzleContainer').offsetHeight;
-  p.el.style.left=Math.max(0,Math.min(bw-p.cw,parseFloat(p.el.style.left)))+'px';
-  p.el.style.top =Math.max(0,Math.min(bh-p.ch,parseFloat(p.el.style.top)))+'px';
-  setTimeout(()=>{ p.el.style.transition=''; },350);
+function bounceBack(p){
+  p.el.style.transition='left .25s cubic-bezier(.34,1.56,.64,1),top .25s cubic-bezier(.34,1.56,.64,1)';
+  setTimeout(()=>{p.el.style.transition='';},300);
 }
 
-function updateProgress() {
-  progressEl.textContent = `${S.placedCount} / ${TOTAL} tersusun`;
-}
-
-// ─── PUZZLE COMPLETE ─────────────────────────────────────────────────────────
-function onPuzzleComplete() {
+// ─── PUZZLE COMPLETE ──────────────────────────────────────────────────────────
+function onPuzzleComplete(){
   winFlash.classList.add('show');
-  setTimeout(()=>{
-    winFlash.classList.remove('show');
-    switchToHologram();
-  }, 2200);
+  setTimeout(()=>{winFlash.classList.remove('show');switchToHologram();},2000);
 }
 
 // ─── HOLOGRAM ────────────────────────────────────────────────────────────────
-function switchToHologram() {
+function switchToHologram(){
   S.mode='hologram';
   puzzleScreen.classList.add('hidden');
   hologramScreen.classList.remove('hidden');
   holoImg.src=S.photoDataUrl;
-  S.holoRotX=0; S.holoRotY=0;
-  S.lastTwoHands=null; S.pinchDist0=null;
-  htCanvas.width=innerWidth; htCanvas.height=innerHeight;
-  handCursor.style.display='none';
+  holoReflectImg.src=S.photoDataUrl;
+  document.getElementById('holoReflect').style.opacity='1';
+  S.holoRotX=0;S.holoRotY=0;S.lastHandPos=null;
+  htCanvas.width=innerWidth;htCanvas.height=innerHeight;
+  handCursor.style.display='none';handCursor2.style.display='none';
+  initHoloParticles();
+  animateHoloIdle();
 }
 
-function handleHologramHands() {
-  if(S.hands.length===0) { S.lastTwoHands=null; S.pinchDist0=null; return; }
+let holoIdleRAF;
+function animateHoloIdle(){
+  // gentle idle bob when no hands
+  if(S.mode!=='hologram')return;
+  if(!S._handActive){
+    const t=Date.now()/1000;
+    const idleX=Math.sin(t*.4)*3;
+    const idleY=Math.cos(t*.3)*4;
+    applyHoloTransform(S.holoRotX+idleX, S.holoRotY+idleY);
+  }
+  holoIdleRAF=requestAnimationFrame(animateHoloIdle);
+}
 
-  if(S.hands.length>=2) {
-    // two hands: rotate with mid-point delta
-    const h1=S.hands[0], h2=S.hands[1];
-    const m1=midPoint(h1), m2=midPoint(h2);
-    const mx=(m1.x+m2.x)/2, my=(m1.y+m2.y)/2;
+function applyHoloTransform(rx,ry){
+  holoWrap.style.transform=`rotateX(${rx}deg) rotateY(${ry}deg)`;
+  // chromatic aberration shifts with rotation
+  const rShiftX=ry*.04,rShiftY=-rx*.03;
+  document.getElementById('holoR').style.transform=`translate(${3+rShiftX}px,${-1+rShiftY}px)`;
+  document.getElementById('holoG').style.transform=`translate(${-2-rShiftX*.5}px,${1+rShiftY*.5}px)`;
+  document.getElementById('holoB').style.transform=`translate(${1+rShiftX*.3}px,${2-rShiftY}px)`;
+  // readout
+  holoReadout.textContent=`ROT X: ${Math.round(rx)}°   ROT Y: ${Math.round(ry)}°`;
+  // reflect opacity based on tilt
+  const reflOp=Math.max(0,.35-Math.abs(rx)*.008);
+  document.getElementById('holoReflect').style.opacity=reflOp;
+}
 
-    // update cursors
-    handCursor.style.display='block';
-    handCursor.style.left=m1.x+'px'; handCursor.style.top=m1.y+'px';
-    handCursor2.style.display='block';
-    handCursor2.style.left=m2.x+'px'; handCursor2.style.top=m2.y+'px';
+function handleHologramHands(){
+  if(!S.hands.length){S.lastHandPos=null;S._handActive=false;handCursor.style.display='none';handCursor2.style.display='none';return;}
+  S._handActive=true;
 
-    if(S.lastTwoHands) {
-      const pm1=S.lastTwoHands[0], pm2=S.lastTwoHands[1];
-      const pmx=(pm1.x+pm2.x)/2, pmy=(pm1.y+pm2.y)/2;
-      const dx=mx-pmx, dy=my-pmy;
-      S.holoRotY += dx*0.4;
-      S.holoRotX -= dy*0.4;
-      S.holoRotX = Math.max(-45,Math.min(45,S.holoRotX));
+  if(S.hands.length>=2){
+    const mp1=midPoint(S.hands[0]),mp2=midPoint(S.hands[1]);
+    handCursor.style.display='block';handCursor.style.left=mp1.x+'px';handCursor.style.top=mp1.y+'px';
+    handCursor2.style.display='block';handCursor2.style.left=mp2.x+'px';handCursor2.style.top=mp2.y+'px';
+    const mx=(mp1.x+mp2.x)/2,my=(mp1.y+mp2.y)/2;
+    if(S.lastHandPos&&S.lastHandPos.two){
+      const dx=mx-S.lastHandPos.x,dy=my-S.lastHandPos.y;
+      S.holoRotY=clamp(S.holoRotY+dx*.45,-75,75);
+      S.holoRotX=clamp(S.holoRotX-dy*.45,-45,45);
     }
-    S.lastTwoHands=[m1,m2];
+    S.lastHandPos={x:mx,y:my,two:true};
   } else {
-    // one hand: drag
-    const h=S.hands[0];
-    const mp=midPoint(h);
-    handCursor.style.display='block';
-    handCursor.style.left=mp.x+'px'; handCursor.style.top=mp.y+'px';
+    const mp=midPoint(S.hands[0]);
+    handCursor.style.display='block';handCursor.style.left=mp.x+'px';handCursor.style.top=mp.y+'px';
     handCursor2.style.display='none';
-
-    if(S.lastTwoHands && S.lastTwoHands.length===1) {
-      const prev=S.lastTwoHands[0];
-      S.holoRotY += (mp.x-prev.x)*0.5;
-      S.holoRotX -= (mp.y-prev.y)*0.5;
-      S.holoRotX=Math.max(-40,Math.min(40,S.holoRotX));
+    if(S.lastHandPos){
+      const dx=mp.x-S.lastHandPos.x,dy=mp.y-S.lastHandPos.y;
+      S.holoRotY=clamp(S.holoRotY+dx*.5,-75,75);
+      S.holoRotX=clamp(S.holoRotX-dy*.5,-45,45);
     }
-    S.lastTwoHands=[mp];
+    S.lastHandPos={x:mp.x,y:mp.y,two:false};
   }
 
-  holoWrap.style.transform=`rotateX(${S.holoRotX}deg) rotateY(${S.holoRotY}deg)`;
+  applyHoloTransform(S.holoRotX,S.holoRotY);
   drawHoloTracking();
 }
 
-// ─── DRAW TRACKING OVERLAYS ──────────────────────────────────────────────────
-function drawTrackingOverlay() {
-  tCtx.clearRect(0,0,trackCanvas.width,trackCanvas.height);
-  if(S.mode!=='camera') return;
-  S.hands.forEach(hand=>{
-    drawHandSkeleton(tCtx, hand, trackCanvas.width, trackCanvas.height);
-  });
-}
+function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
 
-function drawPuzzleTracking() {
-  ptCtx.clearRect(0,0,ptCanvas.width,ptCanvas.height);
-  if(S.mode!=='puzzle') return;
-  const container=document.getElementById('puzzleContainer');
-  const rect=container.getBoundingClientRect();
-  S.hands.forEach(hand=>{
-    drawHandSkeletonLocal(ptCtx, hand, rect, ptCanvas.width, ptCanvas.height);
-  });
-}
-
-function drawHoloTracking() {
-  htCtx.clearRect(0,0,htCanvas.width,htCanvas.height);
-  S.hands.forEach(hand=>{
-    drawHandSkeleton(htCtx, hand, htCanvas.width, htCanvas.height);
-  });
-}
-
-const CONNECTIONS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+// ─── TRACKING OVERLAYS ────────────────────────────────────────────────────────
+const CONNECTIONS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
 const TIPS=[4,8,12,16,20];
 
-function drawHandSkeleton(ctx, hand, w, h) {
-  ctx.save();
-  ctx.strokeStyle='rgba(167,139,250,.7)'; ctx.lineWidth=2;
+function drawSkeleton(ctx,hand,toX,toY,color1,color2){
+  ctx.save();ctx.lineWidth=1.5;
   CONNECTIONS.forEach(([a,b])=>{
-    const pa=hand[a], pb=hand[b];
-    ctx.beginPath();
-    ctx.moveTo((1-pa.x)*w, pa.y*h);
-    ctx.lineTo((1-pb.x)*w, pb.y*h);
-    ctx.stroke();
+    const pa=hand[a],pb=hand[b];
+    ctx.beginPath();ctx.moveTo(toX(pa),toY(pa));ctx.lineTo(toX(pb),toY(pb));
+    ctx.strokeStyle=`rgba(${color1},.55)`;ctx.stroke();
   });
   hand.forEach((lp,i)=>{
-    const x=(1-lp.x)*w, y=lp.y*h;
-    const r=TIPS.includes(i)?7:4;
-    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-    ctx.fillStyle=TIPS.includes(i)?'rgba(52,211,153,.9)':'rgba(167,139,250,.9)';
-    ctx.fill();
+    ctx.beginPath();ctx.arc(toX(lp),toY(lp),TIPS.includes(i)?6:3,0,Math.PI*2);
+    ctx.fillStyle=TIPS.includes(i)?`rgba(${color2},.9)`:`rgba(${color1},.85)`;ctx.fill();
   });
   ctx.restore();
 }
 
-function drawHandSkeletonLocal(ctx, hand, rect, cw, ch) {
-  ctx.save();
-  ctx.strokeStyle='rgba(167,139,250,.7)'; ctx.lineWidth=2;
-  const toLocal=(lp)=>({ x:(1-lp.x)*innerWidth - rect.left, y:lp.y*innerHeight - rect.top });
-  CONNECTIONS.forEach(([a,b])=>{
-    const pa=toLocal(hand[a]), pb=toLocal(hand[b]);
-    ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.stroke();
+function drawTrackingOverlay(){
+  tCtx.clearRect(0,0,trackCanvas.width,trackCanvas.height);
+  if(S.mode!=='camera')return;
+  S.hands.forEach((hand,i)=>{
+    const c1=i===0?'0,255,204':'123,97,255',c2=i===0?'52,211,153':'167,139,250';
+    drawSkeleton(tCtx,hand,lp=>(1-lp.x)*innerWidth,lp=>lp.y*innerHeight,c1,c2);
   });
-  hand.forEach((lp,i)=>{
-    const p=toLocal(lp);
-    ctx.beginPath(); ctx.arc(p.x,p.y,TIPS.includes(i)?6:3,0,Math.PI*2);
-    ctx.fillStyle=TIPS.includes(i)?'rgba(52,211,153,.9)':'rgba(167,139,250,.9)';
-    ctx.fill();
-  });
-  ctx.restore();
 }
 
-// ─── START ────────────────────────────────────────────────────────────────────
-document.getElementById('startBtn').onclick = () => {
+function drawPuzzleTracking(){
+  ptCtx2.clearRect(0,0,ptCanvas.width,ptCanvas.height);
+  const rect=document.getElementById('puzzleContainer').getBoundingClientRect();
+  S.hands.forEach((hand,i)=>{
+    const c1=i===0?'0,255,204':'123,97,255',c2=i===0?'52,211,153':'167,139,250';
+    drawSkeleton(ptCtx2,hand,
+      lp=>(1-lp.x)*innerWidth-rect.left,
+      lp=>lp.y*innerHeight-rect.top,c1,c2);
+  });
+}
+
+function drawHoloTracking(){
+  htCtx.clearRect(0,0,htCanvas.width,htCanvas.height);
+  S.hands.forEach((hand,i)=>{
+    const c1=i===0?'0,255,204':'123,97,255',c2=i===0?'52,211,153':'167,139,250';
+    drawSkeleton(htCtx,hand,lp=>(1-lp.x)*innerWidth,lp=>lp.y*innerHeight,c1,c2);
+  });
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+document.getElementById('startBtn').onclick=()=>{
   S.mode='camera';
   introScreen.classList.add('hidden');
   cameraHud.classList.remove('hidden');
@@ -635,16 +809,18 @@ document.getElementById('startBtn').onclick = () => {
   trackCanvas.style.display='block';
   initMediaPipe();
 };
-
-document.getElementById('restartBtn').onclick = () => {
-  S.mode='camera';
+document.getElementById('restartBtn').onclick=()=>{
+  if(holoParticleRAF)cancelAnimationFrame(holoParticleRAF);
+  if(holoIdleRAF)cancelAnimationFrame(holoIdleRAF);
+  S.mode='camera';S.hands=[];S.photoDataUrl=null;S.lastHandPos=null;S._handActive=false;
+  S.twoHandPhase='idle';
   hologramScreen.classList.add('hidden');
   cameraHud.classList.remove('hidden');
-  video.style.display='block';
-  trackCanvas.style.display='block';
-  S.hands=[]; S.photoDataUrl=null; spreadFill.style.width='0%';
-  statusBadge.textContent='Arahkan tangan ke kamera...';
-  S.lastTwoHands=null;
+  video.style.display='block';trackCanvas.style.display='block';
+  handCursor.style.display='none';handCursor2.style.display='none';
+  countdownWrap.style.display='none';proximityWrap.style.display='flex';
+  statusBadge.textContent='Tampilkan dua tangan ke kamera...';
+  cRing.style.strokeDashoffset=389.6;cdNum.textContent='3';
 };
 </script>
 </body>
