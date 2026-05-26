@@ -8,9 +8,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.js" crossorigin="anonymous"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ══════════════════════════════════════════════════════
-   RESET + ROOT
-══════════════════════════════════════════════════════ */
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
   --ink:#0a0a0f;
@@ -19,6 +16,7 @@
   --magenta:#ff2d78;
   --violet:#7c5cff;
   --amber:#ffb340;
+  --green:#00e676;
   --cyan-dim:rgba(0,245,196,.15);
   --mag-dim:rgba(255,45,120,.15);
   --white:rgba(255,255,255,.9);
@@ -28,37 +26,25 @@
 }
 html,body{width:100%;height:100%;overflow:hidden;background:var(--ink)}
 body{font-family:var(--body);color:var(--white)}
-
-/* ══════════════════════════════════════════════════════
-   APP SHELL
-══════════════════════════════════════════════════════ */
 #app{position:relative;width:100vw;height:100vh}
 
-/* ══════════════════════════════════════════════════════
-   VIDEO + CANVAS LAYERS
-══════════════════════════════════════════════════════ */
 #vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);opacity:0;transition:opacity .6s}
 #vid.live{opacity:1}
 #overlayCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:10}
+#trailCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:15}
 #photoCanvas{display:none}
 
-/* ══════════════════════════════════════════════════════
-   SCREEN SYSTEM
-══════════════════════════════════════════════════════ */
 .screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .4s,visibility .4s}
 .screen.off{opacity:0;visibility:hidden;pointer-events:none}
 
-/* ══════════════════════════════════════════════════════
-   BOOT / LOADING SCREEN
-══════════════════════════════════════════════════════ */
+/* BOOT */
 #bootScreen{z-index:90;background:var(--ink);gap:20px}
 #bootScreen canvas{position:absolute;inset:0}
 .boot-logo{position:relative;z-index:2;text-align:center}
 .boot-logo h1{
   font-family:var(--display);
   font-size:clamp(4rem,14vw,9rem);
-  letter-spacing:.04em;
-  line-height:.9;
+  letter-spacing:.04em;line-height:.9;
   background:linear-gradient(135deg,var(--cyan) 0%,var(--violet) 50%,var(--magenta) 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   filter:drop-shadow(0 0 60px rgba(0,245,196,.3));
@@ -67,126 +53,109 @@ body{font-family:var(--body);color:var(--white)}
   font-family:var(--mono);font-size:.7rem;letter-spacing:.4em;
   color:rgba(255,255,255,.25);text-transform:uppercase;margin-top:12px;display:block
 }
-.boot-status{
-  position:relative;z-index:2;
-  font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;
-  color:rgba(255,255,255,.3);text-transform:uppercase
-}
-.boot-bar{
-  position:relative;z-index:2;
-  width:200px;height:1px;background:rgba(255,255,255,.06);overflow:hidden
-}
-.boot-bar-fill{
-  height:100%;width:0;
-  background:linear-gradient(90deg,var(--cyan),var(--violet));
-  transition:width .4s
-}
-.boot-err{
-  position:relative;z-index:2;
-  font-family:var(--mono);font-size:.68rem;color:var(--magenta);
-  letter-spacing:.1em;text-align:center;max-width:320px;line-height:1.8;display:none
-}
+.boot-status{position:relative;z-index:2;font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;color:rgba(255,255,255,.3);text-transform:uppercase}
+.boot-bar{position:relative;z-index:2;width:200px;height:1px;background:rgba(255,255,255,.06);overflow:hidden}
+.boot-bar-fill{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--violet));transition:width .4s}
+.boot-err{position:relative;z-index:2;font-family:var(--mono);font-size:.68rem;color:var(--magenta);letter-spacing:.1em;text-align:center;max-width:320px;line-height:1.8;display:none}
 
-/* ══════════════════════════════════════════════════════
-   CAMERA HUD
-══════════════════════════════════════════════════════ */
+/* CAMERA HUD */
 #cameraHud{z-index:20;background:transparent;pointer-events:none}
 
-/* corner brackets */
-.corner{position:absolute;width:32px;height:32px;pointer-events:none}
-.corner::before,.corner::after{content:'';position:absolute;background:rgba(255,255,255,.35)}
-.corner::before{width:100%;height:1px}
-.corner::after{width:1px;height:100%}
-.corner.tl{top:32px;left:32px}.corner.tl::before{top:0;left:0}.corner.tl::after{top:0;left:0}
-.corner.tr{top:32px;right:32px}.corner.tr::before{top:0;right:0}.corner.tr::after{top:0;right:0}
-.corner.bl{bottom:32px;left:32px}.corner.bl::before{bottom:0;left:0}.corner.bl::after{bottom:0;left:0}
-.corner.br{bottom:32px;right:32px}.corner.br::before{bottom:0;right:0}.corner.br::after{bottom:0;right:0}
+.corner{position:absolute;width:36px;height:36px;pointer-events:none}
+.corner::before,.corner::after{content:'';position:absolute;transition:background .3s}
+.corner::before{width:100%;height:2px;background:rgba(255,255,255,.2)}
+.corner::after{width:2px;height:100%;background:rgba(255,255,255,.2)}
+.corner.tl{top:28px;left:28px}.corner.tl::before{top:0;left:0}.corner.tl::after{top:0;left:0}
+.corner.tr{top:28px;right:28px}.corner.tr::before{top:0;right:0}.corner.tr::after{top:0;right:0}
+.corner.bl{bottom:28px;left:28px}.corner.bl::before{bottom:0;left:0}.corner.bl::after{bottom:0;left:0}
+.corner.br{bottom:28px;right:28px}.corner.br::before{bottom:0;right:0}.corner.br::after{bottom:0;right:0}
+.corner.active::before,.corner.active::after{background:var(--cyan)}
 
-/* top badge */
 #hudBadge{
   position:absolute;top:28px;left:50%;transform:translateX(-50%);
-  background:rgba(10,10,15,.75);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:2px;padding:9px 24px;
-  font-family:var(--mono);font-size:.7rem;letter-spacing:.18em;
-  color:rgba(255,255,255,.5);backdrop-filter:blur(16px);
+  background:rgba(10,10,15,.8);border:1px solid rgba(255,255,255,.1);
+  border-radius:3px;padding:10px 28px;
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;
+  color:rgba(255,255,255,.45);backdrop-filter:blur(20px);
   text-transform:uppercase;white-space:nowrap;
-  transition:color .2s,border-color .2s
+  transition:color .3s,border-color .3s,background .3s;z-index:30;pointer-events:none
 }
-#hudBadge.ready{color:var(--cyan);border-color:rgba(0,245,196,.25)}
-#hudBadge.counting{color:var(--amber);border-color:rgba(255,179,64,.3)}
+#hudBadge.detected{color:var(--cyan);border-color:rgba(0,245,196,.4);background:rgba(0,245,196,.06)}
+#hudBadge.counting{color:var(--amber);border-color:rgba(255,179,64,.4);background:rgba(255,179,64,.06)}
 
-/* gesture visualizer */
-#gestureViz{
-  position:absolute;bottom:60px;left:50%;transform:translateX(-50%);
-  display:flex;flex-direction:column;align-items:center;gap:14px;
-  transition:opacity .3s
+#handIndicator{
+  position:absolute;bottom:100px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  transition:opacity .4s
 }
-#gestureViz.hidden{opacity:0}
-#gestureBar{
-  width:260px;height:40px;position:relative;
-  border:1px solid rgba(255,255,255,.06);border-radius:2px;
-  background:rgba(10,10,15,.5);backdrop-filter:blur(12px);overflow:hidden
-}
-#gestureFill{
-  position:absolute;inset:0;width:0%;
-  background:linear-gradient(90deg,rgba(0,245,196,.2),rgba(0,245,196,.5));
-  transition:width .05s
-}
-#gestureHands{
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:0
-}
-.ghand{
-  width:28px;height:28px;border-radius:50%;
-  border:1.5px solid rgba(255,255,255,.2);
-  background:rgba(255,255,255,.05);
-  position:absolute;transition:left .04s,right .04s;
+#handIndicator.hidden{opacity:0;pointer-events:none}
+
+#handIcon{
+  width:72px;height:72px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.03);
   display:flex;align-items:center;justify-content:center;
-  font-size:.6rem
+  font-size:2.2rem;
+  transition:border-color .4s,background .4s,box-shadow .4s
 }
-#ghandL{left:8px}
-#ghandR{right:8px}
-#gestureLabel{
-  font-family:var(--mono);font-size:.65rem;letter-spacing:.15em;
-  color:rgba(255,255,255,.3);text-transform:uppercase
+#handIcon.detected{
+  border-color:rgba(0,245,196,.6);
+  background:rgba(0,245,196,.08);
+  box-shadow:0 0 30px rgba(0,245,196,.2),inset 0 0 20px rgba(0,245,196,.05);
+  animation:pulse 1.2s ease-in-out infinite
 }
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 20px rgba(0,245,196,.2),inset 0 0 10px rgba(0,245,196,.04)}
+  50%{box-shadow:0 0 50px rgba(0,245,196,.4),0 0 100px rgba(0,245,196,.08),inset 0 0 20px rgba(0,245,196,.08)}
+}
+#handLabel{
+  font-family:var(--mono);font-size:.65rem;letter-spacing:.2em;
+  color:rgba(255,255,255,.25);text-transform:uppercase;transition:color .3s
+}
+#handLabel.detected{color:rgba(0,245,196,.7)}
 
-/* countdown ring */
+/* COUNTDOWN RING */
 #cdRing{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   display:none;flex-direction:column;align-items:center;justify-content:center;
-  pointer-events:none
+  pointer-events:none;z-index:40
 }
-#cdSvg{position:relative}
+#cdBg{
+  position:absolute;width:210px;height:210px;border-radius:50%;
+  background:rgba(10,10,15,.75);backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.06)
+}
+#cdSvg{position:relative;z-index:2}
 #cdN{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-family:var(--display);font-size:4rem;color:#fff;letter-spacing:.02em
+  font-family:var(--display);font-size:6rem;color:#fff;letter-spacing:.02em;z-index:3
 }
+#cdHint{
+  position:absolute;top:calc(50% + 120px);left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:.62rem;letter-spacing:.2em;
+  color:rgba(255,255,255,.3);text-transform:uppercase;white-space:nowrap;z-index:3
+}
+
+#cancelHint{
+  position:absolute;bottom:60px;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:.62rem;letter-spacing:.15em;
+  color:rgba(255,45,120,.7);text-transform:uppercase;
+  opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap
+}
+#cancelHint.show{opacity:1}
 #flashEl{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:50}
 
-/* hand cursors */
 .hc{
   position:fixed;border-radius:50%;pointer-events:none;
-  transform:translate(-50%,-50%);z-index:80;display:none;will-change:transform;
-  transition:width .1s,height .1s,background .1s
+  transform:translate(-50%,-50%);z-index:80;display:none;will-change:transform
 }
-#hc1{width:20px;height:20px;background:rgba(0,245,196,.2);border:1.5px solid var(--cyan);mix-blend-mode:screen}
-#hc2{width:16px;height:16px;background:rgba(124,92,255,.2);border:1.5px solid var(--violet);mix-blend-mode:screen}
-#hc1.pinch{width:12px;height:12px;background:rgba(255,45,120,.35);border-color:var(--magenta)}
+#hc1{width:24px;height:24px;background:rgba(0,245,196,.15);border:2px solid var(--cyan);mix-blend-mode:screen;box-shadow:0 0 14px rgba(0,245,196,.4)}
+#hc2{width:18px;height:18px;background:rgba(124,92,255,.15);border:1.5px solid var(--violet);mix-blend-mode:screen}
 
-/* ══════════════════════════════════════════════════════
-   PUZZLE SCREEN
-══════════════════════════════════════════════════════ */
+/* PUZZLE */
 #puzzleScreen{z-index:30;background:var(--ink)}
-
-#puzzleWrap{
-  position:relative;
-  width:min(88vmin,520px);height:min(88vmin,520px)
-}
-#puzzleHUD{
-  position:absolute;top:-48px;left:0;right:0;
-  display:flex;justify-content:space-between;align-items:center
-}
+#puzzleWrap{position:relative;width:min(88vmin,520px);height:min(88vmin,520px)}
+#puzzleHUD{position:absolute;top:-52px;left:0;right:0;display:flex;justify-content:space-between;align-items:center}
 #pzProg{font-family:var(--mono);font-size:.72rem;color:rgba(255,255,255,.3);letter-spacing:.08em}
 #pzStatus{font-family:var(--mono);font-size:.72rem;color:var(--cyan);letter-spacing:.08em}
 #pzBoard{
@@ -195,11 +164,9 @@ body{font-family:var(--body);color:var(--white)}
   gap:2px;background:rgba(255,255,255,.03);
   border:1px solid rgba(255,255,255,.06);border-radius:3px;overflow:hidden
 }
-.pCell{
-  background:rgba(255,255,255,.015);border:1px solid rgba(255,255,255,.03);
-  border-radius:1px;transition:background .12s,box-shadow .12s
-}
-.pCell.hi{background:rgba(0,245,196,.07);box-shadow:inset 0 0 16px rgba(0,245,196,.12)}
+.pCell{background:rgba(255,255,255,.015);border:1px solid rgba(255,255,255,.03);border-radius:1px;transition:background .12s,box-shadow .12s}
+.pCell.hi{background:rgba(0,245,196,.09);box-shadow:inset 0 0 20px rgba(0,245,196,.15)}
+.pCell.correct{background:rgba(0,230,118,.05)}
 #piecesWrap{position:absolute;inset:0;pointer-events:none}
 .piece{position:absolute;cursor:none;border-radius:2px;overflow:hidden;background:#111;will-change:transform;transition:box-shadow .15s}
 .piece.sel{box-shadow:0 0 0 2px var(--cyan),0 0 30px rgba(0,245,196,.35)}
@@ -207,15 +174,14 @@ body{font-family:var(--body);color:var(--white)}
 .piece canvas{display:block;width:100%;height:100%}
 #pzTrackCanvas{position:absolute;inset:0;pointer-events:none;z-index:25;border-radius:3px}
 
-/* win flash */
 #winScreen{
   position:fixed;inset:0;z-index:200;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
-  background:rgba(10,10,15,.94);opacity:0;pointer-events:none;transition:opacity .4s
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  background:rgba(10,10,15,.96);opacity:0;pointer-events:none;transition:opacity .4s
 }
 #winScreen.show{opacity:1;pointer-events:all}
 #winScreen h2{
-  font-family:var(--display);font-size:4rem;letter-spacing:.06em;
+  font-family:var(--display);font-size:4.5rem;letter-spacing:.06em;
   background:linear-gradient(135deg,var(--cyan),var(--violet));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   animation:popIn .5s cubic-bezier(.34,1.56,.64,1)
@@ -223,64 +189,23 @@ body{font-family:var(--body);color:var(--white)}
 #winScreen p{font-family:var(--mono);font-size:.72rem;color:rgba(255,255,255,.35);letter-spacing:.12em}
 @keyframes popIn{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
 
-/* ══════════════════════════════════════════════════════
-   HOLOGRAM SCREEN
-══════════════════════════════════════════════════════ */
+/* HOLOGRAM */
 #holoScreen{z-index:40;background:#000;overflow:hidden}
-
-#holoBg{
-  position:absolute;inset:0;
-  background:radial-gradient(ellipse 90% 80% at 50% 50%,#050510 0%,#000 100%)
-}
+#holoBg{position:absolute;inset:0;background:radial-gradient(ellipse 90% 80% at 50% 50%,#050510 0%,#000 100%)}
 #holoParticleCanvas{position:absolute;inset:0;pointer-events:none}
-
-/* stage */
-#holoStage{
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  perspective:1000px;perspective-origin:50% 40%
-}
-#holoWrap{
-  position:relative;transform-style:preserve-3d;will-change:transform;
-  filter:drop-shadow(0 40px 80px rgba(0,245,196,.15))
-}
+#holoStage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;perspective:1000px;perspective-origin:50% 40%}
+#holoWrap{position:relative;transform-style:preserve-3d;will-change:transform;filter:drop-shadow(0 40px 80px rgba(0,245,196,.15))}
 #holoFrame{position:relative;transform-style:preserve-3d}
-
-/* photo */
-#holoImg{
-  display:block;max-width:min(66vmin,440px);max-height:min(66vmin,440px);
-  border-radius:3px;position:relative;z-index:2;
-  image-rendering:auto
-}
-
-/* chromatic layers */
+#holoImg{display:block;max-width:min(66vmin,440px);max-height:min(66vmin,440px);border-radius:3px;position:relative;z-index:2}
 .hlayer{position:absolute;inset:0;border-radius:3px;pointer-events:none}
 #hlR{mix-blend-mode:screen;filter:blur(.6px);background:rgba(255,0,50,.06)}
 #hlG{mix-blend-mode:screen;filter:blur(.4px);background:rgba(0,255,120,.05)}
 #hlB{mix-blend-mode:screen;filter:blur(.8px);background:rgba(0,80,255,.07)}
-
-/* scan lines */
 #hlScan{position:absolute;inset:0;border-radius:3px;pointer-events:none;overflow:hidden}
-#hlScan::before{
-  content:'';position:absolute;inset:0;
-  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,245,196,.018) 2px,rgba(0,245,196,.018) 3px)
-}
-#hlScan::after{
-  content:'';position:absolute;left:0;right:0;height:80px;
-  background:linear-gradient(to bottom,transparent,rgba(0,245,196,.06),transparent);
-  animation:scan 2.8s linear infinite;top:-80px
-}
+#hlScan::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,245,196,.018) 2px,rgba(0,245,196,.018) 3px)}
+#hlScan::after{content:'';position:absolute;left:0;right:0;height:80px;background:linear-gradient(to bottom,transparent,rgba(0,245,196,.06),transparent);animation:scan 2.8s linear infinite;top:-80px}
 @keyframes scan{to{top:calc(100% + 80px)}}
-
-/* edge glow */
-#hlEdge{
-  position:absolute;inset:-2px;border-radius:5px;z-index:3;pointer-events:none;
-  box-shadow:
-    0 0 0 1px rgba(0,245,196,.18),
-    0 0 16px rgba(0,245,196,.1),
-    0 0 50px rgba(0,245,196,.05),
-    inset 0 0 16px rgba(0,245,196,.03)
-}
-/* corner marks */
+#hlEdge{position:absolute;inset:-2px;border-radius:5px;z-index:3;pointer-events:none;box-shadow:0 0 0 1px rgba(0,245,196,.18),0 0 16px rgba(0,245,196,.1),0 0 50px rgba(0,245,196,.05),inset 0 0 16px rgba(0,245,196,.03)}
 .hcorner{position:absolute;width:16px;height:16px;pointer-events:none;z-index:5}
 .hcorner::before,.hcorner::after{content:'';position:absolute;background:var(--cyan)}
 .hcorner::before{width:100%;height:1px}
@@ -289,75 +214,30 @@ body{font-family:var(--body);color:var(--white)}
 .hcorner.tr{top:-4px;right:-4px}.hcorner.tr::before{top:0;right:0}.hcorner.tr::after{top:0;right:0}
 .hcorner.bl{bottom:-4px;left:-4px}.hcorner.bl::before{bottom:0;left:0}.hcorner.bl::after{bottom:0;left:0}
 .hcorner.br{bottom:-4px;right:-4px}.hcorner.br::before{bottom:0;right:0}.hcorner.br::after{bottom:0;right:0}
-
-/* sheen */
-#hlSheen{
-  position:absolute;inset:0;border-radius:3px;pointer-events:none;z-index:4;
-  background:linear-gradient(118deg,rgba(255,255,255,.07) 0%,transparent 35%,transparent 65%,rgba(0,245,196,.04) 100%);
-  animation:sheen 9s ease-in-out infinite
-}
+#hlSheen{position:absolute;inset:0;border-radius:3px;pointer-events:none;z-index:4;background:linear-gradient(118deg,rgba(255,255,255,.07) 0%,transparent 35%,transparent 65%,rgba(0,245,196,.04) 100%);animation:sheen 9s ease-in-out infinite}
 @keyframes sheen{0%,100%{opacity:.5}50%{opacity:1}}
-
-/* reflection */
-#hlReflect{
-  position:absolute;top:100%;left:0;right:0;height:50%;
-  border-radius:0 0 3px 3px;overflow:hidden;pointer-events:none;z-index:1;
-  transform:scaleY(-1);opacity:0;
-  mask-image:linear-gradient(to bottom,rgba(0,0,0,.25),transparent 75%);
-  -webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.25),transparent 75%);
-  transition:opacity .4s
-}
+#hlReflect{position:absolute;top:100%;left:0;right:0;height:50%;border-radius:0 0 3px 3px;overflow:hidden;pointer-events:none;z-index:1;transform:scaleY(-1);opacity:0;mask-image:linear-gradient(to bottom,rgba(0,0,0,.25),transparent 75%);-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.25),transparent 75%);transition:opacity .4s}
 #hlReflectImg{display:block;width:100%;height:auto;filter:blur(1.5px)}
-
-/* holo HUD */
-#holoHUD{
-  position:absolute;top:24px;left:50%;transform:translateX(-50%);
-  background:rgba(0,0,0,.7);border:1px solid rgba(0,245,196,.12);border-radius:2px;
-  padding:7px 20px;font-family:var(--mono);font-size:.65rem;
-  color:rgba(0,245,196,.55);backdrop-filter:blur(10px);
-  letter-spacing:.12em;text-transform:uppercase;z-index:10;
-  pointer-events:none
-}
-#holoData{
-  position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
-  font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;
-  color:rgba(0,245,196,.35);text-align:center;text-transform:uppercase;
-  line-height:2;pointer-events:none;z-index:10
-}
+#holoHUD{position:absolute;top:24px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);border:1px solid rgba(0,245,196,.12);border-radius:2px;padding:8px 22px;font-family:var(--mono);font-size:.65rem;color:rgba(0,245,196,.55);backdrop-filter:blur(10px);letter-spacing:.12em;text-transform:uppercase;z-index:10;pointer-events:none}
+#holoData{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;color:rgba(0,245,196,.35);text-align:center;text-transform:uppercase;line-height:2;pointer-events:none;z-index:10}
 #holoHtCanvas{position:absolute;inset:0;pointer-events:none;z-index:8}
+#restartBtn{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);padding:10px 28px;border:1px solid rgba(255,255,255,.1);border-radius:2px;background:rgba(255,255,255,.03);color:rgba(255,255,255,.4);cursor:pointer;font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;backdrop-filter:blur(10px);text-transform:uppercase;transition:all .25s;z-index:10}
+#restartBtn:hover{border-color:rgba(0,245,196,.35);color:var(--cyan);background:rgba(0,245,196,.05)}
 
-/* restart button */
-#restartBtn{
-  position:absolute;bottom:60px;left:50%;transform:translateX(-50%);
-  padding:9px 24px;border:1px solid rgba(255,255,255,.1);border-radius:2px;
-  background:rgba(255,255,255,.03);color:rgba(255,255,255,.4);
-  cursor:pointer;font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;
-  backdrop-filter:blur(10px);text-transform:uppercase;transition:all .2s;z-index:10
-}
-#restartBtn:hover{border-color:rgba(0,245,196,.3);color:var(--cyan);background:rgba(0,245,196,.04)}
-
-/* ══════════════════════════════════════════════════════
-   GLITCH EFFECT (shoot flash)
-══════════════════════════════════════════════════════ */
-@keyframes glitchFlash{
-  0%{opacity:0}10%{opacity:1}15%{opacity:.3}20%{opacity:.8}30%{opacity:0}
-}
+@keyframes glitchFlash{0%{opacity:0}10%{opacity:1}15%{opacity:.3}20%{opacity:.8}30%{opacity:0}}
 .do-flash{animation:glitchFlash .35s forwards!important}
 </style>
 </head>
 <body>
 <div id="app">
-
-  <!-- Hand Cursors -->
   <div class="hc" id="hc1"></div>
   <div class="hc" id="hc2"></div>
-
-  <!-- Video + main overlay canvas -->
   <video id="vid" playsinline autoplay muted></video>
   <canvas id="overlayCanvas"></canvas>
+  <canvas id="trailCanvas"></canvas>
   <canvas id="photoCanvas"></canvas>
 
-  <!-- ── BOOT SCREEN ── -->
+  <!-- BOOT -->
   <div class="screen" id="bootScreen">
     <canvas id="bootBgCanvas"></canvas>
     <div class="boot-logo">
@@ -369,48 +249,41 @@ body{font-family:var(--body);color:var(--white)}
     <div class="boot-err" id="bootErr"></div>
   </div>
 
-  <!-- ── CAMERA HUD (overlays on video) ── -->
+  <!-- CAMERA HUD -->
   <div class="screen off" id="cameraHud">
-    <div class="corner tl"></div><div class="corner tr"></div>
-    <div class="corner bl"></div><div class="corner br"></div>
-
-    <div id="hudBadge">Tampilkan dua tangan ke kamera</div>
-
-    <div id="gestureViz">
-      <div id="gestureBar">
-        <div id="gestureFill"></div>
-        <div id="gestureHands">
-          <div class="ghand" id="ghandL">✋</div>
-          <div class="ghand" id="ghandR">🤚</div>
-        </div>
-      </div>
-      <div id="gestureLabel">Dekatkan → pisahkan untuk foto</div>
+    <div class="corner tl" id="cTL"></div>
+    <div class="corner tr" id="cTR"></div>
+    <div class="corner bl" id="cBL"></div>
+    <div class="corner br" id="cBR"></div>
+    <div id="hudBadge">Tampilkan tangan ke kamera</div>
+    <div id="handIndicator">
+      <div id="handIcon">✋</div>
+      <div id="handLabel">Belum terdeteksi</div>
     </div>
-
     <div id="cdRing">
-      <div id="cdSvg">
-        <svg width="130" height="130" viewBox="0 0 130 130">
-          <circle cx="65" cy="65" r="57" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="4"/>
-          <circle id="cdArc" cx="65" cy="65" r="57" fill="none"
-            stroke="url(#cg)" stroke-width="4"
-            stroke-dasharray="358.1" stroke-dashoffset="358.1"
-            stroke-linecap="round"
-            style="transform-origin:center;transform:rotate(-90deg)"/>
-          <defs>
-            <linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#00f5c4"/>
-              <stop offset="100%" stop-color="#7c5cff"/>
-            </linearGradient>
-          </defs>
-        </svg>
-        <div id="cdN">3</div>
-      </div>
+      <div id="cdBg"></div>
+      <svg id="cdSvg" width="210" height="210" viewBox="0 0 210 210">
+        <circle cx="105" cy="105" r="92" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="5"/>
+        <circle id="cdArc" cx="105" cy="105" r="92" fill="none"
+          stroke="url(#cg)" stroke-width="5"
+          stroke-dasharray="578.1" stroke-dashoffset="578.1"
+          stroke-linecap="round"
+          style="transform-origin:center;transform:rotate(-90deg)"/>
+        <defs>
+          <linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#00f5c4"/>
+            <stop offset="100%" stop-color="#7c5cff"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div id="cdN">5</div>
+      <div id="cdHint">Tetap tampilkan tangan</div>
     </div>
-
+    <div id="cancelHint">⚠ Tangan hilang — timer dibatalkan</div>
     <div id="flashEl"></div>
   </div>
 
-  <!-- ── PUZZLE SCREEN ── -->
+  <!-- PUZZLE -->
   <div class="screen off" id="puzzleScreen">
     <div id="puzzleWrap">
       <div id="puzzleHUD">
@@ -423,7 +296,7 @@ body{font-family:var(--body);color:var(--white)}
     </div>
   </div>
 
-  <!-- ── HOLOGRAM SCREEN ── -->
+  <!-- HOLOGRAM -->
   <div class="screen off" id="holoScreen">
     <div id="holoBg"></div>
     <canvas id="holoParticleCanvas"></canvas>
@@ -449,19 +322,15 @@ body{font-family:var(--body);color:var(--white)}
     <button id="restartBtn">↺ &nbsp;Foto Ulang</button>
   </div>
 
-  <!-- ── WIN ── -->
   <div id="winScreen">
     <h2>SELESAI!</h2>
     <p>Merender hologram...</p>
   </div>
-
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════════
-//  BOOT BG ANIMATION
-// ═══════════════════════════════════════════════════════════════════════
-(function bootBg(){
+// ─── BOOT BG ──────────────────────────────────────────────
+(function(){
   const c=document.getElementById('bootBgCanvas');
   const ctx=c.getContext('2d');
   function sz(){c.width=innerWidth;c.height=innerHeight;}
@@ -478,13 +347,13 @@ body{font-family:var(--body);color:var(--white)}
       if(p.x<0)p.x=innerWidth;if(p.x>innerWidth)p.x=0;
       if(p.y<0)p.y=innerHeight;if(p.y>innerHeight)p.y=0;
       ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fillStyle=`rgba(0,245,196,${p.o})`;ctx.fill();
+      ctx.fillStyle='rgba(0,245,196,'+p.o+')';ctx.fill();
     });
     for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
       const d=Math.hypot(pts[i].x-pts[j].x,pts[i].y-pts[j].y);
       if(d<100){
         ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);
-        ctx.strokeStyle=`rgba(0,245,196,${.1*(1-d/100)})`;ctx.lineWidth=.5;ctx.stroke();
+        ctx.strokeStyle='rgba(0,245,196,'+(0.1*(1-d/100))+')';ctx.lineWidth=.5;ctx.stroke();
       }
     }
     requestAnimationFrame(draw);
@@ -492,87 +361,63 @@ body{font-family:var(--body);color:var(--white)}
   draw();
 })();
 
-// ═══════════════════════════════════════════════════════════════════════
-//  MEDIAPIPE + CAMERA — ULTRA FAST CONFIG
-// ═══════════════════════════════════════════════════════════════════════
+// ─── GLOBALS ──────────────────────────────────────────────
 const vid=document.getElementById('vid');
 const overlayCanvas=document.getElementById('overlayCanvas');
 const oCtx=overlayCanvas.getContext('2d');
+const trailCanvas=document.getElementById('trailCanvas');
+const tCtx=trailCanvas.getContext('2d');
 const photoCanvas=document.getElementById('photoCanvas');
 const pCtx=photoCanvas.getContext('2d');
 
-// resize all canvases
 function resizeAll(){
   overlayCanvas.width=innerWidth;overlayCanvas.height=innerHeight;
+  trailCanvas.width=innerWidth;trailCanvas.height=innerHeight;
   const pw=document.getElementById('puzzleWrap');
   if(pw){
     const ptc=document.getElementById('pzTrackCanvas');
     ptc.width=pw.offsetWidth;ptc.height=pw.offsetHeight;
   }
-  const htc=document.getElementById('holoHtCanvas');
-  htc.width=innerWidth;htc.height=innerHeight;
-  const hpc=document.getElementById('holoParticleCanvas');
-  hpc.width=innerWidth;hpc.height=innerHeight;
+  document.getElementById('holoHtCanvas').width=innerWidth;
+  document.getElementById('holoHtCanvas').height=innerHeight;
+  document.getElementById('holoParticleCanvas').width=innerWidth;
+  document.getElementById('holoParticleCanvas').height=innerHeight;
 }
 window.addEventListener('resize',resizeAll);
 resizeAll();
 
-// ─── STATE ────────────────────────────────────────────────────────────
 const ST={
-  mode:'boot',        // boot | camera | puzzle | hologram
-  hands:[],
-  photoUrl:null,
-  pieces:[],
-  selPiece:null,
-  placed:0,
-  // gesture state machine
-  phase:'idle',      // idle | primed | countdown
-  primeDist:0,
-  cdStart:0,
-  // hologram
-  hRx:0,hRy:0,
-  lastHand:null,
-  handActive:false,
-  // smooth cursor positions
-  cx1:0,cy1:0,cx2:0,cy2:0,
+  mode:'boot', hands:[],
+  photoUrl:null, pieces:[], selPiece:null, placed:0,
+  phase:'idle',  // idle | countdown | shot
+  cdStart:0, cdRAF:null,
+  hRx:0, hRy:0, lastHand:null, handActive:false,
+  trailPts:[],
 };
+const COLS=4, ROWS=3, TOTAL=12, CD_MS=5000;
 
-const COLS=4,ROWS=3,TOTAL=12;
-
-// Gesture thresholds (in px, screen space)
-// CLOSE threshold: hands must come THIS close first
-const CLOSE_PX = 110;
-// SPREAD threshold: then spread THIS far to start countdown
-const SPREAD_PX = 200;
-// If hands come back below CANCEL during countdown, cancel it
-const CANCEL_PX = 160;
-const CD_MS = 2500;
-
-// ─── DOM REFS ─────────────────────────────────────────────────────────
-const bootScreen=document.getElementById('bootScreen');
+// DOM refs
 const bootStatus=document.getElementById('bootStatus');
 const bootBar=document.getElementById('bootBar');
 const bootErr=document.getElementById('bootErr');
-const cameraHud=document.getElementById('cameraHud');
 const hudBadge=document.getElementById('hudBadge');
-const gestureViz=document.getElementById('gestureViz');
-const gestureFill=document.getElementById('gestureFill');
-const ghandL=document.getElementById('ghandL');
-const ghandR=document.getElementById('ghandR');
+const handIndicator=document.getElementById('handIndicator');
+const handIcon=document.getElementById('handIcon');
+const handLabel=document.getElementById('handLabel');
 const cdRing=document.getElementById('cdRing');
 const cdArc=document.getElementById('cdArc');
 const cdN=document.getElementById('cdN');
 const flashEl=document.getElementById('flashEl');
+const cancelHint=document.getElementById('cancelHint');
 const hc1=document.getElementById('hc1');
 const hc2=document.getElementById('hc2');
-const puzzleScreen=document.getElementById('puzzleScreen');
+const corners=['cTL','cTR','cBL','cBR'].map(id=>document.getElementById(id));
 const pzBoard=document.getElementById('pzBoard');
 const piecesWrap=document.getElementById('piecesWrap');
 const pzProg=document.getElementById('pzProg');
 const pzStatus=document.getElementById('pzStatus');
 const pzTrackCanvas=document.getElementById('pzTrackCanvas');
 const ptCtx=pzTrackCanvas.getContext('2d');
-const holoScreen=document.getElementById('holoScreen');
 const holoImg=document.getElementById('holoImg');
 const hlReflectImg=document.getElementById('hlReflectImg');
 const holoWrap=document.getElementById('holoWrap');
@@ -581,26 +426,19 @@ const holoHtCanvas=document.getElementById('holoHtCanvas');
 const htCtx=holoHtCanvas.getContext('2d');
 const winScreen=document.getElementById('winScreen');
 
-// ─── SCREEN SWITCHER ──────────────────────────────────────────────────
 function showScreen(id){
   ['bootScreen','cameraHud','puzzleScreen','holoScreen'].forEach(s=>{
     document.getElementById(s).classList.toggle('off',s!==id);
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  CAMERA INIT — direct, no user gesture required
-// ═══════════════════════════════════════════════════════════════════════
-let handsModel,camInstance;
-
+// ─── CAMERA INIT ──────────────────────────────────────────
 async function initCamera(){
   bootStatus.textContent='Meminta akses kamera...';
   bootBar.style.width='20%';
-
   try{
     const stream=await navigator.mediaDevices.getUserMedia({
-      video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'},
-      audio:false
+      video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'},audio:false
     });
     vid.srcObject=stream;
     await new Promise(r=>vid.onloadedmetadata=r);
@@ -611,60 +449,39 @@ async function initCamera(){
     initMediaPipe();
   }catch(e){
     bootErr.style.display='block';
-    bootErr.textContent='Kamera tidak dapat diakses.\n'+e.message+'\nCoba buka di browser berbeda atau izinkan akses kamera.';
+    bootErr.textContent='Kamera tidak dapat diakses.\n'+e.message;
     bootStatus.textContent='Gagal';
   }
 }
 
 function initMediaPipe(){
-  handsModel=new Hands({
-    locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}`
+  const hands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/'+f});
+  hands.setOptions({
+    maxNumHands:2, modelComplexity:0,
+    minDetectionConfidence:.5, minTrackingConfidence:.4, selfieMode:true
   });
-  handsModel.setOptions({
-    maxNumHands:2,
-    modelComplexity:0,          // 0 = fastest, still accurate
-    minDetectionConfidence:.6,
-    minTrackingConfidence:.5,
-    selfieMode:true,            // mirror coords natively
+  hands.onResults(onResults);
+  const cam=new Camera(vid,{
+    onFrame:async()=>{if(ST.mode!=='boot') await hands.send({image:vid});},
+    width:1280, height:720
   });
-  handsModel.onResults(onResults);
-
-  camInstance=new Camera(vid,{
-    onFrame:async()=>{
-      if(ST.mode!=='boot') await handsModel.send({image:vid});
-    },
-    width:1280,height:720
-  });
-
-  camInstance.start().then(()=>{
+  cam.start().then(()=>{
     bootBar.style.width='100%';
     bootStatus.textContent='Siap!';
-    setTimeout(()=>{
-      ST.mode='camera';
-      showScreen('cameraHud');
-    },400);
+    setTimeout(()=>{ST.mode='camera';showScreen('cameraHud');},400);
   }).catch(e=>{
     bootErr.style.display='block';
     bootErr.textContent='MediaPipe gagal: '+e.message;
   });
 }
 
-// ─── LANDMARK HELPERS ─────────────────────────────────────────────────
-// selfieMode:true means x is already mirrored, y is normal (0-1)
-function lmSc(lm){return{x:lm.x*innerWidth,y:lm.y*innerHeight};}
-function tip(hand,i){return lmSc(hand[i]);}
-function wrist(hand){return lmSc(hand[0]);}
-function pinchPt(hand){
-  const t=tip(hand,4),i=tip(hand,8);
-  return{x:(t.x+i.x)/2,y:(t.y+i.y)/2};
-}
-function isPinch(hand){
-  const t=tip(hand,4),i=tip(hand,8);
-  return Math.hypot(t.x-i.x,t.y-i.y)<44;
-}
-function dist2(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+// ─── LANDMARK HELPERS ─────────────────────────────────────
+function sc(lm){return{x:lm.x*innerWidth,y:lm.y*innerHeight};}
+function tip(h,i){return sc(h[i]);}
+function pinchPt(h){const t=tip(h,4),i=tip(h,8);return{x:(t.x+i.x)/2,y:(t.y+i.y)/2};}
+function isPinch(h){const t=tip(h,4),i=tip(h,8);return Math.hypot(t.x-i.x,t.y-i.y)<44;}
 
-// ─── MAIN RESULTS ─────────────────────────────────────────────────────
+// ─── RESULTS ──────────────────────────────────────────────
 function onResults(res){
   ST.hands=res.multiHandLandmarks||[];
   if(ST.mode==='camera') tickCamera();
@@ -673,193 +490,169 @@ function onResults(res){
   drawOverlay();
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  CAMERA MODE — GESTURE STATE MACHINE
-// ═══════════════════════════════════════════════════════════════════════
+// ─── CAMERA MODE — 1 hand → 5s timer ─────────────────────
 function tickCamera(){
-  if(ST.hands.length<2){
-    resetPhase();
-    updateBadge('Tampilkan dua tangan ke kamera','');
-    hideCursors();
-    updateGestureViz(null);
+  const has=ST.hands.length>0;
+
+  if(!has){
+    if(ST.phase==='countdown'){
+      cancelCountdown();
+      flashCancel();
+    }
+    resetHandUI();
+    fadeTrail();
     return;
   }
 
-  const h1=ST.hands[0],h2=ST.hands[1];
-  const w1=wrist(h1),w2=wrist(h2);
-  const d=dist2(w1,w2);
+  const hand=ST.hands[0];
+  const pt=tip(hand,8); // index fingertip for cursor
 
-  // Move cursors (raw, no smoothing for max responsiveness)
-  const mp1=pinchPt(h1),mp2=pinchPt(h2);
-  moveCursor(hc1,mp1.x,mp1.y,false);
-  moveCursor(hc2,mp2.x,mp2.y,false);
+  // Cursor
+  hc1.style.display='block';
+  hc1.style.left=pt.x+'px'; hc1.style.top=pt.y+'px';
+  if(ST.hands.length>1){
+    const pt2=tip(ST.hands[1],8);
+    hc2.style.display='block'; hc2.style.left=pt2.x+'px'; hc2.style.top=pt2.y+'px';
+  } else { hc2.style.display='none'; }
 
-  updateGestureViz({w1,w2,d});
+  addTrail(pt);
 
-  // ── State machine ──
   if(ST.phase==='idle'){
-    if(d<CLOSE_PX){
-      ST.phase='primed';
-      ST.primeDist=d;
-      updateBadge('✓ Siap — sekarang pisahkan!','ready');
-    } else {
-      // show how close they need to get
-      const pct=Math.max(0,1-d/CLOSE_PX);
-      updateBadge('Dekatkan kedua tangan...','');
-      gestureFill.style.width=(pct*100)+'%';
-      gestureFill.style.background='linear-gradient(90deg,rgba(255,45,120,.2),rgba(255,45,120,.5))';
-    }
+    // Start countdown immediately
+    setHandUI(true);
+    ST.phase='countdown';
+    ST.cdStart=performance.now();
+    cdRing.style.display='flex';
+    handIndicator.classList.add('hidden');
+    hudBadge.textContent='Bersiap...';
+    hudBadge.className='detected';
+    cancelHint.classList.remove('show');
+    corners.forEach(c=>c.classList.add('active'));
+    tickCountdown();
   }
-  else if(ST.phase==='primed'){
-    if(d>SPREAD_PX){
-      // Start countdown
-      ST.phase='countdown';
-      ST.cdStart=performance.now();
-      cdRing.style.display='flex';
-      gestureViz.classList.add('hidden');
-      updateBadge('Tahan...','counting');
-      tickCountdown();
-    } else {
-      // Show spread progress
-      const pct=Math.max(0,(d-ST.primeDist)/(SPREAD_PX-ST.primeDist));
-      updateBadge('↔ Pisahkan lebih jauh...','ready');
-      gestureFill.style.width=(pct*100)+'%';
-      gestureFill.style.background='linear-gradient(90deg,rgba(0,245,196,.2),rgba(0,245,196,.5))';
-    }
-  }
-  else if(ST.phase==='countdown'){
-    // Cancel if hands come back together
-    if(d<CANCEL_PX){
-      cancelCountdown();
-      updateBadge('Dibatalkan — coba lagi','');
-    }
-    // else tickCountdown is running via rAF
+  // If already counting, just update hint removal
+  if(ST.phase==='countdown'){
+    cancelHint.classList.remove('show');
   }
 }
 
 function tickCountdown(){
-  if(ST.phase!=='countdown')return;
+  if(ST.phase!=='countdown') return;
   const elapsed=performance.now()-ST.cdStart;
   const frac=Math.min(elapsed/CD_MS,1);
-  cdArc.style.strokeDashoffset=358.1*(1-frac);
-  cdN.textContent=Math.max(1,Math.ceil(3*(1-frac)));
+  cdArc.style.strokeDashoffset=578.1*(1-frac);
+  const rem=Math.max(1,Math.ceil(5*(1-frac)));
+  cdN.textContent=rem;
+  hudBadge.textContent='Foto dalam '+rem+'...';
+  hudBadge.className='counting';
   if(frac>=1){takePhoto();return;}
-  requestAnimationFrame(tickCountdown);
+  ST.cdRAF=requestAnimationFrame(tickCountdown);
 }
 
 function cancelCountdown(){
+  if(ST.cdRAF){cancelAnimationFrame(ST.cdRAF);ST.cdRAF=null;}
   ST.phase='idle';
   cdRing.style.display='none';
-  gestureViz.classList.remove('hidden');
-  cdArc.style.strokeDashoffset=358.1;
-  cdN.textContent='3';
+  cdArc.style.strokeDashoffset=578.1;
+  cdN.textContent='5';
+  handIndicator.classList.remove('hidden');
+  corners.forEach(c=>c.classList.remove('active'));
 }
 
-function resetPhase(){
-  if(ST.phase==='countdown') cancelAnimationFrame(tickCountdown);
-  ST.phase='idle';
-  cdRing.style.display='none';
-  gestureViz.classList.remove('hidden');
-  cdArc.style.strokeDashoffset=358.1;
-  cdN.textContent='3';
-  gestureFill.style.width='0%';
-  ghandL.style.left='8px';
-  ghandR.style.right='8px';
+function flashCancel(){
+  cancelHint.classList.add('show');
+  setTimeout(()=>cancelHint.classList.remove('show'),2200);
 }
 
-function updateBadge(txt,cls){
-  hudBadge.textContent=txt;
-  hudBadge.className=cls?cls:'';
+function resetHandUI(){
+  setHandUI(false);
+  hc1.style.display='none'; hc2.style.display='none';
+  hudBadge.textContent='Tampilkan tangan ke kamera';
+  hudBadge.className='';
 }
 
-function updateGestureViz(data){
-  if(!data){
-    ghandL.style.left='8px';ghandR.style.right='8px';
-    gestureFill.style.width='0%';
-    return;
-  }
-  const {d}=data;
-  const barW=260;
-  // map distance to bar positions
-  const maxD=350;
-  const ratio=Math.min(d/maxD,1);
-  const lPos=4+ratio*(barW/2-14);
-  const rPos=4+ratio*(barW/2-14);
-  ghandL.style.left=lPos+'px';
-  ghandR.style.right=rPos+'px';
+function setHandUI(yes){
+  handIcon.className=yes?'detected':'';
+  handLabel.textContent=yes?'Tangan terdeteksi!':'Belum terdeteksi';
+  handLabel.className=yes?'detected':'';
+}
 
-  if(ST.phase==='idle'){
-    const pct=Math.max(0,1-(d/CLOSE_PX));
-    gestureFill.style.width=(pct*30)+'%';
-    gestureFill.style.background='linear-gradient(90deg,rgba(255,45,120,.2),rgba(255,45,120,.4))';
-  } else if(ST.phase==='primed'){
-    const pct=Math.min(1,(d-ST.primeDist)/(SPREAD_PX-ST.primeDist));
-    gestureFill.style.width=(pct*100)+'%';
-    gestureFill.style.background='linear-gradient(90deg,rgba(0,245,196,.25),rgba(0,245,196,.55))';
+// ─── TRAIL ────────────────────────────────────────────────
+function addTrail(pt){
+  ST.trailPts.push({...pt});
+  if(ST.trailPts.length>35) ST.trailPts.shift();
+  tCtx.clearRect(0,0,trailCanvas.width,trailCanvas.height);
+  if(ST.trailPts.length<2) return;
+  for(let i=1;i<ST.trailPts.length;i++){
+    const alpha=(i/ST.trailPts.length)*0.55;
+    const w=1+(i/ST.trailPts.length)*2.5;
+    tCtx.beginPath();
+    tCtx.moveTo(ST.trailPts[i-1].x,ST.trailPts[i-1].y);
+    tCtx.lineTo(ST.trailPts[i].x,ST.trailPts[i].y);
+    tCtx.strokeStyle='rgba(0,245,196,'+alpha+')';
+    tCtx.lineWidth=w;
+    tCtx.lineCap='round';
+    tCtx.stroke();
   }
 }
+function fadeTrail(){
+  tCtx.globalCompositeOperation='destination-out';
+  tCtx.fillStyle='rgba(0,0,0,0.15)';
+  tCtx.fillRect(0,0,trailCanvas.width,trailCanvas.height);
+  tCtx.globalCompositeOperation='source-over';
+  if(ST.trailPts.length>0) ST.trailPts.shift();
+}
 
-// ─── TAKE PHOTO ───────────────────────────────────────────────────────
+// ─── TAKE PHOTO ───────────────────────────────────────────
 function takePhoto(){
+  ST.phase='shot';
   cdRing.style.display='none';
-  // Flash
+  corners.forEach(c=>c.classList.remove('active'));
   flashEl.className='do-flash';
   setTimeout(()=>flashEl.className='',400);
-
   photoCanvas.width=vid.videoWidth||1280;
   photoCanvas.height=vid.videoHeight||720;
-  // selfieMode mirrors x; just draw normally since vid CSS is already mirrored
   pCtx.save();
   pCtx.translate(photoCanvas.width,0);pCtx.scale(-1,1);
   pCtx.drawImage(vid,0,0);
   pCtx.restore();
   ST.photoUrl=photoCanvas.toDataURL('image/jpeg',.93);
-
+  tCtx.clearRect(0,0,trailCanvas.width,trailCanvas.height);
+  ST.trailPts=[];
   setTimeout(goToPuzzle,600);
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  PUZZLE MODE
-// ═══════════════════════════════════════════════════════════════════════
+// ─── PUZZLE ───────────────────────────────────────────────
 function goToPuzzle(){
-  ST.mode='puzzle';
-  showScreen('puzzleScreen');
-  hideCursors();
+  ST.mode='puzzle'; showScreen('puzzleScreen');
+  hc1.style.display='none'; hc2.style.display='none';
   setTimeout(()=>{resizeAll();buildPuzzle();},60);
 }
 
 function buildPuzzle(){
-  pzBoard.innerHTML='';piecesWrap.innerHTML='';
-  ST.pieces=[];ST.placed=0;ST.selPiece=null;
-
+  pzBoard.innerHTML=''; piecesWrap.innerHTML='';
+  ST.pieces=[]; ST.placed=0; ST.selPiece=null;
   const img=new Image();
   img.onload=()=>{
     const iw=img.width,ih=img.height,pw=iw/COLS,ph=ih/ROWS;
     const cont=document.getElementById('puzzleWrap');
     const bw=cont.offsetWidth,bh=cont.offsetHeight;
     const cw=bw/COLS,ch=bh/ROWS;
-
-    // cells
-    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
       const cell=document.createElement('div');
-      cell.className='pCell';cell.dataset.r=r;cell.dataset.c=c;
+      cell.className='pCell'; cell.dataset.r=r; cell.dataset.c=c;
       pzBoard.appendChild(cell);
     }
-
-    // pieces (shuffled)
-    const ids=[...Array(TOTAL).keys()];shuffle(ids);
+    const ids=[...Array(TOTAL).keys()]; shuffle(ids);
     ids.forEach((id,i)=>{
-      const cc=id%COLS,cr=Math.floor(id/COLS);
-      const src=document.createElement('canvas');src.width=pw;src.height=ph;
+      const cc=id%COLS, cr=Math.floor(id/COLS);
+      const src=document.createElement('canvas'); src.width=pw; src.height=ph;
       src.getContext('2d').drawImage(img,cc*pw,cr*ph,pw,ph,0,0,pw,ph);
-
-      const el=document.createElement('div');el.className='piece';
-      el.style.width=cw+'px';el.style.height=ch+'px';
-      const dc=document.createElement('canvas');dc.width=cw;dc.height=ch;
+      const el=document.createElement('div'); el.className='piece';
+      el.style.width=cw+'px'; el.style.height=ch+'px';
+      const dc=document.createElement('canvas'); dc.width=cw; dc.height=ch;
       dc.getContext('2d').drawImage(src,0,0,pw,ph,0,0,cw,ch);
       el.appendChild(dc);
-
-      // scatter around border
       const a=(i/TOTAL)*Math.PI*2;
       const rx=bw/2+Math.cos(a)*(bw*.58);
       const ry=bh/2+Math.sin(a)*(bh*.5);
@@ -868,7 +661,7 @@ function buildPuzzle(){
       piecesWrap.appendChild(el);
       ST.pieces.push({id,cc,cr,placed:false,el,cw,ch});
     });
-    pzProg.textContent=`0 / ${TOTAL}`;
+    pzProg.textContent='0 / '+TOTAL;
   };
   img.src=ST.photoUrl;
 }
@@ -881,34 +674,28 @@ function tickPuzzle(){
   const rect=cont.getBoundingClientRect();
   const mp=pinchPt(hand);
   const pinching=isPinch(hand);
-
-  // cursor
   hc1.style.display='block';
-  hc1.style.left=mp.x+'px';hc1.style.top=mp.y+'px';
+  hc1.style.left=mp.x+'px'; hc1.style.top=mp.y+'px';
   hc1.className='hc'+(pinching?' pinch':'');
-
-  const lx=mp.x-rect.left,ly=mp.y-rect.top;
-  const bw=cont.offsetWidth,bh=cont.offsetHeight;
-  const cw=bw/COLS,ch=bh/ROWS;
-
-  // highlight target cell
+  const lx=mp.x-rect.left, ly=mp.y-rect.top;
+  const bw=cont.offsetWidth, bh=cont.offsetHeight;
+  const cw=bw/COLS, ch=bh/ROWS;
   document.querySelectorAll('.pCell').forEach(c=>c.classList.remove('hi'));
   if(ST.selPiece){
     const pcx=parseFloat(ST.selPiece.el.style.left)+ST.selPiece.cw/2;
     const pcy=parseFloat(ST.selPiece.el.style.top)+ST.selPiece.ch/2;
     const col=clamp(Math.floor(pcx/cw),0,COLS-1);
     const row=clamp(Math.floor(pcy/ch),0,ROWS-1);
-    const cell=pzBoard.querySelector(`[data-r="${row}"][data-c="${col}"]`);
-    if(cell)cell.classList.add('hi');
+    const cell=pzBoard.querySelector('[data-r="'+row+'"][data-c="'+col+'"]');
+    if(cell) cell.classList.add('hi');
   }
-
   if(pinching){
     if(!ST.selPiece){
       const now=Date.now();
       if(now-lastGrab>200){
-        let best=null,bestD=70;
+        let best=null, bestD=70;
         ST.pieces.forEach(p=>{
-          if(p.placed)return;
+          if(p.placed) return;
           const px=parseFloat(p.el.style.left)+p.cw/2;
           const py=parseFloat(p.el.style.top)+p.ch/2;
           const d=Math.hypot(lx-px,ly-py);
@@ -919,46 +706,42 @@ function tickPuzzle(){
     }
     if(ST.selPiece&&!ST.selPiece.placed){
       const p=ST.selPiece;
-      p.el.style.left=(lx-p.cw/2)+'px';p.el.style.top=(ly-p.ch/2)+'px';
-      p.el.style.zIndex=999;
-      pzStatus.textContent='Lepas di tempat yang tepat';
+      p.el.style.left=(lx-p.cw/2)+'px'; p.el.style.top=(ly-p.ch/2)+'px';
+      p.el.style.zIndex=999; pzStatus.textContent='Lepas di tempat yang tepat';
     }
   } else {
     if(ST.selPiece){
       const p=ST.selPiece;
       const pcx=parseFloat(p.el.style.left)+p.cw/2;
       const pcy=parseFloat(p.el.style.top)+p.ch/2;
-      const sc=clamp(Math.floor(pcx/cw),0,COLS-1);
+      const sc2=clamp(Math.floor(pcx/cw),0,COLS-1);
       const sr=clamp(Math.floor(pcy/ch),0,ROWS-1);
-      if(sc===p.cc&&sr===p.cr){
-        const occ=ST.pieces.find(x=>x.placed&&x.cc===sc&&x.cr===sr);
+      if(sc2===p.cc&&sr===p.cr){
+        const occ=ST.pieces.find(x=>x.placed&&x.cc===sc2&&x.cr===sr);
         if(!occ){
           p.placed=true;
-          p.el.style.left=(sc*cw)+'px';p.el.style.top=(sr*ch)+'px';
-          p.el.style.zIndex=1;p.el.classList.remove('sel');p.el.classList.add('placed');
-          ST.placed++;pzProg.textContent=`${ST.placed} / ${TOTAL}`;
-          if(ST.placed===TOTAL)setTimeout(onPuzzleDone,500);
+          p.el.style.left=(sc2*cw)+'px'; p.el.style.top=(sr*ch)+'px';
+          p.el.style.zIndex=1; p.el.classList.remove('sel'); p.el.classList.add('placed');
+          const cell=pzBoard.querySelector('[data-r="'+sr+'"][data-c="'+sc2+'"]');
+          if(cell) cell.classList.add('correct');
+          ST.placed++; pzProg.textContent=ST.placed+' / '+TOTAL;
+          if(ST.placed===TOTAL) setTimeout(onPuzzleDone,500);
         } else bounce(p);
       } else bounce(p);
-      ST.selPiece=null;pzStatus.textContent='Cubit & geser keping';
+      ST.selPiece=null; pzStatus.textContent='Cubit & geser keping';
     }
   }
-
   if(ST.hands.length>1){
     const mp2=pinchPt(ST.hands[1]);
-    hc2.style.display='block';hc2.style.left=mp2.x+'px';hc2.style.top=mp2.y+'px';
-  } else hc2.style.display='none';
-
-  // draw skeleton on puzzle canvas
+    hc2.style.display='block'; hc2.style.left=mp2.x+'px'; hc2.style.top=mp2.y+'px';
+  } else { hc2.style.display='none'; }
   ptCtx.clearRect(0,0,pzTrackCanvas.width,pzTrackCanvas.height);
   const rect2=document.getElementById('puzzleWrap').getBoundingClientRect();
   ST.hands.forEach((h,i)=>{
-    const c1=i===0?'0,245,196':'124,92,255';
-    const c2=i===0?'52,211,153':'167,139,250';
-    drawSkeleton(ptCtx,h,lm=>lm.x*innerWidth-rect2.left,lm=>lm.y*innerHeight-rect2.top,c1,c2);
+    drawSkeleton(ptCtx,h,lm=>lm.x*innerWidth-rect2.left,lm=>lm.y*innerHeight-rect2.top,
+      i===0?'0,245,196':'124,92,255', i===0?'52,211,153':'167,139,250');
   });
 }
-
 function releasePiece(){
   if(ST.selPiece){ST.selPiece.el.classList.remove('sel');ST.selPiece=null;}
   hc1.style.display='none';
@@ -972,194 +755,141 @@ function onPuzzleDone(){
   setTimeout(()=>{winScreen.classList.remove('show');goToHolo();},2000);
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  HOLOGRAM MODE
-// ═══════════════════════════════════════════════════════════════════════
-let holoParRAF,holoIdleRAF;
-
+// ─── HOLOGRAM ─────────────────────────────────────────────
+let holoParRAF, holoIdleRAF;
 function goToHolo(){
-  ST.mode='hologram';
-  showScreen('holoScreen');
-  holoImg.src=ST.photoUrl;
-  hlReflectImg.src=ST.photoUrl;
+  ST.mode='hologram'; showScreen('holoScreen');
+  holoImg.src=ST.photoUrl; hlReflectImg.src=ST.photoUrl;
   document.getElementById('hlReflect').style.opacity='1';
-  ST.hRx=0;ST.hRy=0;ST.lastHand=null;ST.handActive=false;
-  hideCursors();
-  resizeAll();
-  startHoloParticles();
-  holoIdle();
+  ST.hRx=0; ST.hRy=0; ST.lastHand=null; ST.handActive=false;
+  hc1.style.display='none'; hc2.style.display='none';
+  resizeAll(); startHoloParticles(); holoIdle();
 }
-
 function startHoloParticles(){
-  if(holoParRAF)cancelAnimationFrame(holoParRAF);
+  if(holoParRAF) cancelAnimationFrame(holoParRAF);
   const c=document.getElementById('holoParticleCanvas');
-  c.width=innerWidth;c.height=innerHeight;
+  c.width=innerWidth; c.height=innerHeight;
   const ctx=c.getContext('2d');
   const pts=Array.from({length:100},()=>({
-    x:Math.random()*innerWidth,y:Math.random()*innerHeight,
-    r:Math.random()*.9+.15,
-    vx:(Math.random()-.5)*.12,vy:-Math.random()*.35-.05,
-    o:Math.random()*.4+.08,
-    color:Math.random()<.55?'0,245,196':'124,92,255'
+    x:Math.random()*innerWidth, y:Math.random()*innerHeight,
+    r:Math.random()*.9+.15, vx:(Math.random()-.5)*.12, vy:-Math.random()*.35-.05,
+    o:Math.random()*.4+.08, color:Math.random()<.55?'0,245,196':'124,92,255'
   }));
   function draw(){
     c.width=c.width;
     pts.forEach(p=>{
-      p.x+=p.vx;p.y+=p.vy;
+      p.x+=p.vx; p.y+=p.vy;
       if(p.y<-4){p.y=innerHeight+4;p.x=Math.random()*innerWidth;}
-      if(p.x<0)p.x=innerWidth;if(p.x>innerWidth)p.x=0;
-      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fillStyle=`rgba(${p.color},${p.o})`;ctx.fill();
+      if(p.x<0)p.x=innerWidth; if(p.x>innerWidth)p.x=0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba('+p.color+','+p.o+')'; ctx.fill();
     });
     holoParRAF=requestAnimationFrame(draw);
   }
   draw();
 }
-
 function holoIdle(){
-  if(ST.mode!=='hologram')return;
+  if(ST.mode!=='hologram') return;
   if(!ST.handActive){
     const t=Date.now()/1000;
-    applyHolo(ST.hRx+Math.sin(t*.35)*2.5,ST.hRy+Math.cos(t*.28)*3.5);
+    applyHolo(ST.hRx+Math.sin(t*.35)*2.5, ST.hRy+Math.cos(t*.28)*3.5);
   }
   holoIdleRAF=requestAnimationFrame(holoIdle);
 }
-
 function applyHolo(rx,ry){
-  holoWrap.style.transform=`rotateX(${rx}deg) rotateY(${ry}deg)`;
-  const sx=ry*.05,sy=-rx*.04;
-  document.getElementById('hlR').style.transform=`translate(${3+sx}px,${-1+sy}px)`;
-  document.getElementById('hlG').style.transform=`translate(${-2-sx*.5}px,${1+sy*.5}px)`;
-  document.getElementById('hlB').style.transform=`translate(${1+sx*.3}px,${2-sy}px)`;
-  holoData.textContent=`ROT X: ${Math.round(rx)}° · ROT Y: ${Math.round(ry)}°`;
-  const rOp=Math.max(0,.3-Math.abs(rx)*.009);
-  document.getElementById('hlReflect').style.opacity=rOp;
+  holoWrap.style.transform='rotateX('+rx+'deg) rotateY('+ry+'deg)';
+  const sx=ry*.05, sy=-rx*.04;
+  document.getElementById('hlR').style.transform='translate('+(3+sx)+'px,'+(-1+sy)+'px)';
+  document.getElementById('hlG').style.transform='translate('+(-2-sx*.5)+'px,'+(1+sy*.5)+'px)';
+  document.getElementById('hlB').style.transform='translate('+(1+sx*.3)+'px,'+(2-sy)+'px)';
+  holoData.textContent='ROT X: '+Math.round(rx)+'° · ROT Y: '+Math.round(ry)+'°';
+  document.getElementById('hlReflect').style.opacity=Math.max(0,.3-Math.abs(rx)*.009);
 }
-
 function tickHolo(){
   if(!ST.hands.length){
-    ST.lastHand=null;ST.handActive=false;
-    hideCursors();
+    ST.lastHand=null; ST.handActive=false;
+    hc1.style.display='none'; hc2.style.display='none';
     htCtx.clearRect(0,0,holoHtCanvas.width,holoHtCanvas.height);
     return;
   }
   ST.handActive=true;
-
   if(ST.hands.length>=2){
-    const mp1=pinchPt(ST.hands[0]),mp2=pinchPt(ST.hands[1]);
-    hc1.style.display='block';hc1.style.left=mp1.x+'px';hc1.style.top=mp1.y+'px';
-    hc2.style.display='block';hc2.style.left=mp2.x+'px';hc2.style.top=mp2.y+'px';
-    const mx=(mp1.x+mp2.x)/2,my=(mp1.y+mp2.y)/2;
+    const mp1=pinchPt(ST.hands[0]), mp2=pinchPt(ST.hands[1]);
+    hc1.style.display='block'; hc1.style.left=mp1.x+'px'; hc1.style.top=mp1.y+'px';
+    hc2.style.display='block'; hc2.style.left=mp2.x+'px'; hc2.style.top=mp2.y+'px';
+    const mx=(mp1.x+mp2.x)/2, my=(mp1.y+mp2.y)/2;
     if(ST.lastHand&&ST.lastHand.two){
-      const dx=mx-ST.lastHand.x,dy=my-ST.lastHand.y;
-      ST.hRy=clamp(ST.hRy+dx*.55,-80,80);
-      ST.hRx=clamp(ST.hRx-dy*.55,-50,50);
+      ST.hRy=clamp(ST.hRy+(mx-ST.lastHand.x)*.55,-80,80);
+      ST.hRx=clamp(ST.hRx-(my-ST.lastHand.y)*.55,-50,50);
     }
     ST.lastHand={x:mx,y:my,two:true};
   } else {
     const mp=pinchPt(ST.hands[0]);
-    hc1.style.display='block';hc1.style.left=mp.x+'px';hc1.style.top=mp.y+'px';
+    hc1.style.display='block'; hc1.style.left=mp.x+'px'; hc1.style.top=mp.y+'px';
     hc2.style.display='none';
     if(ST.lastHand){
-      const dx=mp.x-ST.lastHand.x,dy=mp.y-ST.lastHand.y;
-      ST.hRy=clamp(ST.hRy+dx*.6,-80,80);
-      ST.hRx=clamp(ST.hRx-dy*.6,-50,50);
+      ST.hRy=clamp(ST.hRy+(mp.x-ST.lastHand.x)*.6,-80,80);
+      ST.hRx=clamp(ST.hRx-(mp.y-ST.lastHand.y)*.6,-50,50);
     }
     ST.lastHand={x:mp.x,y:mp.y,two:false};
   }
   applyHolo(ST.hRx,ST.hRy);
-
-  // draw skeleton
   htCtx.clearRect(0,0,holoHtCanvas.width,holoHtCanvas.height);
   ST.hands.forEach((h,i)=>{
-    const c1=i===0?'0,245,196':'124,92,255';
-    const c2=i===0?'52,211,153':'167,139,250';
-    drawSkeleton(htCtx,h,lm=>lm.x*innerWidth,lm=>lm.y*innerHeight,c1,c2);
+    drawSkeleton(htCtx,h,lm=>lm.x*innerWidth,lm=>lm.y*innerHeight,
+      i===0?'0,245,196':'124,92,255', i===0?'52,211,153':'167,139,250');
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  OVERLAY DRAWING — ultra-crisp skeleton
-// ═══════════════════════════════════════════════════════════════════════
-const CONN=[
-  [0,1],[1,2],[2,3],[3,4],       // thumb
-  [0,5],[5,6],[6,7],[7,8],       // index
-  [5,9],[9,10],[10,11],[11,12],  // middle
-  [9,13],[13,14],[14,15],[15,16],// ring
-  [13,17],[17,18],[18,19],[19,20],// pinky
-  [0,17]                          // palm edge
-];
+// ─── SKELETON ─────────────────────────────────────────────
+const CONN=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
 const TIPS=[4,8,12,16,20];
-
 function drawSkeleton(ctx,hand,toX,toY,col1,col2){
-  ctx.save();
-  ctx.lineWidth=1.8;
+  ctx.save(); ctx.lineWidth=1.8;
   CONN.forEach(([a,b])=>{
     ctx.beginPath();
     ctx.moveTo(toX(hand[a]),toY(hand[a]));
     ctx.lineTo(toX(hand[b]),toY(hand[b]));
-    ctx.strokeStyle=`rgba(${col1},.6)`;
-    ctx.stroke();
+    ctx.strokeStyle='rgba('+col1+',.55)'; ctx.stroke();
   });
   hand.forEach((lm,i)=>{
     const isTip=TIPS.includes(i);
     ctx.beginPath();
-    ctx.arc(toX(lm),toY(lm),isTip?6.5:3,0,Math.PI*2);
-    ctx.fillStyle=isTip?`rgba(${col2},.95)`:`rgba(${col1},.8)`;
-    ctx.fill();
-    if(isTip){
-      ctx.strokeStyle=`rgba(${col1},.4)`;
-      ctx.lineWidth=1.5;ctx.stroke();
-    }
+    ctx.arc(toX(lm),toY(lm),isTip?7:3.5,0,Math.PI*2);
+    ctx.fillStyle=isTip?'rgba('+col2+',.95)':'rgba('+col1+',.8)'; ctx.fill();
+    if(isTip){ctx.strokeStyle='rgba('+col1+',.4)';ctx.lineWidth=1.5;ctx.stroke();}
   });
   ctx.restore();
 }
-
 function drawOverlay(){
   oCtx.clearRect(0,0,overlayCanvas.width,overlayCanvas.height);
-  if(ST.mode!=='camera')return;
+  if(ST.mode!=='camera') return;
   ST.hands.forEach((h,i)=>{
-    const c1=i===0?'0,245,196':'124,92,255';
-    const c2=i===0?'52,211,153':'167,139,250';
-    drawSkeleton(oCtx,h,lm=>lm.x*innerWidth,lm=>lm.y*innerHeight,c1,c2);
+    drawSkeleton(oCtx,h,lm=>lm.x*innerWidth,lm=>lm.y*innerHeight,
+      i===0?'0,245,196':'124,92,255', i===0?'52,211,153':'167,139,250');
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  CURSOR HELPERS
-// ═══════════════════════════════════════════════════════════════════════
-function moveCursor(el,x,y,smooth){
-  el.style.display='block';
-  el.style.left=x+'px';el.style.top=y+'px';
-}
-function hideCursors(){hc1.style.display='none';hc2.style.display='none';}
-
-// ═══════════════════════════════════════════════════════════════════════
-//  UTILS
-// ═══════════════════════════════════════════════════════════════════════
+// ─── UTILS ────────────────────────────────────────────────
 function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
 
-// ═══════════════════════════════════════════════════════════════════════
-//  RESTART
-// ═══════════════════════════════════════════════════════════════════════
 document.getElementById('restartBtn').onclick=()=>{
-  if(holoParRAF)cancelAnimationFrame(holoParRAF);
-  if(holoIdleRAF)cancelAnimationFrame(holoIdleRAF);
-  ST.mode='camera';ST.hands=[];ST.photoUrl=null;ST.lastHand=null;
-  ST.handActive=false;ST.phase='idle';
-  holoWrap.style.transform='';
-  showScreen('cameraHud');
-  hideCursors();
-  gestureFill.style.width='0%';
-  cdRing.style.display='none';
-  gestureViz.classList.remove('hidden');
-  updateBadge('Tampilkan dua tangan ke kamera','');
+  if(holoParRAF) cancelAnimationFrame(holoParRAF);
+  if(holoIdleRAF) cancelAnimationFrame(holoIdleRAF);
+  if(ST.cdRAF) cancelAnimationFrame(ST.cdRAF);
+  Object.assign(ST,{mode:'camera',hands:[],photoUrl:null,lastHand:null,handActive:false,phase:'idle',cdRAF:null,trailPts:[]});
+  holoWrap.style.transform=''; showScreen('cameraHud');
+  hc1.style.display='none'; hc2.style.display='none';
+  cdRing.style.display='none'; cdArc.style.strokeDashoffset=578.1; cdN.textContent='5';
+  handIndicator.classList.remove('hidden');
+  corners.forEach(c=>c.classList.remove('active'));
+  setHandUI(false);
+  hudBadge.textContent='Tampilkan tangan ke kamera'; hudBadge.className='';
+  tCtx.clearRect(0,0,trailCanvas.width,trailCanvas.height);
+  cancelHint.classList.remove('show');
 };
 
-// ═══════════════════════════════════════════════════════════════════════
-//  BOOT
-// ═══════════════════════════════════════════════════════════════════════
 initCamera();
 </script>
 </body>
