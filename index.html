@@ -4,17 +4,6 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Trek Out Adventure</title>
-
-<!-- ══════════════════════════════════════════════════════════════════
-  SETUP FIREBASE:
-  1. Buka https://console.firebase.google.com
-  2. Buat project baru → klik "Add app" → pilih Web (</>)
-  3. Copy nilai apiKey, authDomain, databaseURL, projectId ke bawah
-  4. Di Firebase Console → Realtime Database → Rules → ganti dengan:
-     { "rules": { ".read": true, ".write": true } }
-  5. Simpan dan buka file ini di browser
-══════════════════════════════════════════════════════════════════ -->
-
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{min-height:100vh;background:linear-gradient(135deg,#0F172A 0%,#0D1B2A 50%,#0F172A 100%);font-family:'Inter',-apple-system,sans-serif;color:#F1F5F9}
@@ -45,10 +34,12 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
 .nav-badge{background:#38BDF8;color:#0F172A;font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px}
 .sidebar-footer{padding:16px 20px;border-top:1px solid rgba(96,165,250,0.08);text-align:center;color:#334155;font-size:11px}
 
-#mobile-header{display:none;padding:14px 16px;border-bottom:1px solid rgba(96,165,250,0.08);align-items:center;gap:12px;background:rgba(15,23,42,0.9);backdrop-filter:blur(8px);position:sticky;top:0;z-index:100}
-#mobile-header .brand-logo{width:28px;height:28px;border-radius:8px}
+#mobile-header{display:none;padding:14px 16px;border-bottom:1px solid rgba(96,165,250,0.08);align-items:center;justify-content:space-between;background:rgba(15,23,42,0.9);backdrop-filter:blur(8px);position:sticky;top:0;z-index:100}
+.mobile-left{display:flex;align-items:center;gap:12px}
 .mobile-brand-name{color:#F1F5F9;font-weight:700;font-size:14px}
 #menu-btn{background:none;border:none;color:#64748B;cursor:pointer;padding:4px}
+.cart-float-btn{background:linear-gradient(135deg,#3B82F6,#38BDF8);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:13px;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 0 16px rgba(56,189,248,0.3);position:relative}
+.cart-count-badge{background:#fff;color:#1e40af;font-size:10px;font-weight:800;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:absolute;top:-6px;right:-6px}
 
 #sidebar-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.7)}
 #sidebar-mobile{width:260px;height:100vh;background:#0F172A;border:1px solid rgba(96,165,250,0.15);box-shadow:4px 0 30px rgba(0,0,0,0.5);display:flex;flex-direction:column}
@@ -70,16 +61,20 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
 .item-card{padding:22px}
 .item-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
 .item-name{color:#F1F5F9;font-weight:700;font-size:16px}
+.item-price{color:#38BDF8;font-size:13px;font-weight:600;margin-top:2px}
 .item-total-sub{color:#475569;font-size:12px;margin-top:3px}
 .item-badge{background:rgba(96,165,250,0.1);border-radius:10px;padding:4px 10px;font-size:13px;color:#60A5FA;font-weight:700}
 .variant-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.06);margin-bottom:8px}
 .variant-row:last-child{margin-bottom:0}
 
+/* Cart button in inventory */
+.btn-cart-add{padding:4px 14px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:linear-gradient(135deg,#10B981,#059669);color:#fff;box-shadow:0 0 12px rgba(16,185,129,0.3);font-family:inherit;display:flex;align-items:center;gap:4px}
+.btn-cart-add:disabled{background:rgba(71,85,105,0.3);color:#475569;box-shadow:none;cursor:not-allowed}
+.btn-cart-add.in-cart{background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#10B981;box-shadow:none}
+
 .btn-primary{padding:10px 20px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(135deg,#3B82F6,#38BDF8);color:#fff;font-weight:700;font-size:14px;box-shadow:0 0 16px rgba(56,189,248,0.25);font-family:inherit;transition:opacity 0.15s}
 .btn-primary:hover{opacity:0.9}
 .btn-primary:disabled{background:rgba(71,85,105,0.3);color:#475569;box-shadow:none;cursor:not-allowed;opacity:1}
-.btn-sewa{padding:4px 14px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:linear-gradient(135deg,#3B82F6,#38BDF8);color:#fff;box-shadow:0 0 12px rgba(56,189,248,0.3);font-family:inherit}
-.btn-sewa:disabled{background:rgba(71,85,105,0.3);color:#475569;box-shadow:none;cursor:not-allowed}
 .btn-return{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(248,113,113,0.3);cursor:pointer;background:rgba(248,113,113,0.08);color:#F87171;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background 0.15s}
 .btn-return:hover{background:rgba(248,113,113,0.15)}
 .btn-ghost{padding:5px 10px;border-radius:8px;border:1px solid rgba(96,165,250,0.2);background:rgba(96,165,250,0.08);color:#60A5FA;cursor:pointer;font-family:inherit}
@@ -91,6 +86,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
 .modal-overlay.open{display:flex}
 .modal-box{background:#0F172A;border:1px solid rgba(96,165,250,0.25);border-radius:20px;padding:28px;width:100%;max-width:440px;box-shadow:0 0 40px rgba(96,165,250,0.15);max-height:90vh;overflow-y:auto}
 .modal-box.wide{max-width:600px}
+.modal-box.cart-modal{max-width:560px}
 .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 .modal-title{color:#F1F5F9;font-weight:700;font-size:16px}
 .modal-sub{color:#64748B;font-size:13px;margin-top:4px}
@@ -102,6 +98,23 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
 .field-input:focus{border-color:rgba(96,165,250,0.5)}
 .form-error{color:#F87171;font-size:13px;margin:4px 0 0}
 
+/* Cart styles */
+.cart-item-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(96,165,250,0.1);margin-bottom:8px}
+.cart-item-info{flex:1}
+.cart-item-name{color:#F1F5F9;font-weight:600;font-size:14px}
+.cart-item-price{color:#38BDF8;font-size:12px;font-weight:500}
+.cart-qty-ctrl{display:flex;align-items:center;gap:6px}
+.qty-btn{width:26px;height:26px;border-radius:6px;border:1px solid rgba(96,165,250,0.2);background:rgba(96,165,250,0.08);color:#60A5FA;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;font-family:inherit}
+.qty-num{color:#F1F5F9;font-weight:700;font-size:14px;min-width:20px;text-align:center}
+.btn-remove-cart{background:none;border:none;color:#F87171;cursor:pointer;padding:4px}
+
+.cart-summary-box{background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.15);border-radius:12px;padding:14px;margin:14px 0}
+.cart-sum-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+.cart-sum-row:last-child{margin-bottom:0;font-weight:700;color:#F1F5F9;font-size:15px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08)}
+.cart-sum-label{color:#94A3B8}
+.cart-sum-val{color:#38BDF8}
+
+/* Active rentals */
 .active-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
 .rental-card{padding:22px;position:relative;overflow:hidden}
 .rental-card-glow{position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(96,165,250,0.08),transparent);border-radius:0 16px 0 80px;pointer-events:none}
@@ -141,14 +154,12 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
 .rented-badge{font-size:10px;color:#F59E0B;padding:3px 8px;background:rgba(245,158,11,0.1);border-radius:6px;border:1px solid rgba(245,158,11,0.2)}
 .empty-state{padding:40px;text-align:center;color:#475569;font-size:16px}
 
-/* Loading & Status */
 #db-status{position:fixed;bottom:16px;right:16px;z-index:9999;padding:8px 16px;border-radius:10px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;transition:all 0.3s;pointer-events:none}
 #db-status.connecting{background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#F59E0B}
 #db-status.connected{background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);color:#22C55E}
 #db-status.error{background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);color:#F87171}
 .status-dot{width:7px;height:7px;border-radius:50%;background:currentColor}
 
-/* Setup screen */
 #setup-screen{position:fixed;inset:0;z-index:9000;background:#0F172A;display:flex;align-items:center;justify-content:center;padding:24px}
 .setup-box{max-width:500px;width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(96,165,250,0.2);border-radius:20px;padding:36px}
 .setup-title{font-size:22px;font-weight:700;color:#F1F5F9;margin-bottom:8px}
@@ -159,11 +170,53 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
 .setup-text a{color:#38BDF8;text-decoration:none}
 .setup-text code{background:rgba(96,165,250,0.1);padding:1px 6px;border-radius:4px;color:#60A5FA;font-size:12px}
 
-/* Loading overlay */
 #loading-overlay{position:fixed;inset:0;z-index:8000;background:#0F172A;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
 .loading-spinner{width:40px;height:40px;border:3px solid rgba(96,165,250,0.1);border-top-color:#38BDF8;border-radius:50%;animation:spin 0.8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-text{color:#64748B;font-size:14px}
+
+/* Nota / Receipt styles */
+#nota-overlay{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:16px}
+#nota-overlay.open{display:flex}
+.nota-wrapper{background:#fff;width:100%;max-width:380px;border-radius:4px;padding:24px 28px;box-shadow:0 20px 60px rgba(0,0,0,0.5);position:relative;max-height:90vh;overflow-y:auto;color:#000}
+.nota-header{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.nota-logo{width:56px;height:56px;border-radius:6px;background:linear-gradient(135deg,#1d4ed8,#0ea5e9);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nota-store-name{font-size:16px;font-weight:800;color:#111}
+.nota-store-addr{font-size:11px;color:#555;margin-top:2px;line-height:1.4}
+.nota-divider{border:none;border-top:1px solid #ccc;margin:10px 0}
+.nota-divider-dashed{border:none;border-top:1px dashed #ccc;margin:10px 0}
+.nota-date{font-size:12px;color:#333;margin-bottom:6px}
+.nota-customer{font-size:13px;font-weight:600;color:#111;margin-bottom:2px}
+.nota-customer-addr{font-size:12px;color:#555}
+.nota-items{margin:8px 0}
+.nota-item-name{font-size:13px;font-weight:600;color:#111;margin-bottom:4px}
+.nota-item-row{display:flex;justify-content:space-between;font-size:12px;color:#333;padding:2px 0 2px 12px}
+.nota-totals{margin-top:4px}
+.nota-total-row{display:flex;justify-content:space-between;font-size:12px;color:#333;padding:2px 0}
+.nota-grand-total{display:flex;justify-content:space-between;font-size:15px;font-weight:800;color:#111;padding:4px 0;border-top:1px solid #333}
+.nota-pay-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
+.nota-printed{text-align:center;font-size:10px;color:#999;margin:6px 0}
+.nota-lunas{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);font-size:72px;font-weight:900;color:rgba(239,68,68,0.18);letter-spacing:4px;pointer-events:none;user-select:none;white-space:nowrap}
+.nota-footer{text-align:center;font-size:11px;color:#555;margin-top:10px;line-height:1.6}
+.nota-qty-info{font-size:11px;color:#555}
+.nota-actions{display:flex;gap:10px;margin-top:16px}
+.nota-print-btn{flex:1;padding:10px;border-radius:8px;background:#111;color:#fff;border:none;cursor:pointer;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit}
+.nota-close-btn{flex:1;padding:10px;border-radius:8px;background:#f1f5f9;color:#374151;border:none;cursor:pointer;font-weight:600;font-size:14px;font-family:inherit}
+@media print{
+  .nota-actions{display:none!important}
+  .nota-wrapper{box-shadow:none;border-radius:0}
+  #nota-overlay{display:flex!important;background:white;position:static;padding:0}
+}
+
+/* Floating cart button (desktop sidebar) */
+.cart-sidebar-btn{margin:8px 12px;padding:10px 14px;border-radius:10px;border:1px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.08);color:#10B981;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-family:inherit;transition:background 0.15s}
+.cart-sidebar-btn:hover{background:rgba(16,185,129,0.15)}
+.cart-sidebar-badge{background:#10B981;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px}
+
+/* Days input */
+.days-input-wrap{display:flex;align-items:center;gap:10px}
+.days-input{width:80px;text-align:center;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(96,165,250,0.2);border-radius:10px;color:#F1F5F9;font-size:20px;font-weight:700;outline:none;font-family:inherit}
+.days-btn{width:40px;height:40px;border-radius:10px;border:1px solid rgba(96,165,250,0.2);background:rgba(96,165,250,0.08);color:#60A5FA;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;font-family:inherit}
 
 @media(max-width:768px){
   #sidebar{display:none}
@@ -176,7 +229,6 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
 </head>
 <body>
 
-<!-- Setup Screen (muncul jika Firebase belum dikonfigurasi) -->
 <div id="setup-screen" style="display:none">
   <div class="setup-box">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
@@ -190,51 +242,35 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
     </div>
     <div class="setup-title">Konfigurasi Firebase</div>
     <div class="setup-sub">Ikuti langkah berikut agar data tersinkron untuk semua pengguna:</div>
-    <div class="setup-step">
-      <div class="setup-num">1</div>
-      <div class="setup-text">Buka <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → buat project baru</div>
-    </div>
-    <div class="setup-step">
-      <div class="setup-num">2</div>
-      <div class="setup-text">Di project, klik <strong style="color:#F1F5F9">Add app</strong> → pilih ikon Web (<code>&lt;/&gt;</code>) → daftarkan app</div>
-    </div>
-    <div class="setup-step">
-      <div class="setup-num">3</div>
-      <div class="setup-text">Copy nilai <code>apiKey</code>, <code>authDomain</code>, <code>databaseURL</code>, <code>projectId</code> ke bagian <code>FIREBASE CONFIG</code> di kode HTML ini</div>
-    </div>
-    <div class="setup-step">
-      <div class="setup-num">4</div>
-      <div class="setup-text">Di Firebase Console → <strong style="color:#F1F5F9">Realtime Database</strong> → <strong style="color:#F1F5F9">Create Database</strong> → pilih region → klik <strong style="color:#F1F5F9">Rules</strong> → ubah ke: <code>{ "rules": { ".read": true, ".write": true } }</code> → Publish</div>
-    </div>
-    <div class="setup-step">
-      <div class="setup-num">5</div>
-      <div class="setup-text">Simpan file dan buka kembali di browser</div>
-    </div>
-    <div style="margin-top:20px;padding:14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;color:#F59E0B;font-size:12px;line-height:1.6">
-      ⚠ Rules di atas bersifat publik (semua orang bisa baca/tulis). Cocok untuk penggunaan internal. Untuk produksi, tambahkan autentikasi.
-    </div>
+    <div class="setup-step"><div class="setup-num">1</div><div class="setup-text">Buka <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → buat project baru</div></div>
+    <div class="setup-step"><div class="setup-num">2</div><div class="setup-text">Klik <strong style="color:#F1F5F9">Add app</strong> → pilih Web (<code>&lt;/&gt;</code>) → daftarkan app</div></div>
+    <div class="setup-step"><div class="setup-num">3</div><div class="setup-text">Copy <code>apiKey</code>, <code>authDomain</code>, <code>databaseURL</code>, <code>projectId</code> ke bagian FIREBASE CONFIG di kode</div></div>
+    <div class="setup-step"><div class="setup-num">4</div><div class="setup-text">Realtime Database → Rules → <code>{ "rules": { ".read": true, ".write": true } }</code> → Publish</div></div>
+    <div class="setup-step"><div class="setup-num">5</div><div class="setup-text">Simpan dan buka kembali</div></div>
   </div>
 </div>
 
-<!-- Loading overlay -->
 <div id="loading-overlay" style="display:none">
   <div class="loading-spinner"></div>
   <div class="loading-text">Menghubungkan ke database...</div>
 </div>
 
-<div class="bg-glow1"></div>
-<div class="bg-glow2"></div>
+<div class="bg-glow1"></div><div class="bg-glow2"></div>
 
 <div id="app">
   <div id="sidebar">
     <div class="sidebar-brand">
       <div class="brand-logo"><svg width="22" height="22" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg></div>
-      <div>
-        <div class="brand-name">TREK OUT</div>
-        <div class="brand-sub">Adventure</div>
-      </div>
+      <div><div class="brand-name">TREK OUT</div><div class="brand-sub">Adventure</div></div>
     </div>
     <nav id="nav"></nav>
+    <button class="cart-sidebar-btn" id="cart-sidebar-btn" onclick="openCartModal()" style="display:none">
+      <span style="display:flex;align-items:center;gap:8px">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        Keranjang
+      </span>
+      <span class="cart-sidebar-badge" id="cart-sidebar-count">0</span>
+    </button>
     <div class="sidebar-footer">Trek Out Adventure © 2026</div>
   </div>
 
@@ -242,25 +278,36 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
     <div id="sidebar-mobile" onclick="event.stopPropagation()">
       <div class="sidebar-brand">
         <div class="brand-logo" style="width:28px;height:28px;border-radius:8px"><svg width="14" height="14" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg></div>
-        <div>
-          <div class="brand-name">TREK OUT</div>
-          <div class="brand-sub">Adventure</div>
-        </div>
+        <div><div class="brand-name">TREK OUT</div><div class="brand-sub">Adventure</div></div>
       </div>
       <nav id="nav-mobile" style="flex:1;padding:16px 12px;overflow-y:auto"></nav>
+      <button class="cart-sidebar-btn" id="cart-sidebar-btn-mobile" onclick="openCartModal();closeMobileSidebar()" style="display:none;margin:8px 12px 16px">
+        <span style="display:flex;align-items:center;gap:8px">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          Keranjang
+        </span>
+        <span class="cart-sidebar-badge" id="cart-sidebar-count-mobile">0</span>
+      </button>
       <div class="sidebar-footer">Trek Out Adventure © 2026</div>
     </div>
   </div>
 
   <div id="main">
     <div id="mobile-header">
-      <button id="menu-btn" onclick="openMobileSidebar()">
-        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div class="brand-logo" style="width:28px;height:28px;border-radius:8px"><svg width="14" height="14" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg></div>
-        <span class="mobile-brand-name">Trek Out Adventure</span>
+      <div class="mobile-left">
+        <button id="menu-btn" onclick="openMobileSidebar()">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="brand-logo" style="width:28px;height:28px;border-radius:8px"><svg width="14" height="14" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg></div>
+          <span class="mobile-brand-name">Trek Out Adventure</span>
+        </div>
       </div>
+      <button class="cart-float-btn" id="cart-mobile-btn" onclick="openCartModal()" style="display:none">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        <span id="cart-mobile-count">0</span>
+        <span class="cart-count-badge" id="cart-mobile-badge">0</span>
+      </button>
     </div>
 
     <div id="content">
@@ -277,27 +324,27 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
       </div>
 
       <div id="page-inventory" class="page">
-        <div class="page-header">
-          <div class="page-title">Stok Tersedia</div>
-          <div class="page-sub">Pilih barang dan warna untuk memulai penyewaan</div>
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+          <div>
+            <div class="page-title">Stok Tersedia</div>
+            <div class="page-sub">Tambahkan ke keranjang, lalu sewa sekaligus</div>
+          </div>
+          <button class="btn-primary" id="inv-cart-btn" onclick="openCartModal()" style="display:none;align-items:center;gap:6px">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+            Lihat Keranjang (<span id="inv-cart-count">0</span>)
+          </button>
         </div>
         <div class="inv-grid" id="inv-list"></div>
       </div>
 
       <div id="page-active" class="page">
-        <div class="page-header">
-          <div class="page-title">Barang Sedang Disewa</div>
-          <div class="page-sub" id="active-sub"></div>
-        </div>
+        <div class="page-header"><div class="page-title">Barang Sedang Disewa</div><div class="page-sub" id="active-sub"></div></div>
         <div id="active-list"></div>
       </div>
 
       <div id="page-manage" class="page">
         <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
-          <div>
-            <div class="page-title">Kelola Inventaris</div>
-            <div class="page-sub">Tambah kategori, warna, dan atur jumlah stok</div>
-          </div>
+          <div><div class="page-title">Kelola Inventaris</div><div class="page-sub">Tambah kategori, warna, dan atur jumlah stok</div></div>
           <button class="btn-primary" onclick="openAddItemModal()" style="display:flex;align-items:center;gap:6px">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Tambah Barang Baru
@@ -307,39 +354,67 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
       </div>
 
       <div id="page-history" class="page">
-        <div class="page-header">
-          <div class="page-title">Riwayat Penyewaan</div>
-          <div class="page-sub" id="history-sub"></div>
-        </div>
+        <div class="page-header"><div class="page-title">Riwayat Penyewaan</div><div class="page-sub" id="history-sub"></div></div>
         <div id="history-content"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Modal: Sewa -->
-<div id="modal-sewa" class="modal-overlay" onclick="closeModal('modal-sewa')">
-  <div class="modal-box" onclick="event.stopPropagation()">
+<!-- Modal: Keranjang -->
+<div id="modal-cart" class="modal-overlay" onclick="closeModal('modal-cart')">
+  <div class="modal-box cart-modal" onclick="event.stopPropagation()">
     <div class="modal-header">
-      <div>
-        <div class="modal-title">Form Penyewaan</div>
-        <div class="modal-sub" id="sewa-modal-sub"></div>
+      <div><div class="modal-title">🛒 Keranjang Sewa</div><div class="modal-sub" id="cart-modal-sub">Belum ada barang</div></div>
+      <button class="btn-close" onclick="closeModal('modal-cart')"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div id="cart-items-list"></div>
+    <div id="cart-empty-state" style="text-align:center;padding:30px;color:#475569">
+      <div style="font-size:40px;margin-bottom:8px">🛒</div>
+      <div>Keranjang masih kosong</div>
+      <div style="font-size:12px;margin-top:4px">Pilih barang dari halaman Stok Tersedia</div>
+    </div>
+    <div id="cart-form-section" style="display:none">
+      <hr style="border:none;border-top:1px solid rgba(96,165,250,0.1);margin:14px 0"/>
+      <div class="field">
+        <label class="field-label">Nama Penyewa</label>
+        <input type="text" id="cart-name" class="field-input" placeholder="Masukkan nama lengkap"/>
       </div>
-      <button class="btn-close" onclick="closeModal('modal-sewa')"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <div class="field">
+        <label class="field-label">Alamat / Kontak</label>
+        <input type="text" id="cart-address" class="field-input" placeholder="Alamat atau nomor HP"/>
+      </div>
+      <div class="field">
+        <label class="field-label">Lama Sewa (Hari)</label>
+        <div class="days-input-wrap">
+          <button class="days-btn" onclick="changeDays(-1)">−</button>
+          <input type="number" min="1" class="days-input" id="cart-days" value="1" oninput="onDaysChange()"/>
+          <button class="days-btn" onclick="changeDays(1)">+</button>
+          <span style="color:#64748B;font-size:13px;margin-left:4px" id="days-label">= 1 hari</span>
+        </div>
+      </div>
+      <div class="cart-summary-box" id="cart-summary"></div>
+      <div id="cart-error" class="form-error" style="display:none"></div>
+      <button class="btn-primary" id="cart-submit-btn" onclick="confirmCartSewa()" style="width:100%;padding:12px;font-size:15px;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:6px">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Konfirmasi Sewa & Cetak Nota
+      </button>
     </div>
-    <div class="field">
-      <label class="field-label">Nama Penyewa</label>
-      <input type="text" id="sewa-name" class="field-input" placeholder="Masukkan nama lengkap"/>
+  </div>
+</div>
+
+<!-- Nota Modal -->
+<div id="nota-overlay" onclick="closeNota()">
+  <div class="nota-wrapper" onclick="event.stopPropagation()">
+    <div class="nota-lunas">LUNAS</div>
+    <div id="nota-content"></div>
+    <div class="nota-actions">
+      <button class="nota-print-btn" onclick="window.print()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print / Simpan PDF
+      </button>
+      <button class="nota-close-btn" onclick="closeNota()">Tutup</button>
     </div>
-    <div class="field">
-      <label class="field-label">Alamat / Kontak</label>
-      <input type="text" id="sewa-address" class="field-input" placeholder="Alamat atau nomor HP"/>
-    </div>
-    <div id="sewa-error" class="form-error" style="display:none"></div>
-    <button class="btn-primary" id="sewa-submit-btn" onclick="confirmSewa()" style="width:100%;padding:12px;font-size:15px;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px">
-      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-      Konfirmasi Sewa
-    </button>
   </div>
 </div>
 
@@ -350,10 +425,8 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
       <div class="modal-title">Tambah Barang Baru</div>
       <button class="btn-close" onclick="closeModal('modal-add-item')"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    <div class="field">
-      <label class="field-label">Nama Barang</label>
-      <input type="text" id="new-item-name" class="field-input" placeholder="Contoh: Tenda Dome, Sleeping Bag..."/>
-    </div>
+    <div class="field"><label class="field-label">Nama Barang</label><input type="text" id="new-item-name" class="field-input" placeholder="Contoh: Tenda Dome, Sleeping Bag..."/></div>
+    <div class="field"><label class="field-label">Harga Sewa / Hari (Rp)</label><input type="number" id="new-item-price" class="field-input" placeholder="Contoh: 15000"/></div>
     <div class="field">
       <label class="field-label">Warna Pertama</label>
       <div class="color-options" id="new-item-colors"></div>
@@ -376,10 +449,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
 <div id="modal-add-variant" class="modal-overlay" onclick="closeModal('modal-add-variant')">
   <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
-      <div>
-        <div class="modal-title">Tambah Varian Warna</div>
-        <div class="modal-sub" id="add-variant-sub"></div>
-      </div>
+      <div><div class="modal-title">Tambah Varian Warna</div><div class="modal-sub" id="add-variant-sub"></div></div>
       <button class="btn-close" onclick="closeModal('modal-add-variant')"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="field">
@@ -404,10 +474,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
 <div id="modal-edit-stock" class="modal-overlay" onclick="closeModal('modal-edit-stock')">
   <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
-      <div>
-        <div class="modal-title">Edit Stok</div>
-        <div class="modal-sub" id="edit-stock-sub"></div>
-      </div>
+      <div><div class="modal-title">Edit Stok</div><div class="modal-sub" id="edit-stock-sub"></div></div>
       <button class="btn-close" onclick="closeModal('modal-edit-stock')"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="field">
@@ -430,9 +497,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
 <div id="modal-delete" class="modal-overlay" onclick="closeModal('modal-delete')">
   <div class="modal-box" onclick="event.stopPropagation()">
     <div style="text-align:center;padding:8px 0 20px">
-      <div class="delete-icon-wrap">
-        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-      </div>
+      <div class="delete-icon-wrap"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></div>
       <div class="modal-title" style="margin-bottom:8px">Konfirmasi Hapus</div>
       <p id="delete-confirm-text" style="color:#64748B;font-size:14px"></p>
     </div>
@@ -443,13 +508,8 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
   </div>
 </div>
 
-<!-- Status indicator -->
-<div id="db-status" class="connecting">
-  <div class="status-dot"></div>
-  <span id="db-status-text">Menghubungkan...</span>
-</div>
+<div id="db-status" class="connecting"><div class="status-dot"></div><span id="db-status-text">Menghubungkan...</span></div>
 
-<!-- Firebase SDK -->
 <script type="module">
 // ══════════════════════════════════════════════════════════════════
 // ▼▼▼  GANTI DENGAN CONFIG FIREBASE ANDA  ▼▼▼
@@ -464,176 +524,412 @@ const FIREBASE_CONFIG = {
   appId:             "1:445479932243:web:40cd2b8ba72eb4653111a6"
 };
 // ══════════════════════════════════════════════════════════════════
-// ▲▲▲  SAMPAI SINI  ▲▲▲
-// ══════════════════════════════════════════════════════════════════
 
-import { initializeApp }          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, set, push, update, remove, get }
+import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, push, remove, get }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-// ── Check apakah config sudah diisi ───────────────────────────────
-const isConfigured = !Object.values(FIREBASE_CONFIG).some(v => v.startsWith("GANTI_"));
-
-if (!isConfigured) {
-  document.getElementById("setup-screen").style.display    = "flex";
-  document.getElementById("db-status").className = "error";
-  document.getElementById("db-status-text").textContent = "Belum dikonfigurasi";
+const isConfigured = !Object.values(FIREBASE_CONFIG).some(v=>typeof v==="string"&&v.startsWith("GANTI_"));
+if(!isConfigured){
+  document.getElementById("setup-screen").style.display="flex";
+  document.getElementById("db-status").className="error";
+  document.getElementById("db-status-text").textContent="Belum dikonfigurasi";
   throw new Error("Firebase belum dikonfigurasi");
 }
 
-// Tampilkan loading hanya jika config sudah diisi
-document.getElementById("loading-overlay").style.display = "flex";
-
-// ── Init Firebase ──────────────────────────────────────────────────
+document.getElementById("loading-overlay").style.display="flex";
 const app = initializeApp(FIREBASE_CONFIG);
 const db  = getDatabase(app);
 
-// ── Default inventory (hanya diisi jika database kosong) ───────────
+// ── Harga per hari (dari foto price list) ─────────────────────────
+const PRICE_LIST = {
+  "Matras":5000, "Headlamp":10000, "Lampu Tenda":10000, "Hammock":10000,
+  "Sleeping Bag":10000, "Tiang Flysheet":10000, "Flysheet":15000,
+  "Double Layer Kap. 2":35000, "Double Layer Kap. 4":40000,
+  "Double Layer + Teras Kap. 4":50000, "Double Layer Kap. 6":60000,
+  "Double Layer + Teras Kap. 6":70000,
+  "Gas Portable":7000, "Kompor Camp (Kotak)":10000, "Kompor Camp (Kembang)":15000,
+  "Nesting (2 in 1)":10000, "Nesting (2 in 1 + Teko)":15000,
+  "Pan Grill BBQ (Bulat)":10000, "Pan Grill BBQ (Kotak)":15000, "Kompor Portable":25000,
+  "Hydropack":15000, "Daypack":20000, "Carrier 45L + Raincover":25000, "Carrier 60L + Raincover":30000,
+  "Topi":5000, "Sarung Tangan":10000, "Tracking Pole":10000,
+  "Jaket Anti UV":15000, "Celana Outdoor":15000, "Sepatu Outdoor":25000, "Jaket Outdoor":25000,
+  "Kacamata":5000, "Tripod":10000, "Kursi Lipat (L)":10000,
+  "Kursi Lipat (XL)":15000, "Meja Lipat (Alumunium)":15000,
+};
+
 const DEFAULT_INVENTORY = [
-  { id:"carrier",      name:"Carrier",      variants:[{color:"Kuning",stock:2},{color:"Hitam",stock:1},{color:"Merah",stock:2}] },
-  { id:"hydropack",    name:"Hydropack",    variants:[{color:"Hitam",stock:3},{color:"Biru",stock:2}] },
-  { id:"tenda",        name:"Tenda",        variants:[{color:"Hijau",stock:2},{color:"Oranye",stock:1}] },
-  { id:"sleeping-bag", name:"Sleeping Bag", variants:[{color:"Biru",stock:3},{color:"Abu-abu",stock:2}] },
-  { id:"matras",       name:"Matras",       variants:[{color:"Hijau",stock:4},{color:"Merah",stock:2}] },
-  { id:"headlamp",     name:"Headlamp",     variants:[{color:"Hitam",stock:5},{color:"Kuning",stock:2}] },
+  // Peralatan Camping
+  {id:"matras",name:"Matras",price:5000,variants:[{color:"Hijau",stock:5}]},
+  {id:"headlamp",name:"Headlamp",price:10000,variants:[{color:"Hitam",stock:5}]},
+  {id:"lampu-tenda",name:"Lampu Tenda",price:10000,variants:[{color:"Putih",stock:4}]},
+  {id:"hammock",name:"Hammock",price:10000,variants:[{color:"Hijau",stock:3},{color:"Biru",stock:2}]},
+  {id:"sleeping-bag",name:"Sleeping Bag",price:10000,variants:[{color:"Biru",stock:4},{color:"Merah",stock:3}]},
+  {id:"tiang-flysheet",name:"Tiang Flysheet",price:10000,variants:[{color:"Abu-abu",stock:6}]},
+  {id:"flysheet",name:"Flysheet",price:15000,variants:[{color:"Oranye",stock:3},{color:"Hijau",stock:2}]},
+  {id:"dl-kap2",name:"Double Layer Kap. 2",price:35000,variants:[{color:"Hijau",stock:2}]},
+  {id:"dl-kap4",name:"Double Layer Kap. 4",price:40000,variants:[{color:"Hijau",stock:2}]},
+  {id:"dl-teras-kap4",name:"Double Layer + Teras Kap. 4",price:50000,variants:[{color:"Hijau",stock:1}]},
+  {id:"dl-kap6",name:"Double Layer Kap. 6",price:60000,variants:[{color:"Hijau",stock:1}]},
+  {id:"dl-teras-kap6",name:"Double Layer + Teras Kap. 6",price:70000,variants:[{color:"Hijau",stock:1}]},
+  // Peralatan Masak
+  {id:"gas-portable",name:"Gas Portable",price:7000,variants:[{color:"Biru",stock:10}]},
+  {id:"kompor-kotak",name:"Kompor Camp (Kotak)",price:10000,variants:[{color:"Hitam",stock:4}]},
+  {id:"kompor-kembang",name:"Kompor Camp (Kembang)",price:15000,variants:[{color:"Hitam",stock:3}]},
+  {id:"nesting-2in1",name:"Nesting (2 in 1)",price:10000,variants:[{color:"Abu-abu",stock:5}]},
+  {id:"nesting-teko",name:"Nesting (2 in 1 + Teko)",price:15000,variants:[{color:"Abu-abu",stock:3}]},
+  {id:"pan-bulat",name:"Pan Grill BBQ (Bulat)",price:10000,variants:[{color:"Hitam",stock:4}]},
+  {id:"pan-kotak",name:"Pan Grill BBQ (Kotak)",price:15000,variants:[{color:"Hitam",stock:3}]},
+  {id:"kompor-portable",name:"Kompor Portable",price:25000,variants:[{color:"Hitam",stock:2}]},
+  // Tas & Carrier
+  {id:"hydropack",name:"Hydropack",price:15000,variants:[{color:"Hitam",stock:3},{color:"Biru",stock:2}]},
+  {id:"daypack",name:"Daypack",price:20000,variants:[{color:"Hitam",stock:3},{color:"Merah",stock:2}]},
+  {id:"carrier-45",name:"Carrier 45L + Raincover",price:25000,variants:[{color:"Hitam",stock:2},{color:"Oranye",stock:1}]},
+  {id:"carrier-60",name:"Carrier 60L + Raincover",price:30000,variants:[{color:"Hitam",stock:2},{color:"Merah",stock:1}]},
+  // Peralatan Pribadi
+  {id:"topi",name:"Topi",price:5000,variants:[{color:"Hitam",stock:5},{color:"Navy",stock:3}]},
+  {id:"sarung-tangan",name:"Sarung Tangan",price:10000,variants:[{color:"Hitam",stock:6}]},
+  {id:"tracking-pole",name:"Tracking Pole",price:10000,variants:[{color:"Abu-abu",stock:4}]},
+  {id:"jaket-uv",name:"Jaket Anti UV",price:15000,variants:[{color:"Hitam",stock:2},{color:"Biru",stock:2}]},
+  {id:"celana-outdoor",name:"Celana Outdoor",price:15000,variants:[{color:"Hitam",stock:3}]},
+  {id:"sepatu-outdoor",name:"Sepatu Outdoor",price:25000,variants:[{color:"Hitam",stock:3}]},
+  {id:"jaket-outdoor",name:"Jaket Outdoor",price:25000,variants:[{color:"Hitam",stock:2},{color:"Hijau",stock:1}]},
+  // Peralatan Santai
+  {id:"kacamata",name:"Kacamata",price:5000,variants:[{color:"Hitam",stock:5}]},
+  {id:"tripod",name:"Tripod",price:10000,variants:[{color:"Hitam",stock:3}]},
+  {id:"kursi-l",name:"Kursi Lipat (L)",price:10000,variants:[{color:"Hitam",stock:4}]},
+  {id:"kursi-xl",name:"Kursi Lipat (XL)",price:15000,variants:[{color:"Hitam",stock:3}]},
+  {id:"meja-lipat",name:"Meja Lipat (Alumunium)",price:15000,variants:[{color:"Abu-abu",stock:2}]},
 ];
 
-// ── State lokal (diisi dari Firebase) ────────────────────────────
 let inventory = [];
-let rentals   = {};   // { firebaseKey: rentalObj }
-let historyMap= {};   // { firebaseKey: historyObj }
+let rentals   = {};
+let historyMap= {};
 
-// ── Status UI ─────────────────────────────────────────────────────
-function setStatus(state, text) {
-  const el = document.getElementById("db-status");
-  el.className = state;
-  document.getElementById("db-status-text").textContent = text;
-  if (state === "connected") {
-    setTimeout(() => { el.style.opacity = "0"; setTimeout(()=>{ el.style.opacity = "1"; el.className = "connected"; }, 3000); }, 2000);
+// ── Cart State ─────────────────────────────────────────────────────
+// cart = [{itemId, itemName, color, qty, pricePerDay}]
+let cart = [];
+
+function cartTotal(days) {
+  return cart.reduce((s,c)=>s+c.qty*c.pricePerDay*days, 0);
+}
+function cartQty() { return cart.reduce((s,c)=>s+c.qty,0); }
+function updateCartUI() {
+  const qty = cartQty();
+  const show = qty > 0;
+  ["cart-sidebar-btn","cart-sidebar-btn-mobile"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=show?"flex":"none";
+  });
+  ["cart-sidebar-count","cart-sidebar-count-mobile"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent=qty;
+  });
+  const mobileBtn=document.getElementById("cart-mobile-btn");
+  if(mobileBtn) mobileBtn.style.display=show?"flex":"none";
+  const mobileBadge=document.getElementById("cart-mobile-badge");
+  if(mobileBadge) mobileBadge.textContent=qty;
+  const invBtn=document.getElementById("inv-cart-btn");
+  if(invBtn){ invBtn.style.display=show?"flex":"none"; document.getElementById("inv-cart-count").textContent=qty; }
+}
+
+window.openCartModal = function() {
+  renderCartModal();
+  openModal("modal-cart");
+};
+
+function renderCartModal() {
+  const qty = cartQty();
+  document.getElementById("cart-modal-sub").textContent =
+    qty===0 ? "Belum ada barang" : qty+" item dipilih";
+  const listEl = document.getElementById("cart-items-list");
+  const emptyEl = document.getElementById("cart-empty-state");
+  const formEl = document.getElementById("cart-form-section");
+
+  if(cart.length===0){
+    listEl.innerHTML=""; emptyEl.style.display="block"; formEl.style.display="none";
+  } else {
+    emptyEl.style.display="none"; formEl.style.display="block";
+    const days = parseInt(document.getElementById("cart-days")?.value)||1;
+    listEl.innerHTML = cart.map((c,i)=>`
+      <div class="cart-item-row">
+        <div class="cart-item-info">
+          <div class="cart-item-name">${c.itemName} <span style="color:#94A3B8;font-size:12px">(${c.color})</span></div>
+          <div class="cart-item-price">Rp ${fmtRp(c.pricePerDay)}/hari × ${c.qty} unit × ${days} hari = <strong>Rp ${fmtRp(c.pricePerDay*c.qty*days)}</strong></div>
+        </div>
+        <div class="cart-qty-ctrl">
+          <button class="qty-btn" onclick="cartQtyChange(${i},-1)">−</button>
+          <span class="qty-num">${c.qty}</span>
+          <button class="qty-btn" onclick="cartQtyChange(${i},1)">+</button>
+          <button class="btn-remove-cart" onclick="cartRemove(${i})"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
+        </div>
+      </div>`).join("");
+    renderCartSummary(days);
+  }
+  document.getElementById("cart-modal-sub").textContent =
+    qty===0 ? "Belum ada barang" : qty+" item, "+cart.length+" jenis barang";
+}
+
+function renderCartSummary(days) {
+  const total = cartTotal(days);
+  document.getElementById("cart-summary").innerHTML = `
+    <div class="cart-sum-row"><span class="cart-sum-label">Durasi Sewa</span><span class="cart-sum-val">${days} hari</span></div>
+    <div class="cart-sum-row"><span class="cart-sum-label">Total Item</span><span class="cart-sum-val">${cartQty()} unit (${cart.length} jenis)</span></div>
+    <div class="cart-sum-row"><span class="cart-sum-label">Total Harga</span><span class="cart-sum-val">Rp ${fmtRp(total)}</span></div>`;
+}
+
+window.cartQtyChange = function(idx, delta) {
+  const item = inventory.find(i=>i.id===cart[idx].itemId);
+  const variant = item?.variants.find(v=>v.color===cart[idx].color);
+  const maxStock = variant ? variant.stock : 99;
+  cart[idx].qty = Math.max(1, Math.min(maxStock, cart[idx].qty + delta));
+  renderCartModal();
+};
+window.cartRemove = function(idx) {
+  cart.splice(idx,1);
+  updateCartUI();
+  renderCartModal();
+  if(window.currentPage==="inventory") renderInventory();
+};
+window.changeDays = function(delta) {
+  const el = document.getElementById("cart-days");
+  el.value = Math.max(1, (parseInt(el.value)||1) + delta);
+  onDaysChange();
+};
+window.onDaysChange = function() {
+  const days = Math.max(1, parseInt(document.getElementById("cart-days").value)||1);
+  document.getElementById("days-label").textContent = `= ${days} hari`;
+  renderCartModal();
+};
+
+window.addToCart = function(itemId, color) {
+  const item = inventory.find(i=>i.id===itemId);
+  if(!item) return;
+  const variant = item.variants.find(v=>v.color===color);
+  if(!variant || variant.stock<=0) return;
+  const existing = cart.find(c=>c.itemId===itemId&&c.color===color);
+  if(existing){
+    existing.qty = Math.min(variant.stock, existing.qty+1);
+  } else {
+    cart.push({itemId, itemName:item.name, color, qty:1, pricePerDay:item.price||0});
+  }
+  updateCartUI();
+  renderInventory();
+  // Flash feedback
+  const btn = document.querySelector(`[data-cart-key="${itemId}_${color}"]`);
+  if(btn){ btn.textContent="✓ Ditambah"; setTimeout(()=>renderInventory(), 800); }
+};
+
+window.confirmCartSewa = async function() {
+  const name    = document.getElementById("cart-name").value.trim();
+  const address = document.getElementById("cart-address").value.trim();
+  const days    = Math.max(1, parseInt(document.getElementById("cart-days").value)||1);
+  if(!name||!address){ showError("cart-error","Nama dan alamat wajib diisi."); return; }
+  if(cart.length===0){ showError("cart-error","Keranjang kosong!"); return; }
+
+  const btn = document.getElementById("cart-submit-btn");
+  btn.disabled=true; btn.textContent="Menyimpan...";
+  try {
+    const now = Date.now();
+    const dueTs = now + days * 86400000;
+    for(const c of cart) {
+      const item = inventory.find(i=>i.id===c.itemId);
+      if(!item) continue;
+      // Kurangi stok
+      const updatedVariants = item.variants.map(v=>
+        v.color!==c.color ? v : {...v, stock: Math.max(0,v.stock-c.qty)}
+      );
+      await set(ref(db, `inventory/${item.id}/variants`), updatedVariants);
+      // Simpan rental
+      await push(ref(db, "rentals"), {
+        itemId:c.itemId, itemName:c.itemName, color:c.color,
+        qty:c.qty, pricePerDay:c.pricePerDay,
+        name, address, days, dueTs, startTs:now
+      });
+    }
+    // Tampilkan nota
+    showNota({name, address, days, items:[...cart], startTs:now, dueTs});
+    // Reset cart
+    cart=[];
+    updateCartUI();
+    closeModal("modal-cart");
+    if(window.currentPage==="inventory") renderInventory();
+  } catch(e) {
+    showError("cart-error","Gagal menyimpan: "+e.message);
+  } finally {
+    btn.disabled=false;
+    btn.innerHTML=`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Konfirmasi Sewa & Cetak Nota`;
+  }
+};
+
+// ── Nota ───────────────────────────────────────────────────────────
+function showNota(data) {
+  const {name, address, days, items, startTs, dueTs} = data;
+  const total = items.reduce((s,c)=>s+c.qty*c.pricePerDay*days,0);
+  const totalQty = items.reduce((s,c)=>s+c.qty,0);
+  const nowStr = new Date(startTs).toLocaleString("id-ID",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}).replace(/\./g,"/");
+  const dueStr = new Date(dueTs).toLocaleDateString("id-ID",{day:"2-digit",month:"2-digit",year:"numeric"});
+
+  const itemRows = items.map(c=>`
+    <div class="nota-item-name">${c.itemName}</div>
+    <div class="nota-item-row"><span>${c.qty} unit @ Rp ${fmtRp(c.pricePerDay)} × ${days} hari</span><span>Rp ${fmtRp(c.qty*c.pricePerDay*days)}</span></div>
+  `).join('<div style="height:4px"></div>');
+
+  document.getElementById("nota-content").innerHTML = `
+    <div class="nota-header">
+      <div class="nota-logo">
+        <svg width="28" height="28" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg>
+      </div>
+      <div>
+        <div class="nota-store-name">TrekOut Adventure</div>
+        <div class="nota-store-addr">Jln. Raya Cisurupan, Dekat SPBU<br>Cisurupan - Garut</div>
+      </div>
+    </div>
+    <hr class="nota-divider"/>
+    <div class="nota-date">${nowStr}</div>
+    <div class="nota-customer">${name}</div>
+    <div class="nota-customer-addr">${address}</div>
+    <div class="nota-customer-addr" style="margin-top:2px;color:#777">Sewa ${days} hari — Kembali: ${dueStr}</div>
+    <hr class="nota-divider"/>
+    <div class="nota-items">${itemRows}</div>
+    <div class="nota-printed">[ Printed by e-Nota ]</div>
+    <hr class="nota-divider-dashed"/>
+    <div class="nota-totals">
+      <div class="nota-total-row"><span>Total Harga</span><span>Rp ${fmtRp(total)}</span></div>
+    </div>
+    <hr class="nota-divider"/>
+    <div class="nota-grand-total"><span>TOTAL</span><span>Rp ${fmtRp(total)}</span></div>
+    <div class="nota-pay-row"><span>BAYAR</span><span>Rp ${fmtRp(total)}</span></div>
+    <div class="nota-pay-row"><span>KEMBALI</span><span>0</span></div>
+    <div style="margin-top:4px"><span class="nota-qty-info">Total Qty: ${totalQty}</span></div>
+    <hr class="nota-divider"/>
+    <div class="nota-footer">*** Terimakasih ***<br>Gunakan Alat dengan Bijak<br>dan selalu bertanggung jawab atas barang sewaan anda</div>
+  `;
+  document.getElementById("nota-overlay").classList.add("open");
+}
+window.closeNota = function() {
+  document.getElementById("nota-overlay").classList.remove("open");
+};
+
+// ── Nota dari riwayat ──────────────────────────────────────────────
+window.showHistoryNota = function(key) {
+  const r = historyMap[key];
+  if(!r) return;
+  const items = r.items || [{itemId:r.itemId,itemName:r.itemName,color:r.color,qty:r.qty||1,pricePerDay:r.pricePerDay||0}];
+  showNota({name:r.name,address:r.address,days:r.days||1,items,startTs:r.startTs,dueTs:r.dueTs||r.returnedAt});
+};
+
+function fmtRp(n){ return Number(n||0).toLocaleString("id-ID"); }
+
+// ── Status ─────────────────────────────────────────────────────────
+function setStatus(state,text){
+  const el=document.getElementById("db-status");
+  el.className=state;
+  document.getElementById("db-status-text").textContent=text;
+  if(state==="connected"){ setTimeout(()=>{el.style.opacity="0";setTimeout(()=>{el.style.opacity="1";el.className="connected";},3000);},2000); }
+}
+
+// ── Seed ───────────────────────────────────────────────────────────
+async function seedIfEmpty(){
+  const snap=await get(ref(db,"inventory"));
+  if(!snap.exists()){
+    const inv={};
+    DEFAULT_INVENTORY.forEach(item=>{ inv[item.id]=item; });
+    await set(ref(db,"inventory"),inv);
   }
 }
 
-// ── Seed inventory jika kosong ────────────────────────────────────
-async function seedIfEmpty() {
-  const snap = await get(ref(db, "inventory"));
-  if (!snap.exists()) {
-    const inv = {};
-    DEFAULT_INVENTORY.forEach(item => { inv[item.id] = item; });
-    await set(ref(db, "inventory"), inv);
-  }
-}
-
-// ── Realtime listeners ─────────────────────────────────────────────
-let initialized = false;
-let invReady = false, rentReady = false, histReady = false;
-
-function checkAllReady() {
-  if (invReady && rentReady && histReady && !initialized) {
-    initialized = true;
-    document.getElementById("loading-overlay").style.display = "none";
-    setStatus("connected", "Terhubung");
+// ── Listeners ──────────────────────────────────────────────────────
+let initialized=false,invReady=false,rentReady=false,histReady=false;
+function checkAllReady(){
+  if(invReady&&rentReady&&histReady&&!initialized){
+    initialized=true;
+    document.getElementById("loading-overlay").style.display="none";
+    setStatus("connected","Terhubung");
     rerenderAll();
   }
 }
-
-// Inventory listener
-onValue(ref(db, "inventory"), snap => {
-  inventory = [];
-  if (snap.exists()) {
-    snap.forEach(child => { inventory.push({...child.val(), id: child.key}); });
-  }
-  invReady = true;
-  checkAllReady();
-  if (initialized) rerenderAll();
-}, err => { setStatus("error", "Gagal: " + err.message); });
-
-// Rentals listener
-onValue(ref(db, "rentals"), snap => {
-  rentals = {};
-  if (snap.exists()) snap.forEach(child => { rentals[child.key] = {...child.val(), _key: child.key}; });
-  rentReady = true;
-  checkAllReady();
-  if (initialized) rerenderAll();
+onValue(ref(db,"inventory"),snap=>{
+  inventory=[];
+  if(snap.exists()) snap.forEach(child=>{inventory.push({...child.val(),id:child.key});});
+  invReady=true; checkAllReady();
+  if(initialized) rerenderAll();
+},err=>{setStatus("error","Gagal: "+err.message);});
+onValue(ref(db,"rentals"),snap=>{
+  rentals={};
+  if(snap.exists()) snap.forEach(child=>{rentals[child.key]={...child.val(),_key:child.key};});
+  rentReady=true; checkAllReady();
+  if(initialized) rerenderAll();
 });
-
-// History listener
-onValue(ref(db, "history"), snap => {
-  historyMap = {};
-  if (snap.exists()) snap.forEach(child => { historyMap[child.key] = {...child.val(), _key: child.key}; });
-  histReady = true;
-  checkAllReady();
-  if (initialized) rerenderAll();
+onValue(ref(db,"history"),snap=>{
+  historyMap={};
+  if(snap.exists()) snap.forEach(child=>{historyMap[child.key]={...child.val(),_key:child.key};});
+  histReady=true; checkAllReady();
+  if(initialized) rerenderAll();
 });
-
-// Init
-setStatus("connecting", "Menghubungkan...");
-seedIfEmpty().catch(e => {
-  document.getElementById("loading-overlay").style.display = "none";
-  setStatus("error", "Error: " + e.message);
+setStatus("connecting","Menghubungkan...");
+seedIfEmpty().catch(e=>{
+  document.getElementById("loading-overlay").style.display="none";
+  setStatus("error","Error: "+e.message);
 });
 
 // ── Helpers ────────────────────────────────────────────────────────
-function rentalsList()  { return Object.values(rentals); }
-function historyList()  { return Object.values(historyMap); }
+function rentalsList(){ return Object.values(rentals); }
+function historyList(){ return Object.values(historyMap); }
 
-window.COLOR_DOT = {
-  Kuning:"#FBBF24",Hitam:"#374151",Merah:"#EF4444",Biru:"#3B82F6",
-  Hijau:"#22C55E",Oranye:"#F97316","Abu-abu":"#9CA3AF",Putih:"#F9FAFB",
-  Ungu:"#A855F7",Pink:"#EC4899",Coklat:"#92400E",Navy:"#1E3A5F"
-};
-window.COLOR_OPTIONS = ["Kuning","Hitam","Merah","Biru","Hijau","Oranye","Abu-abu","Putih","Ungu","Pink","Coklat","Navy"];
+window.COLOR_DOT={Kuning:"#FBBF24",Hitam:"#374151",Merah:"#EF4444",Biru:"#3B82F6",Hijau:"#22C55E",Oranye:"#F97316","Abu-abu":"#9CA3AF",Putih:"#F9FAFB",Ungu:"#A855F7",Pink:"#EC4899",Coklat:"#92400E",Navy:"#1E3A5F"};
+window.COLOR_OPTIONS=["Kuning","Hitam","Merah","Biru","Hijau","Oranye","Abu-abu","Putih","Ungu","Pink","Coklat","Navy"];
 
-function formatDuration(ms) {
-  const t = Math.max(0, Math.floor(ms/1000));
-  return `${Math.floor(t/86400)} Hari ${Math.floor((t%86400)/3600)} Jam ${Math.floor((t%3600)/60)} Menit`;
+function formatDuration(ms){
+  const t=Math.max(0,Math.floor(ms/1000));
+  return `${Math.floor(t/86400)}h ${Math.floor((t%86400)/3600)}j ${Math.floor((t%3600)/60)}m`;
 }
-function formatDate(ts) {
+function formatDate(ts){
   return new Date(ts).toLocaleString("id-ID",{day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"});
 }
-function dot(color, size=10) {
-  const bg = COLOR_DOT[color]||"#94A3B8";
+function dot(color,size=10){
+  const bg=COLOR_DOT[color]||"#94A3B8";
   return `<span style="display:inline-block;width:${size}px;height:${size}px;border-radius:50%;background:${bg};flex-shrink:0"></span>`;
 }
-const navIcons = {
+
+const navIcons={
   dashboard:`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
   inventory:`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 7H4a1 1 0 00-1 1v12a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1z"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>`,
   active:`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
   manage:`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
   history:`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
 };
-const navItems = [
-  {id:"dashboard",label:"Dashboard",      icon:"dashboard"},
-  {id:"inventory",label:"Stok Tersedia",  icon:"inventory"},
-  {id:"active",   label:"Sedang Disewa",  icon:"active"},
-  {id:"manage",   label:"Kelola Inventaris",icon:"manage"},
-  {id:"history",  label:"Riwayat",        icon:"history"},
+const navItems=[
+  {id:"dashboard",label:"Dashboard",icon:"dashboard"},
+  {id:"inventory",label:"Stok Tersedia",icon:"inventory"},
+  {id:"active",label:"Sedang Disewa",icon:"active"},
+  {id:"manage",label:"Kelola Inventaris",icon:"manage"},
+  {id:"history",label:"Riwayat",icon:"history"},
 ];
 
-// ── Nav ────────────────────────────────────────────────────────────
-window.currentPage = "dashboard";
-function renderNav(navEl) {
-  const rl = rentalsList().length;
-  navEl.innerHTML = navItems.map(n => {
-    const badge = n.id==="active" && rl>0 ? `<span class="nav-badge">${rl}</span>` : "";
-    const active = currentPage===n.id ? " active" : "";
+window.currentPage="dashboard";
+function renderNav(navEl){
+  const rl=rentalsList().length;
+  navEl.innerHTML=navItems.map(n=>{
+    const badge=n.id==="active"&&rl>0?`<span class="nav-badge">${rl}</span>`:"";
+    const active=currentPage===n.id?" active":"";
     return `<button class="nav-btn${active}" onclick="navigate('${n.id}');closeMobileSidebar()">
       <span class="nav-btn-left">${navIcons[n.icon]}${n.label}</span>${badge}
     </button>`;
   }).join("");
 }
-window.navigate = function(page) {
-  currentPage = page;
+window.navigate=function(page){
+  currentPage=page;
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.getElementById("page-"+page).classList.add("active");
   renderNav(document.getElementById("nav"));
   renderNav(document.getElementById("nav-mobile"));
   renderPage(page);
 };
-window.openMobileSidebar  = () => { document.getElementById("sidebar-overlay").style.display="flex"; };
-window.closeMobileSidebar = () => { document.getElementById("sidebar-overlay").style.display="none"; };
+window.openMobileSidebar=()=>{document.getElementById("sidebar-overlay").style.display="flex";};
+window.closeMobileSidebar=()=>{document.getElementById("sidebar-overlay").style.display="none";};
 
-// ── Render Pages ───────────────────────────────────────────────────
-function renderPage(p) {
+function renderPage(p){
   if(p==="dashboard") renderDashboard();
   if(p==="inventory") renderInventory();
   if(p==="active")    renderActive();
@@ -641,89 +937,92 @@ function renderPage(p) {
   if(p==="history")   renderHistory();
 }
 
-function renderDashboard() {
-  const rl = rentalsList();
-  const hl = historyList();
-  const totalStock = inventory.reduce((s,i)=>s+i.variants.reduce((v,vr)=>v+vr.stock,0),0);
-  const todayStr = new Date().toDateString();
-  const todayCount = hl.filter(h=>new Date(h.returnedAt).toDateString()===todayStr).length;
-  const activeToday = rl.filter(r=>new Date(r.startTs).toDateString()===todayStr).length;
-  document.getElementById("dash-date").textContent =
-    "Selamat datang di Trek Out Adventure — " +
-    new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-  document.getElementById("dash-stats").innerHTML = [
-    {label:"Total Stok Tersedia", value:totalStock,      icon:"inventory", color:"#60A5FA"},
-    {label:"Sedang Disewa",       value:rl.length,       icon:"active",    color:"#38BDF8"},
-    {label:"Transaksi Hari Ini",  value:todayCount+activeToday, icon:"history", color:"#818CF8"},
+function renderDashboard(){
+  const rl=rentalsList(), hl=historyList();
+  const totalStock=inventory.reduce((s,i)=>s+i.variants.reduce((v,vr)=>v+vr.stock,0),0);
+  const todayStr=new Date().toDateString();
+  const todayCount=hl.filter(h=>new Date(h.returnedAt).toDateString()===todayStr).length;
+  const activeToday=rl.filter(r=>new Date(r.startTs).toDateString()===todayStr).length;
+  document.getElementById("dash-date").textContent="Selamat datang — "+new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  document.getElementById("dash-stats").innerHTML=[
+    {label:"Total Stok Tersedia",value:totalStock,icon:"inventory",color:"#60A5FA"},
+    {label:"Sedang Disewa",value:rl.length,icon:"active",color:"#38BDF8"},
+    {label:"Transaksi Hari Ini",value:todayCount+activeToday,icon:"history",color:"#818CF8"},
   ].map(s=>`<div class="card stat-card">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div>
-        <div class="stat-label">${s.label}</div>
-        <div class="stat-value" style="color:${s.color}">${s.value}</div>
-      </div>
+      <div><div class="stat-label">${s.label}</div><div class="stat-value" style="color:${s.color}">${s.value}</div></div>
       <div style="padding:10px;border-radius:12px;color:${s.color};background:${s.color}22">${navIcons[s.icon]?.replace(/16/g,"22")||""}</div>
     </div>
   </div>`).join("");
-  const listEl = document.getElementById("dash-active-list");
-  if(rl.length===0){
-    listEl.innerHTML=`<p style="color:#475569;font-size:14px">Tidak ada penyewaan aktif saat ini.</p>`;
-  } else {
-    listEl.innerHTML = rl.slice(0,5).map(r=>`
-      <div class="active-list-row">
-        <div style="display:flex;align-items:center;gap:10px">
-          ${dot(r.color,8)}
-          <div>
-            <div style="color:#E2E8F0;font-weight:600;font-size:14px">${r.name}</div>
-            <div style="color:#64748B;font-size:12px">${r.itemName} · ${r.color}</div>
-          </div>
+  const listEl=document.getElementById("dash-active-list");
+  if(rl.length===0){listEl.innerHTML=`<p style="color:#475569;font-size:14px">Tidak ada penyewaan aktif saat ini.</p>`;return;}
+  listEl.innerHTML=rl.slice(0,5).map(r=>`
+    <div class="active-list-row">
+      <div style="display:flex;align-items:center;gap:10px">
+        ${dot(r.color,8)}
+        <div>
+          <div style="color:#E2E8F0;font-weight:600;font-size:14px">${r.name}</div>
+          <div style="color:#64748B;font-size:12px">${r.itemName} · ${r.color}${r.days?` · ${r.days} hari`:""}</div>
         </div>
-        <span class="duration-value" data-dur-start="${r.startTs}">${formatDuration(Date.now()-r.startTs)}</span>
-      </div>`).join("")
-    + (rl.length>5?`<p style="color:#475569;font-size:13px;text-align:center;margin-top:8px">+${rl.length-5} lainnya</p>`:"");
-    startDurationTick();
-  }
+      </div>
+      <span class="duration-value" data-dur-start="${r.startTs}">${formatDuration(Date.now()-r.startTs)}</span>
+    </div>`).join("")+(rl.length>5?`<p style="color:#475569;font-size:13px;text-align:center;margin-top:8px">+${rl.length-5} lainnya</p>`:"");
+  startDurationTick();
 }
 
-function renderInventory() {
-  document.getElementById("inv-list").innerHTML = inventory.map(item=>{
-    const total = item.variants.reduce((s,v)=>s+v.stock,0);
+function renderInventory(){
+  document.getElementById("inv-list").innerHTML=inventory.map(item=>{
+    const total=item.variants.reduce((s,v)=>s+v.stock,0);
+    const price=item.price||PRICE_LIST[item.name]||0;
     return `<div class="card item-card">
       <div class="item-header">
-        <div><div class="item-name">${item.name}</div><div class="item-total-sub">Total stok: <span style="color:#60A5FA">${total}</span></div></div>
+        <div>
+          <div class="item-name">${item.name}</div>
+          <div class="item-price">Rp ${fmtRp(price)} / hari</div>
+          <div class="item-total-sub">Stok: <span style="color:#60A5FA">${total}</span></div>
+        </div>
         <div class="item-badge">${total}</div>
       </div>
-      <div>${item.variants.map(v=>`
-        <div class="variant-row">
+      <div>${item.variants.map(v=>{
+        const inCart=cart.some(c=>c.itemId===item.id&&c.color===v.color);
+        const cartItem=cart.find(c=>c.itemId===item.id&&c.color===v.color);
+        return `<div class="variant-row">
           <div style="display:flex;align-items:center;gap:8px">
             ${dot(v.color,10)}<span style="color:#CBD5E1;font-size:13px">${v.color}</span><span style="color:#475569;font-size:12px">(${v.stock})</span>
+            ${inCart?`<span style="font-size:11px;color:#10B981;font-weight:600">×${cartItem.qty}</span>`:""}
           </div>
-          <button class="btn-sewa" onclick="openSewaModal('${item.id}','${v.color}')" ${v.stock===0?"disabled":""}>
-            ${v.stock===0?"Habis":"Sewa"}
+          <button class="btn-cart-add ${inCart?"in-cart":""}" data-cart-key="${item.id}_${v.color}"
+            onclick="addToCart('${item.id}','${v.color}')" ${v.stock===0?"disabled":""}>
+            ${v.stock===0?"Habis":inCart?"+ Tambah":"+ Keranjang"}
           </button>
-        </div>`).join("")}
-      </div>
+        </div>`;
+      }).join("")}</div>
     </div>`;
   }).join("");
 }
 
-function renderActive() {
-  const rl = rentalsList();
-  document.getElementById("active-sub").textContent = rl.length+" penyewaan aktif";
-  const el = document.getElementById("active-list");
-  if(rl.length===0){ el.innerHTML=`<div class="card empty-state">Tidak ada penyewaan aktif</div>`; return; }
-  el.innerHTML=`<div class="active-grid">${rl.map(r=>`
-    <div class="card rental-card">
+function renderActive(){
+  const rl=rentalsList();
+  document.getElementById("active-sub").textContent=rl.length+" penyewaan aktif";
+  const el=document.getElementById("active-list");
+  if(rl.length===0){el.innerHTML=`<div class="card empty-state">Tidak ada penyewaan aktif</div>`;return;}
+  el.innerHTML=`<div class="active-grid">${rl.map(r=>{
+    const dueLabel=r.dueTs?`<div style="color:#F59E0B;font-size:12px;margin-top:2px">Jatuh tempo: ${formatDate(r.dueTs)}</div>`:"";
+    return `<div class="card rental-card">
       <div class="rental-card-glow"></div>
       <div style="display:flex;justify-content:space-between;margin-bottom:14px">
         <div>
           <div style="color:#F1F5F9;font-weight:700;font-size:15px">${r.name}</div>
           <div style="color:#64748B;font-size:12px;margin-top:3px">${r.address}</div>
+          ${r.days?`<div style="color:#38BDF8;font-size:12px;margin-top:2px">📅 ${r.days} hari</div>`:""}
         </div>
         <div style="display:flex;align-items:center;gap:6px">${dot(r.color,10)}<span style="color:#94A3B8;font-size:12px">${r.color}</span></div>
       </div>
       <div class="rental-item-info">
-        <div style="color:#60A5FA;font-weight:600;font-size:14px">${r.itemName}</div>
+        <div style="color:#60A5FA;font-weight:600;font-size:14px">${r.itemName}${r.qty>1?` ×${r.qty}`:""}</div>
         <div style="color:#475569;font-size:12px;margin-top:4px">Mulai: ${formatDate(r.startTs)}</div>
+        ${dueLabel}
+        ${r.pricePerDay?`<div style="color:#94A3B8;font-size:12px">Total: Rp ${fmtRp(r.pricePerDay*(r.qty||1)*(r.days||1))}</div>`:""}
       </div>
       <div class="rental-duration-box">
         <div class="duration-label">Durasi Berjalan</div>
@@ -733,20 +1032,22 @@ function renderActive() {
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h11a5 5 0 010 10h-1"/></svg>
         Kembalikan
       </button>
-    </div>`).join("")}</div>`;
+    </div>`;
+  }).join("")}</div>`;
   startDurationTick();
 }
 
-function renderManage() {
-  const rl = rentalsList();
-  document.getElementById("manage-list").innerHTML = inventory.map(item=>{
-    const totalStock = item.variants.reduce((s,v)=>s+v.stock,0);
-    const hasRental = rl.some(r=>r.itemId===item.id);
+function renderManage(){
+  const rl=rentalsList();
+  document.getElementById("manage-list").innerHTML=inventory.map(item=>{
+    const totalStock=item.variants.reduce((s,v)=>s+v.stock,0);
+    const hasRental=rl.some(r=>r.itemId===item.id);
     return `<div class="card manage-card">
       <div class="manage-item-header">
         <div style="display:flex;align-items:center;gap:12px">
           <span style="color:#F1F5F9;font-weight:700;font-size:16px">${item.name}</span>
           <span style="background:rgba(96,165,250,0.1);border-radius:8px;padding:2px 10px;font-size:12px;color:#60A5FA">${totalStock} stok</span>
+          <span style="color:#38BDF8;font-size:12px">Rp ${fmtRp(item.price||0)}/hari</span>
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn-add-variant" onclick="openAddVariantModal('${item.id}')">
@@ -754,15 +1055,14 @@ function renderManage() {
             Tambah Warna
           </button>
           ${!hasRental?`<button class="btn-delete-item" onclick="openDeleteConfirm('item','${item.id}')">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
           </button>`:""}
         </div>
       </div>
       <div class="variants-grid">${item.variants.map(v=>{
-        const rented = rl.some(r=>r.itemId===item.id&&r.color===v.color);
+        const rented=rl.some(r=>r.itemId===item.id&&r.color===v.color);
         return `<div class="variant-manage-row">
-          <div style="display:flex;align-items:center;gap:8px">
-            ${dot(v.color,10)}
+          <div style="display:flex;align-items:center;gap:8px">${dot(v.color,10)}
             <div>
               <div style="color:#CBD5E1;font-size:13px;font-weight:500">${v.color}</div>
               <div style="color:${v.stock===0?"#F87171":"#60A5FA"};font-size:12px;font-weight:700">${v.stock} stok</div>
@@ -773,7 +1073,7 @@ function renderManage() {
               <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
             ${!rented?`<button class="btn-danger-sm" onclick="openDeleteConfirm('variant','${item.id}','${v.color}')">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
             </button>`:`<span class="rented-badge">Disewa</span>`}
           </div>
         </div>`;
@@ -782,232 +1082,182 @@ function renderManage() {
   }).join("");
 }
 
-function renderHistory() {
-  const hl = historyList().sort((a,b)=>b.returnedAt-a.returnedAt);
-  document.getElementById("history-sub").textContent = hl.length+" total transaksi tercatat";
-  const el = document.getElementById("history-content");
-  if(hl.length===0){ el.innerHTML=`<div class="card empty-state">Belum ada riwayat penyewaan</div>`; return; }
-  const rows = hl.map((r,i)=>`
+function renderHistory(){
+  const hl=historyList().sort((a,b)=>b.returnedAt-a.returnedAt);
+  document.getElementById("history-sub").textContent=hl.length+" total transaksi tercatat";
+  const el=document.getElementById("history-content");
+  if(hl.length===0){el.innerHTML=`<div class="card empty-state">Belum ada riwayat penyewaan</div>`;return;}
+  const rows=hl.map(r=>`
     <tr>
       <td style="color:#E2E8F0;font-weight:600">${r.name}</td>
       <td style="color:#64748B">${r.address}</td>
-      <td style="color:#60A5FA">${r.itemName}</td>
+      <td style="color:#60A5FA">${r.itemName}${r.qty>1?` ×${r.qty}`:""}</td>
       <td><span style="display:flex;align-items:center;gap:6px;color:#94A3B8">${dot(r.color,8)}${r.color}</span></td>
+      <td style="color:#38BDF8">${r.days||1} hari</td>
+      <td style="color:${r.pricePerDay?"#10B981":"#475569"}">${r.pricePerDay?`Rp ${fmtRp(r.pricePerDay*(r.qty||1)*(r.days||1))}`:"—"}</td>
       <td style="color:#64748B;white-space:nowrap">${formatDate(r.startTs)}</td>
       <td style="color:#64748B;white-space:nowrap">${formatDate(r.returnedAt)}</td>
-      <td style="color:#38BDF8;white-space:nowrap">${formatDuration(r.returnedAt-r.startTs)}</td>
+      <td><button onclick="showHistoryNota('${r._key}')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(56,189,248,0.3);background:rgba(56,189,248,0.08);color:#38BDF8;cursor:pointer;font-size:11px;font-family:inherit">🧾 Nota</button></td>
     </tr>`).join("");
   el.innerHTML=`<div class="card" style="overflow:hidden"><div style="overflow-x:auto">
     <table class="history-table">
-      <thead><tr>${["Penyewa","Alamat","Barang","Warna","Tanggal Sewa","Tanggal Kembali","Total Durasi"].map(h=>`<th>${h}</th>`).join("")}</tr></thead>
+      <thead><tr>${["Penyewa","Alamat","Barang","Warna","Durasi","Total","Tgl Sewa","Tgl Kembali","Nota"].map(h=>`<th>${h}</th>`).join("")}</tr></thead>
       <tbody>${rows}</tbody>
     </table>
   </div></div>`;
 }
 
-// ── Duration tick ──────────────────────────────────────────────────
-let durTick = null;
-function startDurationTick() {
+let durTick=null;
+function startDurationTick(){
   if(durTick) return;
-  durTick = setInterval(()=>{
+  durTick=setInterval(()=>{
     document.querySelectorAll("[data-dur-start]").forEach(el=>{
-      el.textContent = formatDuration(Date.now()-parseInt(el.dataset.durStart));
+      el.textContent=formatDuration(Date.now()-parseInt(el.dataset.durStart));
     });
-  }, 30000);
+  },30000);
 }
 
-// ── Sewa ───────────────────────────────────────────────────────────
-let sewaModal = null;
-window.openSewaModal = function(itemId, color) {
-  sewaModal = {itemId, color};
-  const item = inventory.find(i=>i.id===itemId);
-  document.getElementById("sewa-modal-sub").innerHTML = `${item.name} · ${dot(color)} ${color}`;
-  document.getElementById("sewa-name").value = "";
-  document.getElementById("sewa-address").value = "";
-  showError("sewa-error","");
-  openModal("modal-sewa");
-};
-window.confirmSewa = async function() {
-  const name    = document.getElementById("sewa-name").value.trim();
-  const address = document.getElementById("sewa-address").value.trim();
-  if(!name||!address){ showError("sewa-error","Nama dan alamat wajib diisi."); return; }
-  const item    = inventory.find(i=>i.id===sewaModal.itemId);
-  const variant = item?.variants.find(v=>v.color===sewaModal.color);
-  if(!variant||variant.stock<=0){ showError("sewa-error","Stok habis!"); return; }
-
-  const btn = document.getElementById("sewa-submit-btn");
-  btn.disabled = true; btn.textContent = "Menyimpan...";
-  try {
-    // Kurangi stok di inventory
-    const updatedVariants = item.variants.map(v=>
-      v.color!==sewaModal.color ? v : {...v, stock:v.stock-1}
-    );
-    await set(ref(db, `inventory/${item.id}/variants`), updatedVariants);
-    // Tambah rental
-    await push(ref(db, "rentals"), {
-      itemId: sewaModal.itemId,
-      itemName: item.name,
-      color: sewaModal.color,
-      name, address,
-      startTs: Date.now()
-    });
-    closeModal("modal-sewa");
-  } catch(e) {
-    showError("sewa-error", "Gagal menyimpan: " + e.message);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Konfirmasi Sewa`;
-  }
-};
-
-// ── Return ─────────────────────────────────────────────────────────
-window.returnRental = async function(key) {
-  const r = rentals[key];
+// ── Return Rental ──────────────────────────────────────────────────
+window.returnRental=async function(key){
+  const r=rentals[key];
   if(!r) return;
-  const item = inventory.find(i=>i.id===r.itemId);
+  const item=inventory.find(i=>i.id===r.itemId);
   if(!item) return;
-  try {
-    // Tambah stok kembali
-    const updatedVariants = item.variants.map(v=>
-      v.color!==r.color ? v : {...v, stock:v.stock+1}
+  try{
+    const updatedVariants=item.variants.map(v=>
+      v.color!==r.color?v:{...v,stock:v.stock+(r.qty||1)}
     );
-    await set(ref(db, `inventory/${item.id}/variants`), updatedVariants);
-    // Pindah ke history
-    await push(ref(db, "history"), {...r, returnedAt: Date.now()});
-    // Hapus dari rentals
-    await remove(ref(db, `rentals/${key}`));
-  } catch(e) {
-    alert("Gagal mengembalikan: " + e.message);
-  }
+    await set(ref(db,`inventory/${item.id}/variants`),updatedVariants);
+    await push(ref(db,"history"),{...r,returnedAt:Date.now()});
+    await remove(ref(db,`rentals/${key}`));
+  }catch(e){alert("Gagal mengembalikan: "+e.message);}
 };
 
 // ── Add Item ───────────────────────────────────────────────────────
-let newItemSelectedColor = "Hitam";
-window.openAddItemModal = function() {
-  newItemSelectedColor = "Hitam";
-  document.getElementById("new-item-name").value = "";
-  document.getElementById("new-item-stock").textContent = "1";
-  document.getElementById("new-item-custom-color").value = "";
-  document.getElementById("new-item-custom-color").style.display = "none";
+let newItemSelectedColor="Hitam";
+window.openAddItemModal=function(){
+  newItemSelectedColor="Hitam";
+  document.getElementById("new-item-name").value="";
+  document.getElementById("new-item-price").value="";
+  document.getElementById("new-item-stock").textContent="1";
+  document.getElementById("new-item-custom-color").value="";
+  document.getElementById("new-item-custom-color").style.display="none";
   showError("add-item-error","");
   renderColorChips("new-item-colors","new-item-custom-color",newItemSelectedColor,(c)=>{
-    newItemSelectedColor = c;
-    document.getElementById("new-item-custom-color").style.display = c==="__custom__"?"block":"none";
+    newItemSelectedColor=c;
+    document.getElementById("new-item-custom-color").style.display=c==="__custom__"?"block":"none";
   });
   openModal("modal-add-item");
 };
-window.handleAddItem = async function() {
-  const name = document.getElementById("new-item-name").value.trim();
-  if(!name){ showError("add-item-error","Nama barang wajib diisi."); return; }
-  if(inventory.find(i=>i.name.toLowerCase()===name.toLowerCase())){ showError("add-item-error","Nama barang sudah ada."); return; }
-  const colorUsed = newItemSelectedColor==="__custom__"
-    ? document.getElementById("new-item-custom-color").value.trim()
-    : newItemSelectedColor;
-  if(!colorUsed){ showError("add-item-error","Pilih atau masukkan warna."); return; }
-  const stock = parseInt(document.getElementById("new-item-stock").textContent)||0;
-  const id = name.toLowerCase().replace(/\s+/g,"-")+"-"+Date.now();
-  try {
-    await set(ref(db, `inventory/${id}`), {id, name, variants:[{color:colorUsed, stock:Math.max(0,stock)}]});
+window.handleAddItem=async function(){
+  const name=document.getElementById("new-item-name").value.trim();
+  const price=parseInt(document.getElementById("new-item-price").value)||0;
+  if(!name){showError("add-item-error","Nama barang wajib diisi.");return;}
+  if(inventory.find(i=>i.name.toLowerCase()===name.toLowerCase())){showError("add-item-error","Nama barang sudah ada.");return;}
+  const colorUsed=newItemSelectedColor==="__custom__"?document.getElementById("new-item-custom-color").value.trim():newItemSelectedColor;
+  if(!colorUsed){showError("add-item-error","Pilih atau masukkan warna.");return;}
+  const stock=parseInt(document.getElementById("new-item-stock").textContent)||0;
+  const id=name.toLowerCase().replace(/\s+/g,"-")+"-"+Date.now();
+  try{
+    await set(ref(db,`inventory/${id}`),{id,name,price,variants:[{color:colorUsed,stock:Math.max(0,stock)}]});
     closeModal("modal-add-item");
-  } catch(e) { showError("add-item-error","Gagal: "+e.message); }
+  }catch(e){showError("add-item-error","Gagal: "+e.message);}
 };
 
 // ── Add Variant ────────────────────────────────────────────────────
-let addVariantItemId = null, addVariantSelectedColor = "Hitam";
-window.openAddVariantModal = function(itemId) {
-  addVariantItemId = itemId;
-  addVariantSelectedColor = "Hitam";
-  const item = inventory.find(i=>i.id===itemId);
-  document.getElementById("add-variant-sub").textContent = item?.name||"";
-  document.getElementById("add-variant-stock").textContent = "1";
-  document.getElementById("add-variant-custom-color").value = "";
-  document.getElementById("add-variant-custom-color").style.display = "none";
+let addVariantItemId=null,addVariantSelectedColor="Hitam";
+window.openAddVariantModal=function(itemId){
+  addVariantItemId=itemId;
+  addVariantSelectedColor="Hitam";
+  const item=inventory.find(i=>i.id===itemId);
+  document.getElementById("add-variant-sub").textContent=item?.name||"";
+  document.getElementById("add-variant-stock").textContent="1";
+  document.getElementById("add-variant-custom-color").value="";
+  document.getElementById("add-variant-custom-color").style.display="none";
   showError("add-variant-error","");
   renderColorChips("add-variant-colors","add-variant-custom-color",addVariantSelectedColor,(c)=>{
-    addVariantSelectedColor = c;
-    document.getElementById("add-variant-custom-color").style.display = c==="__custom__"?"block":"none";
+    addVariantSelectedColor=c;
+    document.getElementById("add-variant-custom-color").style.display=c==="__custom__"?"block":"none";
   });
   openModal("modal-add-variant");
 };
-window.handleAddVariant = async function() {
-  const colorUsed = addVariantSelectedColor==="__custom__"
-    ? document.getElementById("add-variant-custom-color").value.trim()
-    : addVariantSelectedColor;
-  if(!colorUsed){ showError("add-variant-error","Pilih atau masukkan warna."); return; }
-  const item = inventory.find(i=>i.id===addVariantItemId);
-  if(item.variants.find(v=>v.color.toLowerCase()===colorUsed.toLowerCase())){ showError("add-variant-error","Warna sudah ada."); return; }
-  const stock = parseInt(document.getElementById("add-variant-stock").textContent)||0;
-  try {
-    const newVariants = [...item.variants, {color:colorUsed, stock:Math.max(0,stock)}];
-    await set(ref(db, `inventory/${addVariantItemId}/variants`), newVariants);
+window.handleAddVariant=async function(){
+  const colorUsed=addVariantSelectedColor==="__custom__"?document.getElementById("add-variant-custom-color").value.trim():addVariantSelectedColor;
+  if(!colorUsed){showError("add-variant-error","Pilih atau masukkan warna.");return;}
+  const item=inventory.find(i=>i.id===addVariantItemId);
+  if(item.variants.find(v=>v.color.toLowerCase()===colorUsed.toLowerCase())){showError("add-variant-error","Warna sudah ada.");return;}
+  const stock=parseInt(document.getElementById("add-variant-stock").textContent)||0;
+  try{
+    const newVariants=[...item.variants,{color:colorUsed,stock:Math.max(0,stock)}];
+    await set(ref(db,`inventory/${addVariantItemId}/variants`),newVariants);
     closeModal("modal-add-variant");
-  } catch(e) { showError("add-variant-error","Gagal: "+e.message); }
+  }catch(e){showError("add-variant-error","Gagal: "+e.message);}
 };
 
 // ── Edit Stock ─────────────────────────────────────────────────────
-let editStockTarget = null;
-window.openEditStock = function(itemId, color, stock) {
-  editStockTarget = {itemId, color};
-  const item = inventory.find(i=>i.id===itemId);
-  document.getElementById("edit-stock-sub").innerHTML = `${item?.name} · ${dot(color,8)} ${color}`;
-  document.getElementById("edit-stock-val").value = stock;
-  const rented = rentalsList().filter(r=>r.itemId===itemId&&r.color===color).length;
-  const warnEl = document.getElementById("edit-stock-warn");
-  warnEl.style.display = rented>0?"block":"none";
-  if(rented>0) warnEl.textContent = `⚠ ${rented} unit sedang disewa — stok di sini adalah unit yang tersisa.`;
+let editStockTarget=null;
+window.openEditStock=function(itemId,color,stock){
+  editStockTarget={itemId,color};
+  const item=inventory.find(i=>i.id===itemId);
+  document.getElementById("edit-stock-sub").innerHTML=`${item?.name} · ${dot(color,8)} ${color}`;
+  document.getElementById("edit-stock-val").value=stock;
+  const rented=rentalsList().filter(r=>r.itemId===itemId&&r.color===color).length;
+  const warnEl=document.getElementById("edit-stock-warn");
+  warnEl.style.display=rented>0?"block":"none";
+  if(rented>0) warnEl.textContent=`⚠ ${rented} unit sedang disewa — stok di sini adalah unit yang tersisa.`;
   openModal("modal-edit-stock");
 };
-window.handleEditStock = async function() {
-  const val = Math.max(0, parseInt(document.getElementById("edit-stock-val").value)||0);
-  const item = inventory.find(i=>i.id===editStockTarget.itemId);
-  const newVariants = item.variants.map(v=>v.color!==editStockTarget.color?v:{...v,stock:val});
-  try {
-    await set(ref(db, `inventory/${editStockTarget.itemId}/variants`), newVariants);
+window.handleEditStock=async function(){
+  const val=Math.max(0,parseInt(document.getElementById("edit-stock-val").value)||0);
+  const item=inventory.find(i=>i.id===editStockTarget.itemId);
+  const newVariants=item.variants.map(v=>v.color!==editStockTarget.color?v:{...v,stock:val});
+  try{
+    await set(ref(db,`inventory/${editStockTarget.itemId}/variants`),newVariants);
     closeModal("modal-edit-stock");
-  } catch(e) { alert("Gagal: "+e.message); }
+  }catch(e){alert("Gagal: "+e.message);}
 };
-window.changeStockInput = function(delta) {
-  const el = document.getElementById("edit-stock-val");
-  el.value = Math.max(0,(parseInt(el.value)||0)+delta);
+window.changeStockInput=function(delta){
+  const el=document.getElementById("edit-stock-val");
+  el.value=Math.max(0,(parseInt(el.value)||0)+delta);
 };
-window.clampStockInput = function() {
-  const el = document.getElementById("edit-stock-val");
+window.clampStockInput=function(){
+  const el=document.getElementById("edit-stock-val");
   if(parseInt(el.value)<0) el.value=0;
 };
 
 // ── Delete ─────────────────────────────────────────────────────────
-let deleteTarget = null;
-window.openDeleteConfirm = function(type, itemId, color) {
-  deleteTarget = {type, itemId, color};
-  const item = inventory.find(i=>i.id===itemId);
-  document.getElementById("delete-confirm-text").textContent = type==="item"
-    ? `Hapus barang "${item?.name}" beserta semua variannya?`
-    : `Hapus varian ${color} dari "${item?.name}"?`;
+let deleteTarget=null;
+window.openDeleteConfirm=function(type,itemId,color){
+  deleteTarget={type,itemId,color};
+  const item=inventory.find(i=>i.id===itemId);
+  document.getElementById("delete-confirm-text").textContent=type==="item"
+    ?`Hapus barang "${item?.name}" beserta semua variannya?`
+    :`Hapus varian ${color} dari "${item?.name}"?`;
   openModal("modal-delete");
 };
-window.executeDelete = async function() {
+window.executeDelete=async function(){
   if(!deleteTarget) return;
-  const item = inventory.find(i=>i.id===deleteTarget.itemId);
-  try {
+  const item=inventory.find(i=>i.id===deleteTarget.itemId);
+  try{
     if(deleteTarget.type==="item"){
-      await remove(ref(db, `inventory/${deleteTarget.itemId}`));
-    } else {
-      const newVariants = item.variants.filter(v=>v.color!==deleteTarget.color);
-      if(newVariants.length===0){ await remove(ref(db, `inventory/${deleteTarget.itemId}`)); }
-      else { await set(ref(db, `inventory/${deleteTarget.itemId}/variants`), newVariants); }
+      await remove(ref(db,`inventory/${deleteTarget.itemId}`));
+    }else{
+      const newVariants=item.variants.filter(v=>v.color!==deleteTarget.color);
+      if(newVariants.length===0){await remove(ref(db,`inventory/${deleteTarget.itemId}`));}
+      else{await set(ref(db,`inventory/${deleteTarget.itemId}/variants`),newVariants);}
     }
     closeModal("modal-delete");
-  } catch(e) { alert("Gagal menghapus: "+e.message); }
+  }catch(e){alert("Gagal menghapus: "+e.message);}
 };
 
-// ── Color chips ─────────────────────────────────────────────────────
-function renderColorChips(containerId, customInputId, selected, onChange) {
-  const container = document.getElementById(containerId);
-  const all = [...window.COLOR_OPTIONS, "__custom__"];
-  container.innerHTML = all.map((c,i)=>{
-    const label = c==="__custom__"?"+Lainnya":c;
-    const bgDot = c!=="__custom__"?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${window.COLOR_DOT[c]||'#94A3B8'}"></span>`:"";
-    const sel = selected===c?" selected":"";
+// ── Color chips ────────────────────────────────────────────────────
+function renderColorChips(containerId,customInputId,selected,onChange){
+  const container=document.getElementById(containerId);
+  const all=[...window.COLOR_OPTIONS,"__custom__"];
+  container.innerHTML=all.map((c,i)=>{
+    const label=c==="__custom__"?"+Lainnya":c;
+    const bgDot=c!=="__custom__"?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${window.COLOR_DOT[c]||"#94A3B8"}"></span>`:"";
+    const sel=selected===c?" selected":"";
     return `<button class="color-chip${sel}" data-idx="${i}">${bgDot}${label}</button>`;
   }).join("");
   container.querySelectorAll(".color-chip").forEach((btn,i)=>{
@@ -1018,25 +1268,22 @@ function renderColorChips(containerId, customInputId, selected, onChange) {
     });
   });
 }
-window.renderColorChips = renderColorChips;
+window.renderColorChips=renderColorChips;
 
-// ── Stock span counter ─────────────────────────────────────────────
-window.changeStock = function(spanId, delta) {
-  const el = document.getElementById(spanId);
-  el.textContent = Math.max(0,(parseInt(el.textContent)||0)+delta);
+window.changeStock=function(spanId,delta){
+  const el=document.getElementById(spanId);
+  el.textContent=Math.max(0,(parseInt(el.textContent)||0)+delta);
 };
 
-// ── Modal helpers ──────────────────────────────────────────────────
-window.openModal  = id => document.getElementById(id).classList.add("open");
-window.closeModal = id => document.getElementById(id).classList.remove("open");
-window.showError  = function(id, msg) {
-  const el = document.getElementById(id);
-  el.textContent = msg;
-  el.style.display = msg?"block":"none";
+window.openModal =id=>document.getElementById(id).classList.add("open");
+window.closeModal=id=>document.getElementById(id).classList.remove("open");
+window.showError =function(id,msg){
+  const el=document.getElementById(id);
+  el.textContent=msg;
+  el.style.display=msg?"block":"none";
 };
 
-// ── Rerender ───────────────────────────────────────────────────────
-function rerenderAll() {
+function rerenderAll(){
   renderNav(document.getElementById("nav"));
   renderNav(document.getElementById("nav-mobile"));
   renderPage(currentPage);
