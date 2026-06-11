@@ -383,11 +383,25 @@
   </div>
 </div>
 
-<script>
+<script type="module">
 // ══════════════════════════════════════════════════════════
-// STORAGE KEY — data disimpan secara SHARED (semua user lihat data sama)
+// FIREBASE SETUP
 // ══════════════════════════════════════════════════════════
-const STORE_KEY = "trekout-data-v1";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC3yWETRBm1VNn8_JTdAWKnHjUuY3YH5ts",
+  authDomain: "trek-out.firebaseapp.com",
+  databaseURL: "https://trek-out-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "trek-out",
+  storageBucket: "trek-out.firebasestorage.app",
+  messagingSenderId: "445479932243",
+  appId: "1:445479932243:web:40cd2b8ba72eb4653111a6"
+};
+const fbApp    = initializeApp(firebaseConfig);
+const db       = getDatabase(fbApp);
+const DATA_REF = ref(db, "trekout");
 
 const DEFAULT_INVENTORY = [
   { id:"carrier",      name:"Carrier",     variants:[{color:"Kuning",stock:2},{color:"Hitam",stock:1},{color:"Merah",stock:2}] },
@@ -419,10 +433,9 @@ let newItemSelectedColor = "Hitam";
 let addVariantSelectedColor = "Hitam";
 
 // ══════════════════════════════════════════════════════════
-// STORAGE HELPERS — baca/tulis ke window.storage (shared)
+// STORAGE HELPERS — baca/tulis ke Firebase Realtime Database
 // ══════════════════════════════════════════════════════════
 function setSyncStatus(state) {
-  // state: 'ok' | 'loading' | 'error'
   const dot = document.getElementById("sync-dot");
   const lbl = document.getElementById("sync-label");
   if (!dot) return;
@@ -430,58 +443,15 @@ function setSyncStatus(state) {
   lbl.textContent = state === "ok" ? "Tersinkron" : state === "loading" ? "Menyimpan..." : "Gagal sinkron";
 }
 
-async function saveToStorage() {
-  const payload = JSON.stringify({ inventory, rentals, history });
+function saveToStorage() {
   setSyncStatus("loading");
-  try {
-    await window.storage.set(STORE_KEY, payload, true); // shared=true
-    setSyncStatus("ok");
-  } catch(e) {
-    console.error("Save failed:", e);
-    setSyncStatus("error");
-  }
+  set(DATA_REF, { inventory, rentals, history })
+    .then(()  => setSyncStatus("ok"))
+    .catch(e  => { console.error(e); setSyncStatus("error"); });
 }
 
-async function loadFromStorage() {
-  try {
-    const result = await window.storage.get(STORE_KEY, true); // shared=true
-    if (result && result.value) {
-      const data = JSON.parse(result.value);
-      inventory = data.inventory || DEFAULT_INVENTORY;
-      rentals   = data.rentals   || [];
-      history   = data.history   || [];
-    } else {
-      // Belum ada data — pakai default dan simpan
-      inventory = DEFAULT_INVENTORY;
-      rentals   = [];
-      history   = [];
-      await saveToStorage();
-    }
-  } catch(e) {
-    // Key belum ada
-    inventory = DEFAULT_INVENTORY;
-    rentals   = [];
-    history   = [];
-    try { await saveToStorage(); } catch(_) {}
-  }
-}
-
-// ── Auto-refresh setiap 5 detik untuk sinkronisasi antar pengguna ──
-let lastPayload = "";
-async function pollStorage() {
-  try {
-    const result = await window.storage.get(STORE_KEY, true);
-    if (result && result.value && result.value !== lastPayload) {
-      lastPayload = result.value;
-      const data = JSON.parse(result.value);
-      inventory = data.inventory || inventory;
-      rentals   = data.rentals   || [];
-      history   = data.history   || [];
-      rerenderAll();
-      setSyncStatus("ok");
-    }
-  } catch(_) {}
-}
+// loadFromStorage digantikan onValue listener di init()
+function loadFromStorage() {}
 
 // ══════════════════════════════════════════════════════════
 // UTILS
@@ -762,7 +732,7 @@ async function confirmSewa(){
     {...i, variants:i.variants.map(v=> v.color!==sewaModal.color ? v : {...v, stock:v.stock-1})});
   rentals.push({id:Date.now()+Math.random(), itemId:sewaModal.itemId, itemName:item.name, color:sewaModal.color, name, address, startTs:Date.now()});
   closeModal("modal-sewa");
-  await saveToStorage();
+  saveToStorage();
   rerenderAll();
 }
 
@@ -774,7 +744,7 @@ async function returnRental(id){
   inventory = inventory.map(i=> i.id!==r.itemId ? i :
     {...i, variants:i.variants.map(v=> v.color!==r.color ? v : {...v, stock:v.stock+1})});
   rentals = rentals.filter(x=>x.id!==id);
-  await saveToStorage();
+  saveToStorage();
   rerenderAll();
 }
 
@@ -804,7 +774,7 @@ async function handleAddItem(){
   const id = name.toLowerCase().replace(/\s+/g,"-")+"-"+Date.now();
   inventory.push({id, name, variants:[{color:colorUsed, stock:Math.max(0,stock)}]});
   closeModal("modal-add-item");
-  await saveToStorage();
+  saveToStorage();
   rerenderAll();
 }
 
@@ -835,7 +805,7 @@ async function handleAddVariant(){
   inventory = inventory.map(i=> i.id!==addVariantItemId ? i :
     {...i, variants:[...i.variants,{color:colorUsed,stock:Math.max(0,stock)}]});
   closeModal("modal-add-variant");
-  await saveToStorage();
+  saveToStorage();
   rerenderAll();
 }
 
@@ -860,7 +830,7 @@ async function handleEditStock(){
   inventory = inventory.map(i=> i.id!==editStockTarget.itemId ? i :
     {...i, variants:i.variants.map(v=> v.color!==editStockTarget.color ? v : {...v, stock:val})});
   closeModal("modal-edit-stock");
-  await saveToStorage();
+  saveToStorage();
   rerenderAll();
 }
 function changeStockInput(delta){
@@ -891,7 +861,7 @@ async function executeDelete(){
       .filter(i=>i.variants.length>0);
   }
   closeModal("modal-delete");
-  await saveToStorage();
+  saveToStorage();
   rerenderAll();
 }
 
@@ -936,17 +906,28 @@ function rerenderAll(){
 }
 
 // ══════════════════════════════════════════════════════════
-// INIT — muat data dari shared storage lalu render
+// INIT — sambungkan ke Firebase, dengarkan perubahan data real-time
 // ══════════════════════════════════════════════════════════
-async function init(){
-  await loadFromStorage();
-  lastPayload = JSON.stringify({inventory, rentals, history});
-  document.getElementById("loading-overlay").classList.add("hidden");
-  renderNav(document.getElementById("nav"));
-  renderNav(document.getElementById("nav-mobile"));
-  renderDashboard();
-  // Poll setiap 5 detik untuk sinkronisasi real-time antar pengguna
-  setInterval(pollStorage, 5000);
+function init(){
+  // onValue akan terpanggil setiap kali data di Firebase berubah
+  // (termasuk perubahan dari pengguna lain)
+  onValue(DATA_REF, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      inventory = data.inventory || DEFAULT_INVENTORY;
+      rentals   = data.rentals   || [];
+      history   = data.history   || [];
+    } else {
+      // Database masih kosong — isi dengan data default
+      inventory = DEFAULT_INVENTORY;
+      rentals   = [];
+      history   = [];
+      saveToStorage();
+    }
+    document.getElementById("loading-overlay").classList.add("hidden");
+    rerenderAll();
+    startDurationTick();
+  });
 }
 init();
 </script>
