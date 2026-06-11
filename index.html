@@ -4,175 +4,231 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Trek Out Adventure</title>
+
+<!-- ══════════════════════════════════════════════════════════════════
+  SETUP FIREBASE:
+  1. Buka https://console.firebase.google.com
+  2. Buat project baru → klik "Add app" → pilih Web (</>)
+  3. Copy nilai apiKey, authDomain, databaseURL, projectId ke bawah
+  4. Di Firebase Console → Realtime Database → Rules → ganti dengan:
+     { "rules": { ".read": true, ".write": true } }
+  5. Simpan dan buka file ini di browser
+══════════════════════════════════════════════════════════════════ -->
+
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{min-height:100vh;background:linear-gradient(135deg,#0F172A 0%,#0D1B2A 50%,#0F172A 100%);font-family:'Inter',-apple-system,sans-serif;color:#F1F5F9}
-  input,button{font-family:inherit}
-  input::placeholder{color:#334155}
-  ::-webkit-scrollbar{width:4px;height:4px}
-  ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{background:rgba(96,165,250,0.2);border-radius:4px}
-  input[type=number]::-webkit-inner-spin-button{opacity:1}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:linear-gradient(135deg,#0F172A 0%,#0D1B2A 50%,#0F172A 100%);font-family:'Inter',-apple-system,sans-serif;color:#F1F5F9}
+input,button,select,textarea{font-family:inherit}
+input::placeholder{color:#334155}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(96,165,250,0.2);border-radius:4px}
+input[type=number]::-webkit-inner-spin-button{opacity:1}
 
-  .bg-glow1{position:fixed;top:-100px;left:30%;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(56,189,248,0.06),transparent 70%);pointer-events:none;z-index:0}
-  .bg-glow2{position:fixed;bottom:-100px;right:20%;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(96,165,250,0.04),transparent 70%);pointer-events:none;z-index:0}
+.bg-glow1{position:fixed;top:-100px;left:30%;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(56,189,248,0.06),transparent 70%);pointer-events:none;z-index:0}
+.bg-glow2{position:fixed;bottom:-100px;right:20%;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(96,165,250,0.04),transparent 70%);pointer-events:none;z-index:0}
 
-  #app{position:relative;z-index:1;display:flex;height:100vh}
-  #sidebar{width:240px;height:100vh;display:flex;flex-direction:column;background:rgba(255,255,255,0.03);border-right:1px solid rgba(96,165,250,0.08);flex-shrink:0;position:sticky;top:0}
-  #main{flex:1;display:flex;flex-direction:column;overflow:auto}
-  #content{flex:1;padding:28px 24px;max-width:1100px;width:100%;margin:0 auto}
+#app{position:relative;z-index:1;display:flex;height:100vh}
+#sidebar{width:240px;height:100vh;display:flex;flex-direction:column;background:rgba(255,255,255,0.03);border-right:1px solid rgba(96,165,250,0.08);flex-shrink:0;position:sticky;top:0}
+#main{flex:1;display:flex;flex-direction:column;overflow:auto}
+#content{flex:1;padding:28px 24px;max-width:1100px;width:100%;margin:0 auto}
 
-  .sidebar-brand{padding:24px 20px 20px;border-bottom:1px solid rgba(96,165,250,0.08);display:flex;align-items:center;gap:10px}
-  .brand-logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3B82F6,#38BDF8);display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px rgba(56,189,248,0.4);flex-shrink:0}
-  .brand-name{color:#F1F5F9;font-weight:800;font-size:13px;letter-spacing:0.5px}
-  .brand-sub{color:#38BDF8;font-size:10px;letter-spacing:1.5px;text-transform:uppercase}
-  #nav{flex:1;padding:16px 12px}
-  .nav-btn{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:none;cursor:pointer;margin-bottom:4px;background:transparent;color:#64748B;font-weight:400;font-size:14px;justify-content:space-between;font-family:inherit;transition:background 0.15s,color 0.15s}
-  .nav-btn:hover{background:rgba(96,165,250,0.07);color:#94A3B8}
-  .nav-btn.active{background:rgba(96,165,250,0.12);color:#60A5FA;font-weight:600;box-shadow:inset 0 0 0 1px rgba(96,165,250,0.2)}
-  .nav-btn-left{display:flex;align-items:center;gap:10px}
-  .nav-badge{background:#38BDF8;color:#0F172A;font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px}
-  .sidebar-footer{padding:16px 20px;border-top:1px solid rgba(96,165,250,0.08);text-align:center;color:#334155;font-size:11px}
+.sidebar-brand{padding:24px 20px 20px;border-bottom:1px solid rgba(96,165,250,0.08);display:flex;align-items:center;gap:10px}
+.brand-logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3B82F6,#38BDF8);display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px rgba(56,189,248,0.4);flex-shrink:0}
+.brand-name{color:#F1F5F9;font-weight:800;font-size:13px;letter-spacing:0.5px}
+.brand-sub{color:#38BDF8;font-size:10px;letter-spacing:1.5px;text-transform:uppercase}
+#nav{flex:1;padding:16px 12px}
+.nav-btn{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:none;cursor:pointer;margin-bottom:4px;background:transparent;color:#64748B;font-weight:400;font-size:14px;justify-content:space-between;font-family:inherit;transition:background 0.15s,color 0.15s}
+.nav-btn:hover{background:rgba(96,165,250,0.07);color:#94A3B8}
+.nav-btn.active{background:rgba(96,165,250,0.12);color:#60A5FA;font-weight:600;box-shadow:inset 0 0 0 1px rgba(96,165,250,0.2)}
+.nav-btn-left{display:flex;align-items:center;gap:10px}
+.nav-badge{background:#38BDF8;color:#0F172A;font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(96,165,250,0.08);text-align:center;color:#334155;font-size:11px}
 
-  #mobile-header{display:none;padding:14px 16px;border-bottom:1px solid rgba(96,165,250,0.08);align-items:center;gap:12px;background:rgba(15,23,42,0.9);backdrop-filter:blur(8px);position:sticky;top:0;z-index:100}
-  #mobile-header .brand-logo{width:28px;height:28px;border-radius:8px}
-  .mobile-brand-name{color:#F1F5F9;font-weight:700;font-size:14px}
-  #menu-btn{background:none;border:none;color:#64748B;cursor:pointer;padding:4px}
+#mobile-header{display:none;padding:14px 16px;border-bottom:1px solid rgba(96,165,250,0.08);align-items:center;gap:12px;background:rgba(15,23,42,0.9);backdrop-filter:blur(8px);position:sticky;top:0;z-index:100}
+#mobile-header .brand-logo{width:28px;height:28px;border-radius:8px}
+.mobile-brand-name{color:#F1F5F9;font-weight:700;font-size:14px}
+#menu-btn{background:none;border:none;color:#64748B;cursor:pointer;padding:4px}
 
-  #sidebar-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.7)}
-  #sidebar-mobile{width:260px;height:100vh;background:#0F172A;border:1px solid rgba(96,165,250,0.15);box-shadow:4px 0 30px rgba(0,0,0,0.5);display:flex;flex-direction:column}
+#sidebar-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.7)}
+#sidebar-mobile{width:260px;height:100vh;background:#0F172A;border:1px solid rgba(96,165,250,0.15);box-shadow:4px 0 30px rgba(0,0,0,0.5);display:flex;flex-direction:column}
 
-  .card{background:rgba(255,255,255,0.04);border:1px solid rgba(96,165,250,0.15);backdrop-filter:blur(12px);border-radius:16px}
+.card{background:rgba(255,255,255,0.04);border:1px solid rgba(96,165,250,0.15);backdrop-filter:blur(12px);border-radius:16px}
 
-  .page{display:none}
-  .page.active{display:block}
-  .page-title{font-size:26px;font-weight:700;color:#F1F5F9}
-  .page-sub{color:#64748B;margin-top:4px;font-size:14px}
-  .page-header{margin-bottom:28px}
+.page{display:none}
+.page.active{display:block}
+.page-title{font-size:26px;font-weight:700;color:#F1F5F9}
+.page-sub{color:#64748B;margin-top:4px;font-size:14px}
+.page-header{margin-bottom:28px}
 
-  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
-  .stat-card{padding:24px}
-  .stat-label{color:#64748B;font-size:12px;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
-  .stat-value{font-size:36px;font-weight:800;line-height:1}
-  .stat-icon{padding:10px;border-radius:12px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+.stat-card{padding:24px}
+.stat-label{color:#64748B;font-size:12px;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.stat-value{font-size:36px;font-weight:800;line-height:1}
 
-  .inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
-  .item-card{padding:22px}
-  .item-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
-  .item-name{color:#F1F5F9;font-weight:700;font-size:16px}
-  .item-total-sub{color:#475569;font-size:12px;margin-top:3px}
-  .item-badge{background:rgba(96,165,250,0.1);border-radius:10px;padding:4px 10px;font-size:13px;color:#60A5FA;font-weight:700}
-  .variant-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.06);margin-bottom:8px}
-  .variant-row:last-child{margin-bottom:0}
-  .color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block}
-  .color-dot-sm{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
+.inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.item-card{padding:22px}
+.item-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.item-name{color:#F1F5F9;font-weight:700;font-size:16px}
+.item-total-sub{color:#475569;font-size:12px;margin-top:3px}
+.item-badge{background:rgba(96,165,250,0.1);border-radius:10px;padding:4px 10px;font-size:13px;color:#60A5FA;font-weight:700}
+.variant-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.06);margin-bottom:8px}
+.variant-row:last-child{margin-bottom:0}
 
-  .btn-primary{padding:10px 20px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(135deg,#3B82F6,#38BDF8);color:#fff;font-weight:700;font-size:14px;box-shadow:0 0 16px rgba(56,189,248,0.25);font-family:inherit}
-  .btn-primary:disabled{background:rgba(71,85,105,0.3);color:#475569;box-shadow:none;cursor:not-allowed}
-  .btn-sewa{padding:4px 14px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:linear-gradient(135deg,#3B82F6,#38BDF8);color:#fff;box-shadow:0 0 12px rgba(56,189,248,0.3);font-family:inherit}
-  .btn-sewa:disabled{background:rgba(71,85,105,0.3);color:#475569;box-shadow:none;cursor:not-allowed}
-  .btn-return{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(248,113,113,0.3);cursor:pointer;background:rgba(248,113,113,0.08);color:#F87171;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit}
-  .btn-ghost{padding:5px 10px;border-radius:8px;border:1px solid rgba(96,165,250,0.2);background:rgba(96,165,250,0.08);color:#60A5FA;cursor:pointer;font-family:inherit}
-  .btn-danger-sm{padding:5px 10px;border-radius:8px;border:1px solid rgba(248,113,113,0.2);background:rgba(248,113,113,0.06);color:#F87171;cursor:pointer;font-family:inherit}
-  .btn-add-variant{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;border:1px solid rgba(56,189,248,0.3);background:rgba(56,189,248,0.08);color:#38BDF8;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
-  .btn-delete-item{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;border:1px solid rgba(248,113,113,0.25);background:rgba(248,113,113,0.06);color:#F87171;font-size:12px;cursor:pointer;font-family:inherit}
+.btn-primary{padding:10px 20px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(135deg,#3B82F6,#38BDF8);color:#fff;font-weight:700;font-size:14px;box-shadow:0 0 16px rgba(56,189,248,0.25);font-family:inherit;transition:opacity 0.15s}
+.btn-primary:hover{opacity:0.9}
+.btn-primary:disabled{background:rgba(71,85,105,0.3);color:#475569;box-shadow:none;cursor:not-allowed;opacity:1}
+.btn-sewa{padding:4px 14px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:linear-gradient(135deg,#3B82F6,#38BDF8);color:#fff;box-shadow:0 0 12px rgba(56,189,248,0.3);font-family:inherit}
+.btn-sewa:disabled{background:rgba(71,85,105,0.3);color:#475569;box-shadow:none;cursor:not-allowed}
+.btn-return{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(248,113,113,0.3);cursor:pointer;background:rgba(248,113,113,0.08);color:#F87171;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background 0.15s}
+.btn-return:hover{background:rgba(248,113,113,0.15)}
+.btn-ghost{padding:5px 10px;border-radius:8px;border:1px solid rgba(96,165,250,0.2);background:rgba(96,165,250,0.08);color:#60A5FA;cursor:pointer;font-family:inherit}
+.btn-danger-sm{padding:5px 10px;border-radius:8px;border:1px solid rgba(248,113,113,0.2);background:rgba(248,113,113,0.06);color:#F87171;cursor:pointer;font-family:inherit}
+.btn-add-variant{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;border:1px solid rgba(56,189,248,0.3);background:rgba(56,189,248,0.08);color:#38BDF8;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-delete-item{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;border:1px solid rgba(248,113,113,0.25);background:rgba(248,113,113,0.06);color:#F87171;font-size:12px;cursor:pointer;font-family:inherit}
 
-  .modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:16px}
-  .modal-overlay.open{display:flex}
-  .modal-box{background:#0F172A;border:1px solid rgba(96,165,250,0.25);border-radius:20px;padding:28px;width:100%;max-width:440px;box-shadow:0 0 40px rgba(96,165,250,0.15);max-height:90vh;overflow-y:auto}
-  .modal-box.wide{max-width:600px}
-  .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-  .modal-title{color:#F1F5F9;font-weight:700;font-size:16px}
-  .modal-sub{color:#64748B;font-size:13px;margin-top:4px}
-  .btn-close{background:none;border:none;color:#64748B;cursor:pointer;padding:4px}
+.modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#0F172A;border:1px solid rgba(96,165,250,0.25);border-radius:20px;padding:28px;width:100%;max-width:440px;box-shadow:0 0 40px rgba(96,165,250,0.15);max-height:90vh;overflow-y:auto}
+.modal-box.wide{max-width:600px}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-title{color:#F1F5F9;font-weight:700;font-size:16px}
+.modal-sub{color:#64748B;font-size:13px;margin-top:4px}
+.btn-close{background:none;border:none;color:#64748B;cursor:pointer;padding:4px}
 
-  .field{margin-bottom:14px}
-  .field-label{color:#94A3B8;font-size:12px;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.8px}
-  .field-input{width:100%;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(96,165,250,0.2);border-radius:10px;color:#F1F5F9;font-size:14px;outline:none}
-  .field-input:focus{border-color:rgba(96,165,250,0.5)}
-  .form-error{color:#F87171;font-size:13px;margin:4px 0 0}
+.field{margin-bottom:14px}
+.field-label{color:#94A3B8;font-size:12px;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.8px}
+.field-input{width:100%;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(96,165,250,0.2);border-radius:10px;color:#F1F5F9;font-size:14px;outline:none}
+.field-input:focus{border-color:rgba(96,165,250,0.5)}
+.form-error{color:#F87171;font-size:13px;margin:4px 0 0}
 
-  .active-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
-  .rental-card{padding:22px;position:relative;overflow:hidden}
-  .rental-card-glow{position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(96,165,250,0.08),transparent);border-radius:0 16px 0 80px;pointer-events:none}
-  .rental-item-info{background:rgba(96,165,250,0.06);border-radius:10px;padding:10px 14px;margin-bottom:12px}
-  .rental-duration-box{margin-bottom:14px;padding:8px 14px;background:rgba(56,189,248,0.05);border-radius:10px;border:1px solid rgba(56,189,248,0.1)}
-  .duration-label{color:#64748B;font-size:11px;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.8px}
-  .duration-value{color:#38BDF8;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.active-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.rental-card{padding:22px;position:relative;overflow:hidden}
+.rental-card-glow{position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(96,165,250,0.08),transparent);border-radius:0 16px 0 80px;pointer-events:none}
+.rental-item-info{background:rgba(96,165,250,0.06);border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.rental-duration-box{margin-bottom:14px;padding:8px 14px;background:rgba(56,189,248,0.05);border-radius:10px;border:1px solid rgba(56,189,248,0.1)}
+.duration-label{color:#64748B;font-size:11px;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.8px}
+.duration-value{color:#38BDF8;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
 
-  .history-table{width:100%;border-collapse:collapse}
-  .history-table th{padding:14px 16px;text-align:left;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;border-bottom:1px solid rgba(96,165,250,0.1)}
-  .history-table td{padding:12px 16px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04)}
-  .history-table tr:nth-child(even){background:rgba(255,255,255,0.01)}
+.history-table{width:100%;border-collapse:collapse}
+.history-table th{padding:14px 16px;text-align:left;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;border-bottom:1px solid rgba(96,165,250,0.1)}
+.history-table td{padding:12px 16px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.history-table tr:nth-child(even){background:rgba(255,255,255,0.01)}
 
-  .manage-grid{display:flex;flex-direction:column;gap:16px}
-  .manage-card{padding:22px}
-  .manage-item-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
-  .variants-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
-  .variant-manage-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.06)}
+.manage-grid{display:flex;flex-direction:column;gap:16px}
+.manage-card{padding:22px}
+.manage-item-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.variants-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.variant-manage-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.06)}
 
-  .stock-counter{display:flex;align-items:center;gap:12px}
-  .counter-btn{width:36px;height:36px;border-radius:8px;border:1px solid rgba(96,165,250,0.2);background:rgba(96,165,250,0.08);color:#60A5FA;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
-  .counter-val{color:#F1F5F9;font-weight:700;font-size:22px;min-width:40px;text-align:center}
-  .counter-btn-lg{width:44px;height:44px;border-radius:10px;border:1px solid rgba(96,165,250,0.2);background:rgba(96,165,250,0.08);color:#60A5FA;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
-  .counter-input{width:80px;text-align:center;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(96,165,250,0.2);border-radius:10px;color:#F1F5F9;font-size:24px;font-weight:700;outline:none;font-family:inherit}
+.stock-counter{display:flex;align-items:center;gap:12px}
+.counter-btn{width:36px;height:36px;border-radius:8px;border:1px solid rgba(96,165,250,0.2);background:rgba(96,165,250,0.08);color:#60A5FA;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.counter-val{color:#F1F5F9;font-weight:700;font-size:22px;min-width:40px;text-align:center}
+.counter-btn-lg{width:44px;height:44px;border-radius:10px;border:1px solid rgba(96,165,250,0.2);background:rgba(96,165,250,0.08);color:#60A5FA;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.counter-input{width:80px;text-align:center;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(96,165,250,0.2);border-radius:10px;color:#F1F5F9;font-size:24px;font-weight:700;outline:none;font-family:inherit}
 
-  .color-options{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:0}
-  .color-chip{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid rgba(96,165,250,0.15);background:rgba(255,255,255,0.03);color:#94A3B8;font-size:12px;cursor:pointer;font-family:inherit;transition:all 0.15s}
-  .color-chip.selected{border-color:#38BDF8;background:rgba(56,189,248,0.12);color:#38BDF8}
+.color-options{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:0}
+.color-chip{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid rgba(96,165,250,0.15);background:rgba(255,255,255,0.03);color:#94A3B8;font-size:12px;cursor:pointer;font-family:inherit;transition:all 0.15s}
+.color-chip.selected{border-color:#38BDF8;background:rgba(56,189,248,0.12);color:#38BDF8}
 
-  .active-list-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(96,165,250,0.05);border-radius:10px;border:1px solid rgba(96,165,250,0.1);margin-bottom:10px}
-  .active-list-row:last-child{margin-bottom:0}
+.active-list-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(96,165,250,0.05);border-radius:10px;border:1px solid rgba(96,165,250,0.1);margin-bottom:10px}
+.active-list-row:last-child{margin-bottom:0}
 
-  .delete-icon-wrap{width:52px;height:52px;border-radius:50%;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#F87171}
-  .btn-cancel{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(96,165,250,0.2);background:rgba(96,165,250,0.05);color:#94A3B8;cursor:pointer;font-weight:600;font-family:inherit}
-  .btn-confirm-del{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(248,113,113,0.3);background:rgba(248,113,113,0.15);color:#F87171;cursor:pointer;font-weight:700;font-family:inherit}
+.delete-icon-wrap{width:52px;height:52px;border-radius:50%;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#F87171}
+.btn-cancel{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(96,165,250,0.2);background:rgba(96,165,250,0.05);color:#94A3B8;cursor:pointer;font-weight:600;font-family:inherit}
+.btn-confirm-del{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(248,113,113,0.3);background:rgba(248,113,113,0.15);color:#F87171;cursor:pointer;font-weight:700;font-family:inherit}
 
-  .rented-badge{font-size:10px;color:#F59E0B;padding:3px 8px;background:rgba(245,158,11,0.1);border-radius:6px;border:1px solid rgba(245,158,11,0.2)}
-  .empty-state{padding:40px;text-align:center;color:#475569;font-size:16px}
+.rented-badge{font-size:10px;color:#F59E0B;padding:3px 8px;background:rgba(245,158,11,0.1);border-radius:6px;border:1px solid rgba(245,158,11,0.2)}
+.empty-state{padding:40px;text-align:center;color:#475569;font-size:16px}
 
-  /* Sync status bar */
-  #sync-bar{position:fixed;bottom:16px;right:16px;z-index:200;display:flex;align-items:center;gap:8px;background:rgba(15,23,42,0.9);border:1px solid rgba(96,165,250,0.15);border-radius:12px;padding:8px 14px;font-size:12px;color:#64748B;backdrop-filter:blur(8px);transition:opacity 0.3s}
-  #sync-dot{width:8px;height:8px;border-radius:50%;background:#22C55E;flex-shrink:0}
-  #sync-dot.loading{background:#F59E0B;animation:pulse 1s infinite}
-  #sync-dot.error{background:#F87171}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+/* Loading & Status */
+#db-status{position:fixed;bottom:16px;right:16px;z-index:9999;padding:8px 16px;border-radius:10px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;transition:all 0.3s;pointer-events:none}
+#db-status.connecting{background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#F59E0B}
+#db-status.connected{background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);color:#22C55E}
+#db-status.error{background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);color:#F87171}
+.status-dot{width:7px;height:7px;border-radius:50%;background:currentColor}
 
-  /* Loading overlay */
-  #loading-overlay{position:fixed;inset:0;z-index:2000;background:#0F172A;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
-  #loading-overlay.hidden{display:none}
-  .loading-spinner{width:40px;height:40px;border:3px solid rgba(96,165,250,0.2);border-top-color:#38BDF8;border-radius:50%;animation:spin 0.8s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
+/* Setup screen */
+#setup-screen{position:fixed;inset:0;z-index:9000;background:#0F172A;display:flex;align-items:center;justify-content:center;padding:24px}
+.setup-box{max-width:500px;width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(96,165,250,0.2);border-radius:20px;padding:36px}
+.setup-title{font-size:22px;font-weight:700;color:#F1F5F9;margin-bottom:8px}
+.setup-sub{color:#64748B;font-size:14px;margin-bottom:28px;line-height:1.6}
+.setup-step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
+.setup-num{width:24px;height:24px;border-radius:50%;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.3);color:#38BDF8;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.setup-text{color:#94A3B8;font-size:13px;line-height:1.6}
+.setup-text a{color:#38BDF8;text-decoration:none}
+.setup-text code{background:rgba(96,165,250,0.1);padding:1px 6px;border-radius:4px;color:#60A5FA;font-size:12px}
 
-  @media(max-width:768px){
-    #sidebar{display:none}
-    #mobile-header{display:flex}
-    #content{padding:16px}
-    .inv-grid,.active-grid{grid-template-columns:1fr}
-    .stats-grid{grid-template-columns:1fr}
-  }
+/* Loading overlay */
+#loading-overlay{position:fixed;inset:0;z-index:8000;background:#0F172A;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.loading-spinner{width:40px;height:40px;border:3px solid rgba(96,165,250,0.1);border-top-color:#38BDF8;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:#64748B;font-size:14px}
+
+@media(max-width:768px){
+  #sidebar{display:none}
+  #mobile-header{display:flex}
+  #content{padding:16px}
+  .inv-grid,.active-grid{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
-<div class="bg-glow1"></div>
-<div class="bg-glow2"></div>
+
+<!-- Setup Screen (muncul jika Firebase belum dikonfigurasi) -->
+<div id="setup-screen" style="display:none">
+  <div class="setup-box">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div class="brand-logo" style="width:40px;height:40px">
+        <svg width="20" height="20" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg>
+      </div>
+      <div>
+        <div class="brand-name" style="font-size:16px">TREK OUT ADVENTURE</div>
+        <div class="brand-sub">Setup Database</div>
+      </div>
+    </div>
+    <div class="setup-title">Konfigurasi Firebase</div>
+    <div class="setup-sub">Ikuti langkah berikut agar data tersinkron untuk semua pengguna:</div>
+    <div class="setup-step">
+      <div class="setup-num">1</div>
+      <div class="setup-text">Buka <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → buat project baru</div>
+    </div>
+    <div class="setup-step">
+      <div class="setup-num">2</div>
+      <div class="setup-text">Di project, klik <strong style="color:#F1F5F9">Add app</strong> → pilih ikon Web (<code>&lt;/&gt;</code>) → daftarkan app</div>
+    </div>
+    <div class="setup-step">
+      <div class="setup-num">3</div>
+      <div class="setup-text">Copy nilai <code>apiKey</code>, <code>authDomain</code>, <code>databaseURL</code>, <code>projectId</code> ke bagian <code>FIREBASE CONFIG</code> di kode HTML ini</div>
+    </div>
+    <div class="setup-step">
+      <div class="setup-num">4</div>
+      <div class="setup-text">Di Firebase Console → <strong style="color:#F1F5F9">Realtime Database</strong> → <strong style="color:#F1F5F9">Create Database</strong> → pilih region → klik <strong style="color:#F1F5F9">Rules</strong> → ubah ke: <code>{ "rules": { ".read": true, ".write": true } }</code> → Publish</div>
+    </div>
+    <div class="setup-step">
+      <div class="setup-num">5</div>
+      <div class="setup-text">Simpan file dan buka kembali di browser</div>
+    </div>
+    <div style="margin-top:20px;padding:14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;color:#F59E0B;font-size:12px;line-height:1.6">
+      ⚠ Rules di atas bersifat publik (semua orang bisa baca/tulis). Cocok untuk penggunaan internal. Untuk produksi, tambahkan autentikasi.
+    </div>
+  </div>
+</div>
 
 <!-- Loading overlay -->
-<div id="loading-overlay">
+<div id="loading-overlay" style="display:none">
   <div class="loading-spinner"></div>
-  <div style="color:#64748B;font-size:14px">Memuat data...</div>
+  <div class="loading-text">Menghubungkan ke database...</div>
 </div>
 
-<!-- Sync status -->
-<div id="sync-bar">
-  <div id="sync-dot"></div>
-  <span id="sync-label">Tersinkron</span>
-</div>
+<div class="bg-glow1"></div>
+<div class="bg-glow2"></div>
 
 <div id="app">
   <div id="sidebar">
     <div class="sidebar-brand">
-      <div class="brand-logo"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg></div>
+      <div class="brand-logo"><svg width="22" height="22" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg></div>
       <div>
         <div class="brand-name">TREK OUT</div>
         <div class="brand-sub">Adventure</div>
@@ -185,7 +241,7 @@
   <div id="sidebar-overlay" onclick="closeMobileSidebar()">
     <div id="sidebar-mobile" onclick="event.stopPropagation()">
       <div class="sidebar-brand">
-        <div class="brand-logo" style="width:28px;height:28px;border-radius:8px"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg></div>
+        <div class="brand-logo" style="width:28px;height:28px;border-radius:8px"><svg width="14" height="14" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg></div>
         <div>
           <div class="brand-name">TREK OUT</div>
           <div class="brand-sub">Adventure</div>
@@ -202,7 +258,7 @@
         <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <div style="display:flex;align-items:center;gap:8px">
-        <div class="brand-logo" style="width:28px;height:28px;border-radius:8px"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg></div>
+        <div class="brand-logo" style="width:28px;height:28px;border-radius:8px"><svg width="14" height="14" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg></div>
         <span class="mobile-brand-name">Trek Out Adventure</span>
       </div>
     </div>
@@ -269,31 +325,39 @@
         <div class="modal-title">Form Penyewaan</div>
         <div class="modal-sub" id="sewa-modal-sub"></div>
       </div>
-      <button class="btn-close" onclick="closeModal('modal-sewa')">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <button class="btn-close" onclick="closeModal('modal-sewa')"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    <div class="field"><label class="field-label">Nama Penyewa</label><input class="field-input" id="sewa-name" placeholder="Masukkan nama penyewa"/></div>
-    <div class="field"><label class="field-label">Alamat Penyewa</label><input class="field-input" id="sewa-address" placeholder="Masukkan alamat penyewa"/></div>
+    <div class="field">
+      <label class="field-label">Nama Penyewa</label>
+      <input type="text" id="sewa-name" class="field-input" placeholder="Masukkan nama lengkap"/>
+    </div>
+    <div class="field">
+      <label class="field-label">Alamat / Kontak</label>
+      <input type="text" id="sewa-address" class="field-input" placeholder="Alamat atau nomor HP"/>
+    </div>
     <div id="sewa-error" class="form-error" style="display:none"></div>
-    <button class="btn-primary" onclick="confirmSewa()" style="width:100%;padding:12px;font-size:15px;margin-top:8px">Konfirmasi Sewa</button>
+    <button class="btn-primary" id="sewa-submit-btn" onclick="confirmSewa()" style="width:100%;padding:12px;font-size:15px;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Konfirmasi Sewa
+    </button>
   </div>
 </div>
 
 <!-- Modal: Tambah Barang -->
 <div id="modal-add-item" class="modal-overlay" onclick="closeModal('modal-add-item')">
-  <div class="modal-box wide" onclick="event.stopPropagation()">
+  <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-title">Tambah Barang Baru</div>
-      <button class="btn-close" onclick="closeModal('modal-add-item')">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <button class="btn-close" onclick="closeModal('modal-add-item')"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    <div class="field"><label class="field-label">Nama Barang</label><input class="field-input" id="new-item-name" placeholder="Contoh: Kompas, Trekking Pole..."/></div>
     <div class="field">
-      <label class="field-label">Warna</label>
+      <label class="field-label">Nama Barang</label>
+      <input type="text" id="new-item-name" class="field-input" placeholder="Contoh: Tenda Dome, Sleeping Bag..."/>
+    </div>
+    <div class="field">
+      <label class="field-label">Warna Pertama</label>
       <div class="color-options" id="new-item-colors"></div>
-      <input class="field-input" id="new-item-custom-color" placeholder="Tulis nama warna..." style="display:none;margin-top:8px"/>
+      <input type="text" id="new-item-custom-color" class="field-input" placeholder="Nama warna..." style="display:none;margin-top:8px"/>
     </div>
     <div class="field">
       <label class="field-label">Jumlah Stok Awal</label>
@@ -308,22 +372,20 @@
   </div>
 </div>
 
-<!-- Modal: Tambah Varian Warna -->
+<!-- Modal: Tambah Varian -->
 <div id="modal-add-variant" class="modal-overlay" onclick="closeModal('modal-add-variant')">
-  <div class="modal-box wide" onclick="event.stopPropagation()">
+  <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div>
-        <div class="modal-title">Tambah Warna</div>
+        <div class="modal-title">Tambah Varian Warna</div>
         <div class="modal-sub" id="add-variant-sub"></div>
       </div>
-      <button class="btn-close" onclick="closeModal('modal-add-variant')">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <button class="btn-close" onclick="closeModal('modal-add-variant')"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="field">
-      <label class="field-label">Warna</label>
+      <label class="field-label">Pilih Warna</label>
       <div class="color-options" id="add-variant-colors"></div>
-      <input class="field-input" id="add-variant-custom-color" placeholder="Tulis nama warna..." style="display:none;margin-top:8px"/>
+      <input type="text" id="add-variant-custom-color" class="field-input" placeholder="Nama warna..." style="display:none;margin-top:8px"/>
     </div>
     <div class="field">
       <label class="field-label">Jumlah Stok</label>
@@ -334,7 +396,7 @@
       </div>
     </div>
     <div id="add-variant-error" class="form-error" style="display:none"></div>
-    <button class="btn-primary" onclick="handleAddVariant()" style="width:100%;padding:12px;font-size:15px;margin-top:4px">Tambah Warna</button>
+    <button class="btn-primary" onclick="handleAddVariant()" style="width:100%;padding:12px;font-size:15px;margin-top:4px">Tambah Varian</button>
   </div>
 </div>
 
@@ -346,9 +408,7 @@
         <div class="modal-title">Edit Stok</div>
         <div class="modal-sub" id="edit-stock-sub"></div>
       </div>
-      <button class="btn-close" onclick="closeModal('modal-edit-stock')">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <button class="btn-close" onclick="closeModal('modal-edit-stock')"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="field">
       <label class="field-label">Jumlah Stok</label>
@@ -383,81 +443,148 @@
   </div>
 </div>
 
+<!-- Status indicator -->
+<div id="db-status" class="connecting">
+  <div class="status-dot"></div>
+  <span id="db-status-text">Menghubungkan...</span>
+</div>
+
+<!-- Firebase SDK -->
 <script type="module">
-// ══════════════════════════════════════════════════════════
-// FIREBASE SETUP
-// ══════════════════════════════════════════════════════════
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyC3yWETRBm1VNn8_JTdAWKnHjUuY3YH5ts",
-  authDomain: "trek-out.firebaseapp.com",
-  databaseURL: "https://trek-out-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "trek-out",
-  storageBucket: "trek-out.firebasestorage.app",
-  messagingSenderId: "445479932243",
-  appId: "1:445479932243:web:40cd2b8ba72eb4653111a6"
+// ══════════════════════════════════════════════════════════════════
+// ▼▼▼  GANTI DENGAN CONFIG FIREBASE ANDA  ▼▼▼
+// ══════════════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "GANTI_API_KEY_ANDA",
+  authDomain:        "GANTI_PROJECT_ID.firebaseapp.com",
+  databaseURL:       "https://GANTI_PROJECT_ID-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "GANTI_PROJECT_ID",
+  storageBucket:     "GANTI_PROJECT_ID.appspot.com",
+  messagingSenderId: "GANTI_MESSAGING_SENDER_ID",
+  appId:             "GANTI_APP_ID"
 };
-const fbApp    = initializeApp(firebaseConfig);
-const db       = getDatabase(fbApp);
-const DATA_REF = ref(db, "trekout");
+// ══════════════════════════════════════════════════════════════════
+// ▲▲▲  SAMPAI SINI  ▲▲▲
+// ══════════════════════════════════════════════════════════════════
 
+import { initializeApp }          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, push, update, remove, get }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── Check apakah config sudah diisi ───────────────────────────────
+const isConfigured = !Object.values(FIREBASE_CONFIG).some(v => v.startsWith("GANTI_"));
+
+if (!isConfigured) {
+  document.getElementById("setup-screen").style.display    = "flex";
+  document.getElementById("db-status").className = "error";
+  document.getElementById("db-status-text").textContent = "Belum dikonfigurasi";
+  throw new Error("Firebase belum dikonfigurasi");
+}
+
+// Tampilkan loading hanya jika config sudah diisi
+document.getElementById("loading-overlay").style.display = "flex";
+
+// ── Init Firebase ──────────────────────────────────────────────────
+const app = initializeApp(FIREBASE_CONFIG);
+const db  = getDatabase(app);
+
+// ── Default inventory (hanya diisi jika database kosong) ───────────
 const DEFAULT_INVENTORY = [
-  { id:"carrier",      name:"Carrier",     variants:[{color:"Kuning",stock:2},{color:"Hitam",stock:1},{color:"Merah",stock:2}] },
-  { id:"hydropack",    name:"Hydropack",   variants:[{color:"Hitam",stock:3},{color:"Biru",stock:2}] },
-  { id:"tenda",        name:"Tenda",       variants:[{color:"Hijau",stock:2},{color:"Oranye",stock:1}] },
-  { id:"sleeping-bag", name:"Sleeping Bag",variants:[{color:"Biru",stock:3},{color:"Abu-abu",stock:2}] },
-  { id:"matras",       name:"Matras",      variants:[{color:"Hijau",stock:4},{color:"Merah",stock:2}] },
-  { id:"headlamp",     name:"Headlamp",    variants:[{color:"Hitam",stock:5},{color:"Kuning",stock:2}] },
+  { id:"carrier",      name:"Carrier",      variants:[{color:"Kuning",stock:2},{color:"Hitam",stock:1},{color:"Merah",stock:2}] },
+  { id:"hydropack",    name:"Hydropack",    variants:[{color:"Hitam",stock:3},{color:"Biru",stock:2}] },
+  { id:"tenda",        name:"Tenda",        variants:[{color:"Hijau",stock:2},{color:"Oranye",stock:1}] },
+  { id:"sleeping-bag", name:"Sleeping Bag", variants:[{color:"Biru",stock:3},{color:"Abu-abu",stock:2}] },
+  { id:"matras",       name:"Matras",       variants:[{color:"Hijau",stock:4},{color:"Merah",stock:2}] },
+  { id:"headlamp",     name:"Headlamp",     variants:[{color:"Hitam",stock:5},{color:"Kuning",stock:2}] },
 ];
 
-// ── In-memory state ──────────────────────────────────────
+// ── State lokal (diisi dari Firebase) ────────────────────────────
 let inventory = [];
-let rentals   = [];
-let history   = [];
+let rentals   = {};   // { firebaseKey: rentalObj }
+let historyMap= {};   // { firebaseKey: historyObj }
 
-const COLOR_DOT = {
+// ── Status UI ─────────────────────────────────────────────────────
+function setStatus(state, text) {
+  const el = document.getElementById("db-status");
+  el.className = state;
+  document.getElementById("db-status-text").textContent = text;
+  if (state === "connected") {
+    setTimeout(() => { el.style.opacity = "0"; setTimeout(()=>{ el.style.opacity = "1"; el.className = "connected"; }, 3000); }, 2000);
+  }
+}
+
+// ── Seed inventory jika kosong ────────────────────────────────────
+async function seedIfEmpty() {
+  const snap = await get(ref(db, "inventory"));
+  if (!snap.exists()) {
+    const inv = {};
+    DEFAULT_INVENTORY.forEach(item => { inv[item.id] = item; });
+    await set(ref(db, "inventory"), inv);
+  }
+}
+
+// ── Realtime listeners ─────────────────────────────────────────────
+let initialized = false;
+let invReady = false, rentReady = false, histReady = false;
+
+function checkAllReady() {
+  if (invReady && rentReady && histReady && !initialized) {
+    initialized = true;
+    document.getElementById("loading-overlay").style.display = "none";
+    setStatus("connected", "Terhubung");
+    rerenderAll();
+  }
+}
+
+// Inventory listener
+onValue(ref(db, "inventory"), snap => {
+  inventory = [];
+  if (snap.exists()) {
+    snap.forEach(child => { inventory.push({...child.val(), id: child.key}); });
+  }
+  invReady = true;
+  checkAllReady();
+  if (initialized) rerenderAll();
+}, err => { setStatus("error", "Gagal: " + err.message); });
+
+// Rentals listener
+onValue(ref(db, "rentals"), snap => {
+  rentals = {};
+  if (snap.exists()) snap.forEach(child => { rentals[child.key] = {...child.val(), _key: child.key}; });
+  rentReady = true;
+  checkAllReady();
+  if (initialized) rerenderAll();
+});
+
+// History listener
+onValue(ref(db, "history"), snap => {
+  historyMap = {};
+  if (snap.exists()) snap.forEach(child => { historyMap[child.key] = {...child.val(), _key: child.key}; });
+  histReady = true;
+  checkAllReady();
+  if (initialized) rerenderAll();
+});
+
+// Init
+setStatus("connecting", "Menghubungkan...");
+seedIfEmpty().catch(e => {
+  document.getElementById("loading-overlay").style.display = "none";
+  setStatus("error", "Error: " + e.message);
+});
+
+// ── Helpers ────────────────────────────────────────────────────────
+function rentalsList()  { return Object.values(rentals); }
+function historyList()  { return Object.values(historyMap); }
+
+window.COLOR_DOT = {
   Kuning:"#FBBF24",Hitam:"#374151",Merah:"#EF4444",Biru:"#3B82F6",
   Hijau:"#22C55E",Oranye:"#F97316","Abu-abu":"#9CA3AF",Putih:"#F9FAFB",
   Ungu:"#A855F7",Pink:"#EC4899",Coklat:"#92400E",Navy:"#1E3A5F"
 };
-const COLOR_OPTIONS = ["Kuning","Hitam","Merah","Biru","Hijau","Oranye","Abu-abu","Putih","Ungu","Pink","Coklat","Navy"];
+window.COLOR_OPTIONS = ["Kuning","Hitam","Merah","Biru","Hijau","Oranye","Abu-abu","Putih","Ungu","Pink","Coklat","Navy"];
 
-let currentPage = "dashboard";
-let sewaModal = null;
-let addVariantItemId = null;
-let editStockTarget = null;
-let deleteTarget = null;
-let newItemSelectedColor = "Hitam";
-let addVariantSelectedColor = "Hitam";
-
-// ══════════════════════════════════════════════════════════
-// STORAGE HELPERS — baca/tulis ke Firebase Realtime Database
-// ══════════════════════════════════════════════════════════
-function setSyncStatus(state) {
-  const dot = document.getElementById("sync-dot");
-  const lbl = document.getElementById("sync-label");
-  if (!dot) return;
-  dot.className = state === "ok" ? "" : state === "loading" ? "loading" : "error";
-  lbl.textContent = state === "ok" ? "Tersinkron" : state === "loading" ? "Menyimpan..." : "Gagal sinkron";
-}
-
-function saveToStorage() {
-  setSyncStatus("loading");
-  set(DATA_REF, { inventory, rentals, history })
-    .then(()  => setSyncStatus("ok"))
-    .catch(e  => { console.error(e); setSyncStatus("error"); });
-}
-
-// loadFromStorage digantikan onValue listener di init()
-function loadFromStorage() {}
-
-// ══════════════════════════════════════════════════════════
-// UTILS
-// ══════════════════════════════════════════════════════════
 function formatDuration(ms) {
-  const t = Math.floor(ms/1000);
+  const t = Math.max(0, Math.floor(ms/1000));
   return `${Math.floor(t/86400)} Hari ${Math.floor((t%86400)/3600)} Jam ${Math.floor((t%3600)/60)} Menit`;
 }
 function formatDate(ts) {
@@ -465,19 +592,8 @@ function formatDate(ts) {
 }
 function dot(color, size=10) {
   const bg = COLOR_DOT[color]||"#94A3B8";
-  return `<span class="color-dot" style="width:${size}px;height:${size}px;background:${bg}"></span>`;
+  return `<span style="display:inline-block;width:${size}px;height:${size}px;border-radius:50%;background:${bg};flex-shrink:0"></span>`;
 }
-
-// ══════════════════════════════════════════════════════════
-// NAVIGATION
-// ══════════════════════════════════════════════════════════
-const navItems = [
-  {id:"dashboard", label:"Dashboard",        icon:"dashboard"},
-  {id:"inventory", label:"Stok Tersedia",    icon:"inventory"},
-  {id:"active",    label:"Sedang Disewa",    icon:"active"},
-  {id:"manage",    label:"Kelola Inventaris",icon:"manage"},
-  {id:"history",   label:"Riwayat",          icon:"history"},
-];
 const navIcons = {
   dashboard:`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
   inventory:`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 7H4a1 1 0 00-1 1v12a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1z"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>`,
@@ -485,70 +601,74 @@ const navIcons = {
   manage:`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
   history:`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
 };
+const navItems = [
+  {id:"dashboard",label:"Dashboard",      icon:"dashboard"},
+  {id:"inventory",label:"Stok Tersedia",  icon:"inventory"},
+  {id:"active",   label:"Sedang Disewa",  icon:"active"},
+  {id:"manage",   label:"Kelola Inventaris",icon:"manage"},
+  {id:"history",  label:"Riwayat",        icon:"history"},
+];
 
+// ── Nav ────────────────────────────────────────────────────────────
+window.currentPage = "dashboard";
 function renderNav(navEl) {
-  if (!navEl) return;
+  const rl = rentalsList().length;
   navEl.innerHTML = navItems.map(n => {
-    const badge = n.id==="active" && rentals.length > 0
-      ? `<span class="nav-badge">${rentals.length}</span>` : "";
+    const badge = n.id==="active" && rl>0 ? `<span class="nav-badge">${rl}</span>` : "";
     const active = currentPage===n.id ? " active" : "";
     return `<button class="nav-btn${active}" onclick="navigate('${n.id}');closeMobileSidebar()">
       <span class="nav-btn-left">${navIcons[n.icon]}${n.label}</span>${badge}
     </button>`;
   }).join("");
 }
-
-function navigate(page) {
+window.navigate = function(page) {
   currentPage = page;
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.getElementById("page-"+page).classList.add("active");
   renderNav(document.getElementById("nav"));
   renderNav(document.getElementById("nav-mobile"));
   renderPage(page);
-}
+};
+window.openMobileSidebar  = () => { document.getElementById("sidebar-overlay").style.display="flex"; };
+window.closeMobileSidebar = () => { document.getElementById("sidebar-overlay").style.display="none"; };
 
-function openMobileSidebar()  { document.getElementById("sidebar-overlay").style.display="flex"; }
-function closeMobileSidebar() { document.getElementById("sidebar-overlay").style.display="none"; }
-
-// ══════════════════════════════════════════════════════════
-// PAGE RENDERERS
-// ══════════════════════════════════════════════════════════
-function renderPage(page) {
-  if(page==="dashboard") renderDashboard();
-  if(page==="inventory") renderInventory();
-  if(page==="active")    renderActive();
-  if(page==="manage")    renderManage();
-  if(page==="history")   renderHistory();
+// ── Render Pages ───────────────────────────────────────────────────
+function renderPage(p) {
+  if(p==="dashboard") renderDashboard();
+  if(p==="inventory") renderInventory();
+  if(p==="active")    renderActive();
+  if(p==="manage")    renderManage();
+  if(p==="history")   renderHistory();
 }
 
 function renderDashboard() {
+  const rl = rentalsList();
+  const hl = historyList();
   const totalStock = inventory.reduce((s,i)=>s+i.variants.reduce((v,vr)=>v+vr.stock,0),0);
   const todayStr = new Date().toDateString();
-  const todayCount = history.filter(h=>new Date(h.returnedAt).toDateString()===todayStr).length;
-  const activeToday = rentals.filter(r=>new Date(r.startTs).toDateString()===todayStr).length;
-  const stats = [
-    {label:"Total Stok Tersedia",value:totalStock,icon:"inventory",color:"#60A5FA"},
-    {label:"Sedang Disewa",value:rentals.length,icon:"active",color:"#38BDF8"},
-    {label:"Transaksi Hari Ini",value:todayCount+activeToday,icon:"history",color:"#818CF8"},
-  ];
-  document.getElementById("dash-date").textContent = "Selamat datang di Trek Out Adventure — " +
+  const todayCount = hl.filter(h=>new Date(h.returnedAt).toDateString()===todayStr).length;
+  const activeToday = rl.filter(r=>new Date(r.startTs).toDateString()===todayStr).length;
+  document.getElementById("dash-date").textContent =
+    "Selamat datang di Trek Out Adventure — " +
     new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-  document.getElementById("dash-stats").innerHTML = stats.map(s=>`
-    <div class="card stat-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div class="stat-label">${s.label}</div>
-          <div class="stat-value" style="color:${s.color}">${s.value}</div>
-        </div>
-        <div class="stat-icon" style="color:${s.color};background:${s.color}22">${navIcons[s.icon]?navIcons[s.icon].replace(/16/g,"22"):''}</div>
+  document.getElementById("dash-stats").innerHTML = [
+    {label:"Total Stok Tersedia", value:totalStock,      icon:"inventory", color:"#60A5FA"},
+    {label:"Sedang Disewa",       value:rl.length,       icon:"active",    color:"#38BDF8"},
+    {label:"Transaksi Hari Ini",  value:todayCount+activeToday, icon:"history", color:"#818CF8"},
+  ].map(s=>`<div class="card stat-card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div class="stat-label">${s.label}</div>
+        <div class="stat-value" style="color:${s.color}">${s.value}</div>
       </div>
-    </div>`).join("");
+      <div style="padding:10px;border-radius:12px;color:${s.color};background:${s.color}22">${navIcons[s.icon]?.replace(/16/g,"22")||""}</div>
+    </div>
+  </div>`).join("");
   const listEl = document.getElementById("dash-active-list");
-  if(rentals.length===0){
+  if(rl.length===0){
     listEl.innerHTML=`<p style="color:#475569;font-size:14px">Tidak ada penyewaan aktif saat ini.</p>`;
   } else {
-    const shown = rentals.slice(0,5);
-    listEl.innerHTML = shown.map(r=>`
+    listEl.innerHTML = rl.slice(0,5).map(r=>`
       <div class="active-list-row">
         <div style="display:flex;align-items:center;gap:10px">
           ${dot(r.color,8)}
@@ -559,7 +679,7 @@ function renderDashboard() {
         </div>
         <span class="duration-value" data-dur-start="${r.startTs}">${formatDuration(Date.now()-r.startTs)}</span>
       </div>`).join("")
-    + (rentals.length>5?`<p style="color:#475569;font-size:13px;text-align:center;margin-top:8px">+${rentals.length-5} lainnya</p>`:"");
+    + (rl.length>5?`<p style="color:#475569;font-size:13px;text-align:center;margin-top:8px">+${rl.length-5} lainnya</p>`:"");
     startDurationTick();
   }
 }
@@ -569,37 +689,29 @@ function renderInventory() {
     const total = item.variants.reduce((s,v)=>s+v.stock,0);
     return `<div class="card item-card">
       <div class="item-header">
-        <div>
-          <div class="item-name">${item.name}</div>
-          <div class="item-total-sub">Total stok: <span style="color:#60A5FA">${total}</span></div>
-        </div>
+        <div><div class="item-name">${item.name}</div><div class="item-total-sub">Total stok: <span style="color:#60A5FA">${total}</span></div></div>
         <div class="item-badge">${total}</div>
       </div>
-      <div>
-        ${item.variants.map(v=>`
-          <div class="variant-row">
-            <div style="display:flex;align-items:center;gap:8px">
-              ${dot(v.color,10)}
-              <span style="color:#CBD5E1;font-size:13px">${v.color}</span>
-              <span style="color:#475569;font-size:12px">(${v.stock})</span>
-            </div>
-            <button class="btn-sewa" onclick="openSewaModal('${item.id}','${v.color}')" ${v.stock===0?"disabled":""}>
-              ${v.stock===0?"Habis":"Sewa"}
-            </button>
-          </div>`).join("")}
+      <div>${item.variants.map(v=>`
+        <div class="variant-row">
+          <div style="display:flex;align-items:center;gap:8px">
+            ${dot(v.color,10)}<span style="color:#CBD5E1;font-size:13px">${v.color}</span><span style="color:#475569;font-size:12px">(${v.stock})</span>
+          </div>
+          <button class="btn-sewa" onclick="openSewaModal('${item.id}','${v.color}')" ${v.stock===0?"disabled":""}>
+            ${v.stock===0?"Habis":"Sewa"}
+          </button>
+        </div>`).join("")}
       </div>
     </div>`;
   }).join("");
 }
 
 function renderActive() {
-  document.getElementById("active-sub").textContent = rentals.length+" penyewaan aktif";
+  const rl = rentalsList();
+  document.getElementById("active-sub").textContent = rl.length+" penyewaan aktif";
   const el = document.getElementById("active-list");
-  if(rentals.length===0){
-    el.innerHTML=`<div class="card empty-state">Tidak ada penyewaan aktif</div>`;
-    return;
-  }
-  el.innerHTML=`<div class="active-grid">${rentals.map(r=>`
+  if(rl.length===0){ el.innerHTML=`<div class="card empty-state">Tidak ada penyewaan aktif</div>`; return; }
+  el.innerHTML=`<div class="active-grid">${rl.map(r=>`
     <div class="card rental-card">
       <div class="rental-card-glow"></div>
       <div style="display:flex;justify-content:space-between;margin-bottom:14px">
@@ -617,7 +729,7 @@ function renderActive() {
         <div class="duration-label">Durasi Berjalan</div>
         <div class="duration-value" data-dur-start="${r.startTs}">${formatDuration(Date.now()-r.startTs)}</div>
       </div>
-      <button class="btn-return" onclick="returnRental(${r.id})">
+      <button class="btn-return" onclick="returnRental('${r._key}')">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h11a5 5 0 010 10h-1"/></svg>
         Kembalikan
       </button>
@@ -626,9 +738,10 @@ function renderActive() {
 }
 
 function renderManage() {
+  const rl = rentalsList();
   document.getElementById("manage-list").innerHTML = inventory.map(item=>{
     const totalStock = item.variants.reduce((s,v)=>s+v.stock,0);
-    const hasRental = rentals.some(r=>r.itemId===item.id);
+    const hasRental = rl.some(r=>r.itemId===item.id);
     return `<div class="card manage-card">
       <div class="manage-item-header">
         <div style="display:flex;align-items:center;gap:12px">
@@ -645,40 +758,36 @@ function renderManage() {
           </button>`:""}
         </div>
       </div>
-      <div class="variants-grid">
-        ${item.variants.map(v=>{
-          const rented = rentals.some(r=>r.itemId===item.id&&r.color===v.color);
-          return `<div class="variant-manage-row">
-            <div style="display:flex;align-items:center;gap:8px">
-              ${dot(v.color,10)}
-              <div>
-                <div style="color:#CBD5E1;font-size:13px;font-weight:500">${v.color}</div>
-                <div style="color:${v.stock===0?"#F87171":"#60A5FA"};font-size:12px;font-weight:700">${v.stock} stok</div>
-              </div>
+      <div class="variants-grid">${item.variants.map(v=>{
+        const rented = rl.some(r=>r.itemId===item.id&&r.color===v.color);
+        return `<div class="variant-manage-row">
+          <div style="display:flex;align-items:center;gap:8px">
+            ${dot(v.color,10)}
+            <div>
+              <div style="color:#CBD5E1;font-size:13px;font-weight:500">${v.color}</div>
+              <div style="color:${v.stock===0?"#F87171":"#60A5FA"};font-size:12px;font-weight:700">${v.stock} stok</div>
             </div>
-            <div style="display:flex;gap:6px;align-items:center">
-              <button class="btn-ghost" onclick="openEditStock('${item.id}','${v.color}',${v.stock})">
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              </button>
-              ${!rented?`<button class="btn-danger-sm" onclick="openDeleteConfirm('variant','${item.id}','${v.color}')">
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-              </button>`:`<span class="rented-badge">Disewa</span>`}
-            </div>
-          </div>`;
-        }).join("")}
-      </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn-ghost" onclick="openEditStock('${item.id}','${v.color}',${v.stock})">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            ${!rented?`<button class="btn-danger-sm" onclick="openDeleteConfirm('variant','${item.id}','${v.color}')">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            </button>`:`<span class="rented-badge">Disewa</span>`}
+          </div>
+        </div>`;
+      }).join("")}</div>
     </div>`;
   }).join("");
 }
 
 function renderHistory() {
-  document.getElementById("history-sub").textContent = history.length+" total transaksi tercatat";
+  const hl = historyList().sort((a,b)=>b.returnedAt-a.returnedAt);
+  document.getElementById("history-sub").textContent = hl.length+" total transaksi tercatat";
   const el = document.getElementById("history-content");
-  if(history.length===0){
-    el.innerHTML=`<div class="card empty-state">Belum ada riwayat penyewaan</div>`;
-    return;
-  }
-  const rows = [...history].reverse().map((r,i)=>`
+  if(hl.length===0){ el.innerHTML=`<div class="card empty-state">Belum ada riwayat penyewaan</div>`; return; }
+  const rows = hl.map((r,i)=>`
     <tr>
       <td style="color:#E2E8F0;font-weight:600">${r.name}</td>
       <td style="color:#64748B">${r.address}</td>
@@ -688,31 +797,28 @@ function renderHistory() {
       <td style="color:#64748B;white-space:nowrap">${formatDate(r.returnedAt)}</td>
       <td style="color:#38BDF8;white-space:nowrap">${formatDuration(r.returnedAt-r.startTs)}</td>
     </tr>`).join("");
-  el.innerHTML=`<div class="card" style="overflow:hidden">
-    <div style="overflow-x:auto">
-      <table class="history-table">
-        <thead><tr>${["Penyewa","Alamat","Barang","Warna","Tanggal Sewa","Tanggal Kembali","Total Durasi"].map(h=>`<th>${h}</th>`).join("")}</tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-  </div>`;
+  el.innerHTML=`<div class="card" style="overflow:hidden"><div style="overflow-x:auto">
+    <table class="history-table">
+      <thead><tr>${["Penyewa","Alamat","Barang","Warna","Tanggal Sewa","Tanggal Kembali","Total Durasi"].map(h=>`<th>${h}</th>`).join("")}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div></div>`;
 }
 
-// ── Duration tick ─────────────────────────────────────────
+// ── Duration tick ──────────────────────────────────────────────────
 let durTick = null;
-function startDurationTick(){
+function startDurationTick() {
   if(durTick) return;
   durTick = setInterval(()=>{
     document.querySelectorAll("[data-dur-start]").forEach(el=>{
       el.textContent = formatDuration(Date.now()-parseInt(el.dataset.durStart));
     });
-  }, 60000);
+  }, 30000);
 }
 
-// ══════════════════════════════════════════════════════════
-// ACTIONS — semua action simpan ke shared storage
-// ══════════════════════════════════════════════════════════
-function openSewaModal(itemId, color){
+// ── Sewa ───────────────────────────────────────────────────────────
+let sewaModal = null;
+window.openSewaModal = function(itemId, color) {
   sewaModal = {itemId, color};
   const item = inventory.find(i=>i.id===itemId);
   document.getElementById("sewa-modal-sub").innerHTML = `${item.name} · ${dot(color)} ${color}`;
@@ -720,49 +826,77 @@ function openSewaModal(itemId, color){
   document.getElementById("sewa-address").value = "";
   showError("sewa-error","");
   openModal("modal-sewa");
-}
-async function confirmSewa(){
+};
+window.confirmSewa = async function() {
   const name    = document.getElementById("sewa-name").value.trim();
   const address = document.getElementById("sewa-address").value.trim();
   if(!name||!address){ showError("sewa-error","Nama dan alamat wajib diisi."); return; }
   const item    = inventory.find(i=>i.id===sewaModal.itemId);
-  const variant = item.variants.find(v=>v.color===sewaModal.color);
-  if(variant.stock<=0){ showError("sewa-error","Stok habis!"); return; }
-  inventory = inventory.map(i=> i.id!==sewaModal.itemId ? i :
-    {...i, variants:i.variants.map(v=> v.color!==sewaModal.color ? v : {...v, stock:v.stock-1})});
-  rentals.push({id:Date.now()+Math.random(), itemId:sewaModal.itemId, itemName:item.name, color:sewaModal.color, name, address, startTs:Date.now()});
-  closeModal("modal-sewa");
-  saveToStorage();
-  rerenderAll();
-}
+  const variant = item?.variants.find(v=>v.color===sewaModal.color);
+  if(!variant||variant.stock<=0){ showError("sewa-error","Stok habis!"); return; }
 
-async function returnRental(id){
-  const r = rentals.find(x=>x.id===id);
+  const btn = document.getElementById("sewa-submit-btn");
+  btn.disabled = true; btn.textContent = "Menyimpan...";
+  try {
+    // Kurangi stok di inventory
+    const updatedVariants = item.variants.map(v=>
+      v.color!==sewaModal.color ? v : {...v, stock:v.stock-1}
+    );
+    await set(ref(db, `inventory/${item.id}/variants`), updatedVariants);
+    // Tambah rental
+    await push(ref(db, "rentals"), {
+      itemId: sewaModal.itemId,
+      itemName: item.name,
+      color: sewaModal.color,
+      name, address,
+      startTs: Date.now()
+    });
+    closeModal("modal-sewa");
+  } catch(e) {
+    showError("sewa-error", "Gagal menyimpan: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Konfirmasi Sewa`;
+  }
+};
+
+// ── Return ─────────────────────────────────────────────────────────
+window.returnRental = async function(key) {
+  const r = rentals[key];
   if(!r) return;
-  const now = Date.now();
-  history.push({...r, returnedAt:now});
-  inventory = inventory.map(i=> i.id!==r.itemId ? i :
-    {...i, variants:i.variants.map(v=> v.color!==r.color ? v : {...v, stock:v.stock+1})});
-  rentals = rentals.filter(x=>x.id!==id);
-  saveToStorage();
-  rerenderAll();
-}
+  const item = inventory.find(i=>i.id===r.itemId);
+  if(!item) return;
+  try {
+    // Tambah stok kembali
+    const updatedVariants = item.variants.map(v=>
+      v.color!==r.color ? v : {...v, stock:v.stock+1}
+    );
+    await set(ref(db, `inventory/${item.id}/variants`), updatedVariants);
+    // Pindah ke history
+    await push(ref(db, "history"), {...r, returnedAt: Date.now()});
+    // Hapus dari rentals
+    await remove(ref(db, `rentals/${key}`));
+  } catch(e) {
+    alert("Gagal mengembalikan: " + e.message);
+  }
+};
 
-function openAddItemModal(){
+// ── Add Item ───────────────────────────────────────────────────────
+let newItemSelectedColor = "Hitam";
+window.openAddItemModal = function() {
   newItemSelectedColor = "Hitam";
   document.getElementById("new-item-name").value = "";
   document.getElementById("new-item-stock").textContent = "1";
   document.getElementById("new-item-custom-color").value = "";
   document.getElementById("new-item-custom-color").style.display = "none";
   showError("add-item-error","");
-  renderColorChips("new-item-colors","new-item-custom-color", newItemSelectedColor, (c)=>{
-    newItemSelectedColor=c;
-    renderColorChips("new-item-colors","new-item-custom-color",newItemSelectedColor,(cc)=>{newItemSelectedColor=cc;});
+  renderColorChips("new-item-colors","new-item-custom-color",newItemSelectedColor,(c)=>{
+    newItemSelectedColor = c;
     document.getElementById("new-item-custom-color").style.display = c==="__custom__"?"block":"none";
   });
   openModal("modal-add-item");
-}
-async function handleAddItem(){
+};
+window.handleAddItem = async function() {
   const name = document.getElementById("new-item-name").value.trim();
   if(!name){ showError("add-item-error","Nama barang wajib diisi."); return; }
   if(inventory.find(i=>i.name.toLowerCase()===name.toLowerCase())){ showError("add-item-error","Nama barang sudah ada."); return; }
@@ -772,13 +906,15 @@ async function handleAddItem(){
   if(!colorUsed){ showError("add-item-error","Pilih atau masukkan warna."); return; }
   const stock = parseInt(document.getElementById("new-item-stock").textContent)||0;
   const id = name.toLowerCase().replace(/\s+/g,"-")+"-"+Date.now();
-  inventory.push({id, name, variants:[{color:colorUsed, stock:Math.max(0,stock)}]});
-  closeModal("modal-add-item");
-  saveToStorage();
-  rerenderAll();
-}
+  try {
+    await set(ref(db, `inventory/${id}`), {id, name, variants:[{color:colorUsed, stock:Math.max(0,stock)}]});
+    closeModal("modal-add-item");
+  } catch(e) { showError("add-item-error","Gagal: "+e.message); }
+};
 
-function openAddVariantModal(itemId){
+// ── Add Variant ────────────────────────────────────────────────────
+let addVariantItemId = null, addVariantSelectedColor = "Hitam";
+window.openAddVariantModal = function(itemId) {
   addVariantItemId = itemId;
   addVariantSelectedColor = "Hitam";
   const item = inventory.find(i=>i.id===itemId);
@@ -788,148 +924,124 @@ function openAddVariantModal(itemId){
   document.getElementById("add-variant-custom-color").style.display = "none";
   showError("add-variant-error","");
   renderColorChips("add-variant-colors","add-variant-custom-color",addVariantSelectedColor,(c)=>{
-    addVariantSelectedColor=c;
-    renderColorChips("add-variant-colors","add-variant-custom-color",addVariantSelectedColor,(cc)=>{addVariantSelectedColor=cc;});
+    addVariantSelectedColor = c;
     document.getElementById("add-variant-custom-color").style.display = c==="__custom__"?"block":"none";
   });
   openModal("modal-add-variant");
-}
-async function handleAddVariant(){
+};
+window.handleAddVariant = async function() {
   const colorUsed = addVariantSelectedColor==="__custom__"
     ? document.getElementById("add-variant-custom-color").value.trim()
     : addVariantSelectedColor;
   if(!colorUsed){ showError("add-variant-error","Pilih atau masukkan warna."); return; }
   const item = inventory.find(i=>i.id===addVariantItemId);
-  if(item.variants.find(v=>v.color.toLowerCase()===colorUsed.toLowerCase())){ showError("add-variant-error","Warna sudah ada di barang ini."); return; }
+  if(item.variants.find(v=>v.color.toLowerCase()===colorUsed.toLowerCase())){ showError("add-variant-error","Warna sudah ada."); return; }
   const stock = parseInt(document.getElementById("add-variant-stock").textContent)||0;
-  inventory = inventory.map(i=> i.id!==addVariantItemId ? i :
-    {...i, variants:[...i.variants,{color:colorUsed,stock:Math.max(0,stock)}]});
-  closeModal("modal-add-variant");
-  saveToStorage();
-  rerenderAll();
-}
+  try {
+    const newVariants = [...item.variants, {color:colorUsed, stock:Math.max(0,stock)}];
+    await set(ref(db, `inventory/${addVariantItemId}/variants`), newVariants);
+    closeModal("modal-add-variant");
+  } catch(e) { showError("add-variant-error","Gagal: "+e.message); }
+};
 
-function openEditStock(itemId, color, stock){
+// ── Edit Stock ─────────────────────────────────────────────────────
+let editStockTarget = null;
+window.openEditStock = function(itemId, color, stock) {
   editStockTarget = {itemId, color};
   const item = inventory.find(i=>i.id===itemId);
-  const dotHtml = `<span style="color:${COLOR_DOT[color]||'#60A5FA'}">●</span>`;
-  document.getElementById("edit-stock-sub").innerHTML = `${item?.name} · ${dotHtml} ${color}`;
+  document.getElementById("edit-stock-sub").innerHTML = `${item?.name} · ${dot(color,8)} ${color}`;
   document.getElementById("edit-stock-val").value = stock;
-  const rented = rentals.filter(r=>r.itemId===itemId&&r.color===color).length;
+  const rented = rentalsList().filter(r=>r.itemId===itemId&&r.color===color).length;
   const warnEl = document.getElementById("edit-stock-warn");
-  if(rented>0){
-    warnEl.textContent = `⚠ ${rented} unit sedang disewa — stok di sini adalah unit yang tersisa.`;
-    warnEl.style.display="block";
-  } else {
-    warnEl.style.display="none";
-  }
+  warnEl.style.display = rented>0?"block":"none";
+  if(rented>0) warnEl.textContent = `⚠ ${rented} unit sedang disewa — stok di sini adalah unit yang tersisa.`;
   openModal("modal-edit-stock");
-}
-async function handleEditStock(){
-  const val = Math.max(0,parseInt(document.getElementById("edit-stock-val").value)||0);
-  inventory = inventory.map(i=> i.id!==editStockTarget.itemId ? i :
-    {...i, variants:i.variants.map(v=> v.color!==editStockTarget.color ? v : {...v, stock:val})});
-  closeModal("modal-edit-stock");
-  saveToStorage();
-  rerenderAll();
-}
-function changeStockInput(delta){
+};
+window.handleEditStock = async function() {
+  const val = Math.max(0, parseInt(document.getElementById("edit-stock-val").value)||0);
+  const item = inventory.find(i=>i.id===editStockTarget.itemId);
+  const newVariants = item.variants.map(v=>v.color!==editStockTarget.color?v:{...v,stock:val});
+  try {
+    await set(ref(db, `inventory/${editStockTarget.itemId}/variants`), newVariants);
+    closeModal("modal-edit-stock");
+  } catch(e) { alert("Gagal: "+e.message); }
+};
+window.changeStockInput = function(delta) {
   const el = document.getElementById("edit-stock-val");
   el.value = Math.max(0,(parseInt(el.value)||0)+delta);
-}
-function clampStockInput(){
+};
+window.clampStockInput = function() {
   const el = document.getElementById("edit-stock-val");
   if(parseInt(el.value)<0) el.value=0;
-}
+};
 
-function openDeleteConfirm(type, itemId, color){
+// ── Delete ─────────────────────────────────────────────────────────
+let deleteTarget = null;
+window.openDeleteConfirm = function(type, itemId, color) {
   deleteTarget = {type, itemId, color};
   const item = inventory.find(i=>i.id===itemId);
-  const text = type==="item"
+  document.getElementById("delete-confirm-text").textContent = type==="item"
     ? `Hapus barang "${item?.name}" beserta semua variannya?`
     : `Hapus varian ${color} dari "${item?.name}"?`;
-  document.getElementById("delete-confirm-text").textContent = text;
   openModal("modal-delete");
-}
-async function executeDelete(){
+};
+window.executeDelete = async function() {
   if(!deleteTarget) return;
-  if(deleteTarget.type==="item"){
-    inventory = inventory.filter(i=>i.id!==deleteTarget.itemId);
-  } else {
-    inventory = inventory.map(i=> i.id!==deleteTarget.itemId ? i :
-      {...i, variants:i.variants.filter(v=>v.color!==deleteTarget.color)})
-      .filter(i=>i.variants.length>0);
-  }
-  closeModal("modal-delete");
-  saveToStorage();
-  rerenderAll();
-}
+  const item = inventory.find(i=>i.id===deleteTarget.itemId);
+  try {
+    if(deleteTarget.type==="item"){
+      await remove(ref(db, `inventory/${deleteTarget.itemId}`));
+    } else {
+      const newVariants = item.variants.filter(v=>v.color!==deleteTarget.color);
+      if(newVariants.length===0){ await remove(ref(db, `inventory/${deleteTarget.itemId}`)); }
+      else { await set(ref(db, `inventory/${deleteTarget.itemId}/variants`), newVariants); }
+    }
+    closeModal("modal-delete");
+  } catch(e) { alert("Gagal menghapus: "+e.message); }
+};
 
-// ── Color chips ───────────────────────────────────────────
-function renderColorChips(containerId, customInputId, selected, onChange){
+// ── Color chips ─────────────────────────────────────────────────────
+function renderColorChips(containerId, customInputId, selected, onChange) {
   const container = document.getElementById(containerId);
-  const all = [...COLOR_OPTIONS, "__custom__"];
-  container.innerHTML = all.map(c=>{
-    const label = c==="__custom__" ? "+ Lainnya" : c;
-    const bgDot = c!=="__custom__" ? `${dot(c,8)}` : "";
+  const all = [...window.COLOR_OPTIONS, "__custom__"];
+  container.innerHTML = all.map((c,i)=>{
+    const label = c==="__custom__"?"+Lainnya":c;
+    const bgDot = c!=="__custom__"?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${window.COLOR_DOT[c]||'#94A3B8'}"></span>`:"";
     const sel = selected===c?" selected":"";
-    return `<button class="color-chip${sel}" onclick="(function(){
-      document.querySelectorAll('#${containerId} .color-chip').forEach(b=>b.classList.remove('selected'));
-      this.classList.add('selected');
-      var ci=document.getElementById('${customInputId}');
-      if('${c}'==='__custom__'){ci.style.display='block';}else{ci.style.display='none';}
-    }).call(this)">${bgDot}${label}</button>`;
+    return `<button class="color-chip${sel}" data-idx="${i}">${bgDot}${label}</button>`;
   }).join("");
   container.querySelectorAll(".color-chip").forEach((btn,i)=>{
-    btn.addEventListener("click",()=>onChange(all[i]));
+    btn.addEventListener("click",()=>{
+      container.querySelectorAll(".color-chip").forEach(b=>b.classList.remove("selected"));
+      btn.classList.add("selected");
+      onChange(all[i]);
+    });
   });
 }
+window.renderColorChips = renderColorChips;
 
-function changeStock(spanId, delta){
+// ── Stock span counter ─────────────────────────────────────────────
+window.changeStock = function(spanId, delta) {
   const el = document.getElementById(spanId);
-  const cur = parseInt(el.textContent)||0;
-  el.textContent = Math.max(0,cur+delta);
-}
+  el.textContent = Math.max(0,(parseInt(el.textContent)||0)+delta);
+};
 
-function openModal(id)  { document.getElementById(id).classList.add("open"); }
-function closeModal(id) { document.getElementById(id).classList.remove("open"); }
-function showError(id, msg){
+// ── Modal helpers ──────────────────────────────────────────────────
+window.openModal  = id => document.getElementById(id).classList.add("open");
+window.closeModal = id => document.getElementById(id).classList.remove("open");
+window.showError  = function(id, msg) {
   const el = document.getElementById(id);
   el.textContent = msg;
   el.style.display = msg?"block":"none";
-}
+};
 
-function rerenderAll(){
+// ── Rerender ───────────────────────────────────────────────────────
+function rerenderAll() {
   renderNav(document.getElementById("nav"));
   renderNav(document.getElementById("nav-mobile"));
   renderPage(currentPage);
 }
 
-// ══════════════════════════════════════════════════════════
-// INIT — sambungkan ke Firebase, dengarkan perubahan data real-time
-// ══════════════════════════════════════════════════════════
-function init(){
-  // onValue akan terpanggil setiap kali data di Firebase berubah
-  // (termasuk perubahan dari pengguna lain)
-  onValue(DATA_REF, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      inventory = data.inventory || DEFAULT_INVENTORY;
-      rentals   = data.rentals   || [];
-      history   = data.history   || [];
-    } else {
-      // Database masih kosong — isi dengan data default
-      inventory = DEFAULT_INVENTORY;
-      rentals   = [];
-      history   = [];
-      saveToStorage();
-    }
-    document.getElementById("loading-overlay").classList.add("hidden");
-    rerenderAll();
-    startDurationTick();
-  });
-}
-init();
 </script>
 </body>
 </html>
