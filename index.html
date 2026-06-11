@@ -1129,11 +1129,11 @@ function showBookingToast(name, startDate, days) {
 }
 
 // ── Auto-activate bookings ──────────────────────────────────────────
-// Stok dikurangi H-1 (24 jam sebelum tanggal mulai sewa)
+// Booking pindah ke sewa tepat saat hari H (startTs) sudah tiba
 async function checkAndActivateBookings() {
   const now = Date.now();
-  const H1_BEFORE = 86400000; // 24 jam dalam ms
-  const toActivate = bookingsList().filter(b => b.startTs <= now + H1_BEFORE);
+  // Hanya aktifkan jika startTs sudah <= sekarang (hari H sudah tiba)
+  const toActivate = bookingsList().filter(b => b.startTs <= now);
   if(toActivate.length===0) return;
 
   // Group by sessionId
