@@ -439,10 +439,12 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
     </div>
     <div class="login-field">
       <label class="login-label" for="login-password">Password</label>
-      <input class="login-input" id="login-password" type="password" placeholder="Masukkan password" autocomplete="current-password"/>
+      <div style="position:relative">
+        <input class="login-input" id="login-password" type="password" placeholder="Masukkan password" autocomplete="current-password" style="padding-right:48px"/>
+        <button id="toggle-password-btn" onclick="togglePasswordVisibility()" type="button" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:#64748B;cursor:pointer;padding:4px;display:flex;align-items:center;transition:color 0.15s" onmouseover="this.style.color='#94A3B8'" onmouseout="this.style.color='#64748B'"></button>
+      </div>
     </div>
-    <div class="login-error" id="login-error">Username atau password salah!</div>
-    <button class="login-btn" onclick="doLogin()">Masuk</button>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Masuk</button>
     <div style="margin-top:20px;text-align:center;color:#334155;font-size:11px">Trek Out Adventure © 2026</div>
   </div>
 </div>
@@ -2101,14 +2103,13 @@ const USERS = [
   { username: "difta12",     password: "difta122" },
   { username: "aji009",      password: "aji112" }
 ];
-const LOGIN_KEY   = "trekout_login";
-const LOGIN_EXPIRY = 24 * 60 * 60 * 1000; // 1 hari dalam ms
+const LOGIN_KEY    = "trekout_login";
+const LOGIN_EXPIRY = 24 * 60 * 60 * 1000;
 
 function checkLogin() {
   try {
     const saved = JSON.parse(localStorage.getItem(LOGIN_KEY));
     if (saved && saved.username && (Date.now() - saved.ts) < LOGIN_EXPIRY) {
-      // Sesi masih valid
       setLoggedIn(saved.username);
       return true;
     }
@@ -2118,47 +2119,125 @@ function checkLogin() {
 
 function setLoggedIn(username) {
   document.getElementById("login-screen").style.display = "none";
-  document.getElementById("sidebar-username").textContent = username;
-  const mob = document.getElementById("sidebar-username-mobile");
-  if (mob) mob.textContent = username;
+  const u1 = document.getElementById("sidebar-username");
+  const u2 = document.getElementById("sidebar-username-mobile");
+  if (u1) u1.textContent = username;
+  if (u2) u2.textContent = username;
 }
 
-function doLogin() {
+function showLoginToast(msg, type) {
+  // hapus toast lama jika ada
+  const old = document.getElementById("login-toast");
+  if (old) old.remove();
+  const toast = document.createElement("div");
+  toast.id = "login-toast";
+  const bg   = type === "error" ? "rgba(248,113,113,0.15)" : "rgba(16,185,129,0.15)";
+  const bdr  = type === "error" ? "rgba(248,113,113,0.4)"  : "rgba(16,185,129,0.4)";
+  const clr  = type === "error" ? "#F87171" : "#34D399";
+  const icon = type === "error" ? "❌" : "✅";
+  toast.style.cssText = `position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-20px);z-index:99999;background:${bg};border:1px solid ${bdr};border-radius:14px;padding:14px 22px;color:${clr};font-size:14px;font-weight:700;box-shadow:0 8px 32px rgba(0,0,0,0.5);font-family:'Inter',-apple-system,sans-serif;opacity:0;transition:all 0.35s cubic-bezier(0.22,1,0.36,1);display:flex;align-items:center;gap:10px;max-width:90vw;white-space:nowrap`;
+  toast.innerHTML = `<span style="font-size:18px">${icon}</span><span>${msg}</span>`;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.style.opacity = "1";
+    toast.style.transform = "translateX(-50%) translateY(0)";
+  });
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(-50%) translateY(-16px)";
+    setTimeout(() => toast.remove(), 400);
+  }, 2800);
+}
+
+window.doLogin = function() {
   const username = document.getElementById("login-username").value.trim();
   const password = document.getElementById("login-password").value;
-  const errEl = document.getElementById("login-error");
-  const user = USERS.find(u => u.username === username && u.password === password);
-  if (user) {
-    errEl.style.display = "none";
-    localStorage.setItem(LOGIN_KEY, JSON.stringify({ username, ts: Date.now() }));
-    setLoggedIn(username);
-  } else {
-    errEl.style.display = "block";
-    document.getElementById("login-password").value = "";
-    document.getElementById("login-password").focus();
-  }
-}
+  const btn = document.getElementById("login-btn");
 
-function doLogout() {
+  if (!username || !password) {
+    showLoginToast("Username dan password tidak boleh kosong!", "error");
+    return;
+  }
+
+  // Animasi loading tombol
+  btn.disabled = true;
+  btn.textContent = "Memverifikasi...";
+
+  setTimeout(() => {
+    const user = USERS.find(u => u.username === username && u.password === password);
+    if (user) {
+      showLoginToast(`Selamat datang, ${username}! 🎉`, "success");
+      localStorage.setItem(LOGIN_KEY, JSON.stringify({ username, ts: Date.now() }));
+      setTimeout(() => setLoggedIn(username), 800);
+    } else {
+      showLoginToast("Username atau password salah! Coba lagi.", "error");
+      document.getElementById("login-password").value = "";
+      document.getElementById("login-password").focus();
+      // Shake animation pada box
+      const box = document.querySelector(".login-box");
+      box.style.animation = "none";
+      box.style.transform = "translateX(-8px)";
+      setTimeout(() => { box.style.transform = "translateX(8px)"; }, 80);
+      setTimeout(() => { box.style.transform = "translateX(-5px)"; }, 160);
+      setTimeout(() => { box.style.transform = "translateX(5px)"; }, 240);
+      setTimeout(() => { box.style.transform = "translateX(0)"; box.style.transition = "transform 0.2s ease"; }, 320);
+    }
+    btn.disabled = false;
+    btn.textContent = "Masuk";
+  }, 400);
+};
+
+window.doLogout = function() {
   localStorage.removeItem(LOGIN_KEY);
   document.getElementById("login-username").value = "";
   document.getElementById("login-password").value = "";
-  document.getElementById("login-error").style.display = "none";
+  // Reset show password
+  const pwInput = document.getElementById("login-password");
+  if (pwInput) pwInput.type = "password";
+  const eyeBtn = document.getElementById("toggle-password-btn");
+  if (eyeBtn) eyeBtn.innerHTML = EYE_OPEN;
   document.getElementById("login-screen").style.display = "flex";
-}
+  setTimeout(() => document.getElementById("login-username").focus(), 100);
+};
 
-// Enter key support
-document.addEventListener("DOMContentLoaded", function() {
-  ["login-username","login-password"].forEach(id => {
-    document.getElementById(id)?.addEventListener("keydown", function(e) {
-      if (e.key === "Enter") doLogin();
-    });
-  });
-  if (!checkLogin()) {
-    document.getElementById("login-screen").style.display = "flex";
-    document.getElementById("login-username").focus();
+window.togglePasswordVisibility = function() {
+  const input = document.getElementById("login-password");
+  const btn   = document.getElementById("toggle-password-btn");
+  if (input.type === "password") {
+    input.type = "text";
+    btn.innerHTML = EYE_CLOSED;
+  } else {
+    input.type = "password";
+    btn.innerHTML = EYE_OPEN;
   }
-});
+};
+
+const EYE_OPEN   = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const EYE_CLOSED = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+
+// Inisialisasi saat halaman siap
+(function initLogin() {
+  // Pasang enter key
+  function bindEnter() {
+    ["login-username","login-password"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("keydown", e => { if (e.key === "Enter") window.doLogin(); });
+    });
+    // Set ikon eye awal
+    const eyeBtn = document.getElementById("toggle-password-btn");
+    if (eyeBtn) eyeBtn.innerHTML = EYE_OPEN;
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => { bindEnter(); if (!checkLogin()) document.getElementById("login-username").focus(); });
+  } else {
+    bindEnter();
+    if (!checkLogin()) {
+      document.getElementById("login-screen").style.display = "flex";
+      document.getElementById("login-username").focus();
+    }
+  }
+})();
 
 </body>
 </html>
