@@ -23,7 +23,8 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
 #content{flex:1;padding:28px 24px;max-width:1100px;width:100%;margin:0 auto}
 
 .sidebar-brand{padding:24px 20px 20px;border-bottom:1px solid rgba(96,165,250,0.08);display:flex;align-items:center;gap:10px}
-.brand-logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3B82F6,#38BDF8);display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px rgba(56,189,248,0.4);flex-shrink:0}
+.brand-logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3B82F6,#38BDF8);display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px rgba(56,189,248,0.4);flex-shrink:0;overflow:hidden}
+.brand-logo img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
 .brand-name{color:#F1F5F9;font-weight:800;font-size:13px;letter-spacing:0.5px}
 .brand-sub{color:#38BDF8;font-size:10px;letter-spacing:1.5px;text-transform:uppercase}
 #nav{flex:1;padding:16px 12px}
@@ -249,6 +250,148 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
   .stats-grid{grid-template-columns:1fr}
 }
 @keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── PAGE TRANSITION ANIMATIONS ── */
+@keyframes pageEnter{
+  from{opacity:0;transform:translateY(18px) scale(0.99)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes pageExit{
+  from{opacity:1;transform:translateY(0)}
+  to{opacity:0;transform:translateY(-10px)}
+}
+.page.active{
+  animation:pageEnter 0.32s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+.page.exiting{
+  animation:pageExit 0.18s ease forwards;
+  pointer-events:none;
+}
+
+/* ── CARD HOVER ANIMATIONS ── */
+.card{
+  transition:transform 0.22s cubic-bezier(0.22,1,0.36,1),
+             box-shadow 0.22s ease,
+             border-color 0.22s ease;
+}
+.item-card:hover,.rental-card:hover,.booking-card:hover,.manage-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 12px 40px rgba(56,189,248,0.08),0 4px 16px rgba(0,0,0,0.3);
+  border-color:rgba(96,165,250,0.28);
+}
+.stat-card{
+  transition:transform 0.22s cubic-bezier(0.22,1,0.36,1),box-shadow 0.22s ease,border-color 0.22s ease;
+  cursor:default;
+}
+.stat-card:hover{
+  transform:translateY(-4px) scale(1.01);
+  box-shadow:0 16px 48px rgba(56,189,248,0.1);
+  border-color:rgba(96,165,250,0.3);
+}
+
+/* ── STAT VALUE COUNT-UP ── */
+@keyframes countUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.stat-value{animation:countUp 0.5s cubic-bezier(0.22,1,0.36,1) both}
+
+/* ── NAV BUTTON SMOOTH TRANSITION ── */
+.nav-btn{transition:background 0.2s,color 0.2s,transform 0.15s,box-shadow 0.2s}
+.nav-btn:hover{transform:translateX(3px)}
+.nav-btn.active{transform:translateX(3px)}
+
+/* ── BUTTON PRESS EFFECT ── */
+.btn-primary,.btn-activate,.btn-cart-add,.btn-return{
+  transition:transform 0.12s,box-shadow 0.12s,opacity 0.15s;
+}
+.btn-primary:active,.btn-activate:active,.btn-cart-add:active{
+  transform:scale(0.96);
+}
+
+/* ── MODAL ANIMATION ── */
+@keyframes modalIn{
+  from{opacity:0;transform:scale(0.93) translateY(20px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+.modal-overlay.open{animation:overlayIn 0.2s ease forwards}
+.modal-overlay.open .modal-box{animation:modalIn 0.28s cubic-bezier(0.22,1,0.36,1) forwards}
+.modal-overlay.open .nota-wrapper{animation:modalIn 0.28s cubic-bezier(0.22,1,0.36,1) forwards}
+
+/* ── SKELETON LOADING ── */
+@keyframes shimmer{
+  0%{background-position:-400px 0}
+  100%{background-position:400px 0}
+}
+.skeleton{
+  background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.04) 75%);
+  background-size:800px 100%;
+  animation:shimmer 1.4s infinite linear;
+  border-radius:8px;
+}
+
+/* ── VARIANT ROW HOVER ── */
+.variant-row{transition:background 0.18s,border-color 0.18s}
+.variant-row:hover{background:rgba(96,165,250,0.07)!important;border-color:rgba(96,165,250,0.15)!important}
+
+/* ── CART ITEM ROW HOVER ── */
+.cart-item-row{transition:background 0.18s,border-color 0.18s}
+.cart-item-row:hover{background:rgba(96,165,250,0.06)!important;border-color:rgba(96,165,250,0.18)!important}
+
+/* ── BADGE PULSE ── */
+@keyframes badgePop{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
+.nav-badge{animation:badgePop 0.4s cubic-bezier(0.22,1,0.36,1)}
+
+/* ── FLOATING PARTICLES (bg glow animate) ── */
+@keyframes glowFloat1{
+  0%,100%{transform:translate(0,0) scale(1)}
+  33%{transform:translate(20px,-30px) scale(1.1)}
+  66%{transform:translate(-15px,20px) scale(0.9)}
+}
+@keyframes glowFloat2{
+  0%,100%{transform:translate(0,0) scale(1)}
+  33%{transform:translate(-25px,15px) scale(1.05)}
+  66%{transform:translate(10px,-25px) scale(0.95)}
+}
+.bg-glow1{animation:glowFloat1 12s ease-in-out infinite}
+.bg-glow2{animation:glowFloat2 15s ease-in-out infinite}
+
+/* ── SIDEBAR BRAND LOGO GLOW ── */
+@keyframes logoGlow{
+  0%,100%{box-shadow:0 0 16px rgba(56,189,248,0.4)}
+  50%{box-shadow:0 0 28px rgba(56,189,248,0.7),0 0 48px rgba(56,189,248,0.15)}
+}
+.brand-logo{animation:logoGlow 3s ease-in-out infinite}
+
+/* ── TOAST SLIDE IN ── */
+@keyframes toastSlide{
+  from{transform:translateX(80px);opacity:0}
+  to{transform:translateX(0);opacity:1}
+}
+
+/* ── H1 BADGE ANIMATION ── */
+@keyframes h1pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(56,189,248,0.3)}
+  50%{box-shadow:0 0 0 6px rgba(56,189,248,0)}
+}
+.booking-status-badge.today{animation:h1pulse 1.5s infinite}
+
+/* ── FIELD INPUT FOCUS GLOW ── */
+.field-input{transition:border-color 0.2s,box-shadow 0.2s}
+.field-input:focus{
+  border-color:rgba(96,165,250,0.5);
+  box-shadow:0 0 0 3px rgba(96,165,250,0.08);
+}
+
+/* ── ACTIVE LIST ROW HOVER ── */
+.active-list-row{transition:background 0.18s,border-color 0.18s,transform 0.15s}
+.active-list-row:hover{background:rgba(96,165,250,0.08)!important;transform:translateX(3px)}
+
+/* ── RIPPLE EFFECT on btn-primary ── */
+.btn-primary,.btn-activate{position:relative;overflow:hidden}
+.btn-primary::after,.btn-activate::after{
+  content:"";position:absolute;inset:0;background:radial-gradient(circle,rgba(255,255,255,0.2) 0%,transparent 70%);
+  opacity:0;transition:opacity 0.3s;border-radius:inherit;
+}
+.btn-primary:active::after,.btn-activate:active::after{opacity:1;transition:none}
 </style>
 </head>
 <body>
@@ -257,7 +400,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
   <div class="setup-box">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
       <div class="brand-logo" style="width:40px;height:40px">
-        <svg width="20" height="20" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg>
+        <img src="https://i.imgur.com/uO0W2B4.jpeg" alt="TrekOut" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;border-radius:10px"/>
       </div>
       <div>
         <div class="brand-name" style="font-size:16px">TREK OUT ADVENTURE</div>
@@ -284,7 +427,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
 <div id="app">
   <div id="sidebar">
     <div class="sidebar-brand">
-      <div class="brand-logo"><svg width="22" height="22" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg></div>
+      <div class="brand-logo"><img src="https://i.imgur.com/uO0W2B4.jpeg" alt="TrekOut" onerror="this.style.display='none'"/></div>
       <div><div class="brand-name">TREK OUT</div><div class="brand-sub">Adventure</div></div>
     </div>
     <nav id="nav"></nav>
@@ -301,7 +444,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
   <div id="sidebar-overlay" onclick="closeMobileSidebar()">
     <div id="sidebar-mobile" onclick="event.stopPropagation()">
       <div class="sidebar-brand">
-        <div class="brand-logo" style="width:28px;height:28px;border-radius:8px"><svg width="14" height="14" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg></div>
+        <div class="brand-logo" style="width:28px;height:28px;border-radius:8px"><img src="https://i.imgur.com/uO0W2B4.jpeg" alt="TrekOut" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;border-radius:8px"/></div>
         <div><div class="brand-name">TREK OUT</div><div class="brand-sub">Adventure</div></div>
       </div>
       <nav id="nav-mobile" style="flex:1;padding:16px 12px;overflow-y:auto"></nav>
@@ -569,6 +712,31 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
     <div style="display:flex;gap:10px">
       <button class="btn-cancel" onclick="closeModal('modal-delete')">Batal</button>
       <button class="btn-confirm-del" onclick="executeDelete()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Konfirmasi Kembalikan -->
+<div id="modal-return" class="modal-overlay" onclick="closeModal('modal-return')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div style="text-align:center;padding:8px 0 16px">
+      <div style="width:56px;height:56px;border-radius:50%;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#38BDF8;animation:logoGlow 3s ease-in-out infinite">
+        <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h11a5 5 0 010 10h-1"/></svg>
+      </div>
+      <div class="modal-title" style="margin-bottom:6px">Konfirmasi Pengembalian</div>
+      <div id="return-confirm-name" style="color:#38BDF8;font-weight:700;font-size:15px;margin-bottom:4px"></div>
+      <p id="return-confirm-text" style="color:#64748B;font-size:13px;line-height:1.6"></p>
+    </div>
+    <div style="background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.12);border-radius:10px;padding:10px 14px;margin-bottom:16px" id="return-items-preview"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-cancel" onclick="closeModal('modal-return')">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Batal
+      </button>
+      <button id="btn-confirm-return" onclick="executeReturn()" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(56,189,248,0.35);background:rgba(56,189,248,0.15);color:#38BDF8;cursor:pointer;font-weight:700;font-size:14px;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.15s">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h11a5 5 0 010 10h-1"/></svg>
+        Ya, Kembalikan
+      </button>
     </div>
   </div>
 </div>
@@ -897,16 +1065,18 @@ async function confirmBooking(name, address, days, discount, startDate) {
 
 function showBookingToast(name, startDate, days) {
   const toast = document.createElement("div");
-  toast.style.cssText="position:fixed;bottom:70px;right:16px;z-index:9999;background:#1e3a2f;border:1px solid rgba(16,185,129,0.4);border-radius:12px;padding:14px 18px;color:#10B981;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.4);max-width:280px;line-height:1.5;animation:slideIn 0.3s ease";
+  toast.style.cssText="position:fixed;bottom:70px;right:16px;z-index:9999;background:#1e3a2f;border:1px solid rgba(16,185,129,0.4);border-radius:12px;padding:14px 18px;color:#10B981;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.4);max-width:280px;line-height:1.5;animation:toastSlide 0.35s cubic-bezier(0.22,1,0.36,1) forwards";
   toast.innerHTML=`✅ Booking berhasil!<br><span style="color:#94A3B8;font-weight:400">${name} — ${startDate.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})} (${days} hari)</span>`;
   document.body.appendChild(toast);
   setTimeout(()=>{toast.style.opacity="0";toast.style.transition="opacity 0.4s";setTimeout(()=>toast.remove(),400);},3500);
 }
 
 // ── Auto-activate bookings ──────────────────────────────────────────
+// Stok dikurangi H-1 (24 jam sebelum tanggal mulai sewa)
 async function checkAndActivateBookings() {
   const now = Date.now();
-  const toActivate = bookingsList().filter(b => b.startTs <= now);
+  const H1_BEFORE = 86400000; // 24 jam dalam ms
+  const toActivate = bookingsList().filter(b => b.startTs <= now + H1_BEFORE);
   if(toActivate.length===0) return;
 
   // Group by sessionId
@@ -1015,12 +1185,14 @@ function renderBooking(){
   }
 
   const now = Date.now();
-  el.innerHTML=`<div class="booking-grid">${sorted.map(g=>{
+  el.innerHTML=`<div class="booking-grid">${sorted.map((g,idx)=>{
     const subtotal = g.items.reduce((s,b)=>s+(b.pricePerDay||0)*(b.qty||1)*(b.days||1),0);
     const total = Math.max(0, subtotal-(g.discount||0));
     const msLeft = g.startTs - now;
     const isToday = msLeft <= 0 || (msLeft < 86400000 && new Date(g.startTs).toDateString()===new Date().toDateString());
     const isPast  = msLeft < 0;
+
+    const isH1 = msLeft > 0 && msLeft <= 86400000; // H-1: dalam 24 jam ke depan
 
     let statusBadge, countdownText;
     if(isPast && msLeft < -300000){
@@ -1029,6 +1201,10 @@ function renderBooking(){
     } else if(isToday){
       statusBadge=`<span class="booking-status-badge today">● Mulai Hari Ini</span>`;
       countdownText=`<div class="booking-countdown">Siap diaktifkan!</div>`;
+    } else if(isH1){
+      statusBadge=`<span class="booking-status-badge today" style="background:rgba(56,189,248,0.12);color:#38BDF8;border-color:rgba(56,189,248,0.3)">⚡ H-1 · Stok Dikurangi</span>`;
+      const h=Math.floor(msLeft/3600000), m=Math.floor((msLeft%3600000)/60000);
+      countdownText=`<div class="booking-countdown" style="color:#38BDF8">${h} jam ${m} menit lagi · stok sudah dipesan</div>`;
     } else {
       const d=Math.floor(msLeft/86400000), h=Math.floor((msLeft%86400000)/3600000);
       statusBadge=`<span class="booking-status-badge upcoming">📅 Upcoming</span>`;
@@ -1048,7 +1224,7 @@ function renderBooking(){
         ${b.pricePerDay?`<span style="color:#38BDF8;font-size:11px;font-weight:600">Rp ${fmtRp(b.pricePerDay*(b.qty||1)*(g.days||1))}</span>`:""}
       </div>`).join("");
 
-    return `<div class="card booking-card">
+    return `<div class="card booking-card" style="animation-delay:${idx*0.06}s">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
         <div>
           <div style="color:#F1F5F9;font-weight:700;font-size:15px">${g.name}</div>
@@ -1270,9 +1446,18 @@ function renderNav(navEl){
   }).join("");
 }
 window.navigate=function(page){
+  const prev = document.getElementById("page-"+currentPage);
   currentPage=page;
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-  document.getElementById("page-"+page).classList.add("active");
+  // Exit animation on previous page
+  if(prev && prev.classList.contains("active")){
+    prev.classList.add("exiting");
+    prev.classList.remove("active");
+    setTimeout(()=>prev.classList.remove("exiting"),200);
+  } else {
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active","exiting"));
+  }
+  const next = document.getElementById("page-"+page);
+  if(next) next.classList.add("active");
   renderNav(document.getElementById("nav"));
   renderNav(document.getElementById("nav-mobile"));
   renderPage(page);
@@ -1293,8 +1478,17 @@ function renderDashboard(){
   const rl=rentalsList(), hl=historyList(), bl=bookingsList();
   const totalStock=inventory.reduce((s,i)=>s+i.variants.reduce((v,vr)=>v+vr.stock,0),0);
   const todayStr=new Date().toDateString();
-  const todayCount=hl.filter(h=>new Date(h.returnedAt).toDateString()===todayStr).length;
-  const activeToday=rl.filter(r=>new Date(r.startTs).toDateString()===todayStr).length;
+  // Hitung per sesi (1 user = 1 transaksi), bukan per item
+  const todayHistorySessions=new Set(
+    hl.filter(h=>new Date(h.returnedAt).toDateString()===todayStr)
+      .map(h=>`${h.name}__${h.address}__${Math.round((h.startTs||0)/1000)}`)
+  ).size;
+  const todayRentalSessions=new Set(
+    rl.filter(r=>new Date(r.startTs).toDateString()===todayStr)
+      .map(r=>`${r.name}__${r.address}__${Math.round((r.startTs||0)/1000)}`)
+  ).size;
+  const todayCount=todayHistorySessions;
+  const activeToday=todayRentalSessions;
   // Count unique active sessions
   const activeGroups=new Set(rl.map(r=>`${r.name}__${r.address}__${Math.round((r.startTs||0)/1000)}`)).size;
   document.getElementById("dash-date").textContent="Selamat datang — "+new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
@@ -1303,9 +1497,9 @@ function renderDashboard(){
     {label:"Sedang Disewa",value:activeGroups,icon:"active",color:"#38BDF8"},
     {label:"Booking Aktif",value:bl.length,icon:"booking",color:"#F59E0B"},
     {label:"Transaksi Hari Ini",value:todayCount+activeToday,icon:"history",color:"#818CF8"},
-  ].map(s=>`<div class="card stat-card">
+  ].map((s,i)=>`<div class="card stat-card" style="animation-delay:${i*0.07}s">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div><div class="stat-label">${s.label}</div><div class="stat-value" style="color:${s.color}">${s.value}</div></div>
+      <div><div class="stat-label">${s.label}</div><div class="stat-value" style="color:${s.color};animation-delay:${i*0.07+0.15}s">${s.value}</div></div>
       <div style="padding:10px;border-radius:12px;color:${s.color};background:${s.color}22">${navIcons[s.icon]?.replace(/16/g,"22")||""}</div>
     </div>
   </div>`).join("");
@@ -1351,10 +1545,10 @@ function renderDashboard(){
 }
 
 function renderInventory(){
-  document.getElementById("inv-list").innerHTML=inventory.map(item=>{
+  document.getElementById("inv-list").innerHTML=inventory.map((item,idx)=>{
     const total=item.variants.reduce((s,v)=>s+v.stock,0);
     const price=item.price>0?item.price:(PRICE_LIST[item.name]||0);
-    return `<div class="card item-card">
+    return `<div class="card item-card" style="animation-delay:${idx*0.04}s">
       <div class="item-header">
         <div>
           <div class="item-name">${item.name}</div>
@@ -1445,22 +1639,89 @@ function renderActive(){
   startDurationTick();
 }
 
-// Kembalikan semua item dalam satu grup
-window.returnAllRentals = async function(keys) {
-  for(const key of keys) await returnRentalByKey(key);
+// ── Return Confirmation Modal ──────────────────────────────────────
+let returnTarget = null; // {keys: [...], mode: "all"|"single"}
+
+window.returnAllRentals = function(keys) {
+  const validKeys = keys.filter(k => rentals[k]);
+  if(!validKeys.length) return;
+  const r0 = rentals[validKeys[0]];
+  const totalItems = validKeys.reduce((s,k)=>s+(rentals[k]?.qty||1), 0);
+  const totalHarga = validKeys.reduce((s,k)=>{
+    const r=rentals[k]; return s+(r?.pricePerDay||0)*(r?.qty||1)*(r?.days||1);
+  }, 0);
+
+  document.getElementById("return-confirm-name").textContent = r0.name;
+  document.getElementById("return-confirm-text").textContent =
+    `Kembalikan semua ${validKeys.length} jenis barang (${totalItems} unit) dari penyewa ini?`;
+  document.getElementById("return-items-preview").innerHTML = validKeys.map(k=>{
+    const r=rentals[k]; if(!r) return "";
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div style="display:flex;align-items:center;gap:7px">
+        ${dot(r.color,8)}
+        <span style="color:#CBD5E1;font-size:13px">${r.itemName}${r.qty>1?` <strong style="color:#F1F5F9">×${r.qty}</strong>`:""}</span>
+      </div>
+      ${r.pricePerDay?`<span style="color:#38BDF8;font-size:11px;font-weight:600">Rp ${fmtRp(r.pricePerDay*(r.qty||1)*(r.days||1))}</span>`:""}
+    </div>`;
+  }).join("") +
+  (totalHarga>0?`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px;margin-top:4px">
+    <span style="color:#94A3B8;font-size:12px">Total</span>
+    <span style="color:#10B981;font-weight:700;font-size:14px">Rp ${fmtRp(totalHarga)}</span>
+  </div>`:"");
+
+  returnTarget = { keys: validKeys };
+  openModal("modal-return");
 };
-window.returnRental = async function(key) { await returnRentalByKey(key); };
+
+window.returnRental = function(key) {
+  const r = rentals[key];
+  if(!r) return;
+  document.getElementById("return-confirm-name").textContent = r.name;
+  document.getElementById("return-confirm-text").textContent =
+    `Kembalikan ${r.itemName} (${r.color}${r.qty>1?` ×${r.qty}`:""}) dari penyewa ini?`;
+  document.getElementById("return-items-preview").innerHTML =
+    `<div style="display:flex;align-items:center;gap:8px">
+      ${dot(r.color,10)}
+      <span style="color:#CBD5E1;font-size:14px;font-weight:600">${r.itemName}</span>
+      ${r.qty>1?`<span style="color:#F1F5F9;font-weight:700">×${r.qty}</span>`:""}
+    </div>
+    ${r.pricePerDay?`<div style="color:#38BDF8;font-size:12px;margin-top:6px;padding-left:18px">Rp ${fmtRp(r.pricePerDay*(r.qty||1)*(r.days||1))} total</div>`:""}`;
+
+  returnTarget = { keys: [key] };
+  openModal("modal-return");
+};
+
+window.executeReturn = async function() {
+  if(!returnTarget) return;
+  const btn = document.getElementById("btn-confirm-return");
+  btn.disabled = true;
+  btn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="animation:spin 0.7s linear infinite"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Memproses...`;
+  try {
+    for(const key of returnTarget.keys) await returnRentalByKey(key);
+    closeModal("modal-return");
+    // Success toast
+    const toast = document.createElement("div");
+    toast.style.cssText="position:fixed;bottom:70px;right:16px;z-index:9999;background:#1a2e3a;border:1px solid rgba(56,189,248,0.4);border-radius:12px;padding:14px 18px;color:#38BDF8;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.4);max-width:280px;line-height:1.5;animation:toastSlide 0.35s cubic-bezier(0.22,1,0.36,1) forwards";
+    toast.innerHTML=`✅ Barang berhasil dikembalikan!<br><span style="color:#94A3B8;font-weight:400">Stok sudah ditambahkan kembali</span>`;
+    document.body.appendChild(toast);
+    setTimeout(()=>{toast.style.opacity="0";toast.style.transition="opacity 0.4s";setTimeout(()=>toast.remove(),400);},3000);
+  } catch(e) {
+    alert("Gagal mengembalikan: "+e.message);
+  } finally {
+    btn.disabled=false;
+    btn.innerHTML=`<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h11a5 5 0 010 10h-1"/></svg> Ya, Kembalikan`;
+  }
+};
+
 async function returnRentalByKey(key){
   const r=rentals[key];
   if(!r) return;
   const item=inventory.find(i=>i.id===r.itemId);
   if(!item) return;
-  try{
-    const updatedVariants=item.variants.map(v=>v.color!==r.color?v:{...v,stock:v.stock+(r.qty||1)});
-    await set(ref(db,`inventory/${item.id}/variants`),updatedVariants);
-    await push(ref(db,"history"),{...r,returnedAt:Date.now()});
-    await remove(ref(db,`rentals/${key}`));
-  }catch(e){alert("Gagal mengembalikan: "+e.message);}
+  const updatedVariants=item.variants.map(v=>v.color!==r.color?v:{...v,stock:v.stock+(r.qty||1)});
+  await set(ref(db,`inventory/${item.id}/variants`),updatedVariants);
+  await push(ref(db,"history"),{...r,returnedAt:Date.now()});
+  await remove(ref(db,`rentals/${key}`));
 }
 
 // Cetak nota dari halaman aktif
