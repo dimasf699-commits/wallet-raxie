@@ -196,7 +196,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
 .nota-grand-total{display:flex;justify-content:space-between;font-size:15px;font-weight:800;color:#111;padding:4px 0;border-top:1px solid #333}
 .nota-pay-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
 .nota-printed{text-align:center;font-size:10px;color:#999;margin:6px 0}
-.nota-lunas{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);font-size:72px;font-weight:900;color:rgba(239,68,68,0.18);letter-spacing:4px;pointer-events:none;user-select:none;white-space:nowrap}
+.nota-lunas{display:none}
 .nota-footer{text-align:center;font-size:11px;color:#555;margin-top:10px;line-height:1.6}
 .nota-qty-info{font-size:11px;color:#555}
 .nota-actions{display:flex;gap:10px;margin-top:16px}
@@ -393,6 +393,10 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
           <span style="color:#64748B;font-size:13px;margin-left:4px" id="days-label">= 1 hari</span>
         </div>
       </div>
+      <div class="field">
+        <label class="field-label">Diskon (Rp)</label>
+        <input type="number" min="0" id="cart-discount" class="field-input" placeholder="Masukkan nominal diskon (0 = tanpa diskon)" value="0" oninput="onDaysChange()"/>
+      </div>
       <div class="cart-summary-box" id="cart-summary"></div>
       <div id="cart-error" class="form-error" style="display:none"></div>
       <button class="btn-primary" id="cart-submit-btn" onclick="confirmCartSewa()" style="width:100%;padding:12px;font-size:15px;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:6px">
@@ -403,10 +407,29 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
   </div>
 </div>
 
+<!-- Modal: Edit Harga -->
+<div id="modal-edit-price" class="modal-overlay" onclick="closeModal('modal-edit-price')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div><div class="modal-title">Edit Harga</div><div class="modal-sub" id="edit-price-sub"></div></div>
+      <button class="btn-close" onclick="closeModal('modal-edit-price')"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="field">
+      <label class="field-label">Harga Sewa / Hari (Rp)</label>
+      <input type="number" min="0" id="edit-price-val" class="field-input" placeholder="Contoh: 15000"/>
+    </div>
+    <div id="edit-price-error" class="form-error" style="display:none"></div>
+    <button class="btn-primary" onclick="handleEditPrice()" style="width:100%;padding:12px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:6px">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Simpan Harga
+    </button>
+  </div>
+</div>
+
 <!-- Nota Modal -->
 <div id="nota-overlay" onclick="closeNota()">
   <div class="nota-wrapper" onclick="event.stopPropagation()">
-    <div class="nota-lunas">LUNAS</div>
+
     <div id="nota-content"></div>
     <div class="nota-actions">
       <button class="nota-print-btn" onclick="window.print()">
@@ -671,11 +694,15 @@ function renderCartModal() {
 }
 
 function renderCartSummary(days) {
-  const total = cartTotal(days);
+  const subtotal = cartTotal(days);
+  const discount = Math.max(0, parseInt(document.getElementById("cart-discount")?.value)||0);
+  const total = Math.max(0, subtotal - discount);
   document.getElementById("cart-summary").innerHTML = `
     <div class="cart-sum-row"><span class="cart-sum-label">Durasi Sewa</span><span class="cart-sum-val">${days} hari</span></div>
     <div class="cart-sum-row"><span class="cart-sum-label">Total Item</span><span class="cart-sum-val">${cartQty()} unit (${cart.length} jenis)</span></div>
-    <div class="cart-sum-row"><span class="cart-sum-label">Total Harga</span><span class="cart-sum-val">Rp ${fmtRp(total)}</span></div>`;
+    <div class="cart-sum-row"><span class="cart-sum-label">Subtotal</span><span class="cart-sum-val">Rp ${fmtRp(subtotal)}</span></div>
+    ${discount>0?`<div class="cart-sum-row"><span class="cart-sum-label" style="color:#F59E0B">Diskon</span><span class="cart-sum-val" style="color:#F59E0B">− Rp ${fmtRp(discount)}</span></div>`:""}
+    <div class="cart-sum-row"><span class="cart-sum-label">Total Bayar</span><span class="cart-sum-val" style="color:#10B981;font-size:16px">Rp ${fmtRp(total)}</span></div>`;
 }
 
 window.cartQtyChange = function(idx, delta) {
@@ -711,7 +738,8 @@ window.addToCart = function(itemId, color) {
   if(existing){
     existing.qty = Math.min(variant.stock, existing.qty+1);
   } else {
-    cart.push({itemId, itemName:item.name, color, qty:1, pricePerDay:item.price||0});
+    const resolvedPrice = item.price>0 ? item.price : (PRICE_LIST[item.name]||0);
+    cart.push({itemId, itemName:item.name, color, qty:1, pricePerDay:resolvedPrice});
   }
   updateCartUI();
   renderInventory();
@@ -724,6 +752,7 @@ window.confirmCartSewa = async function() {
   const name    = document.getElementById("cart-name").value.trim();
   const address = document.getElementById("cart-address").value.trim();
   const days    = Math.max(1, parseInt(document.getElementById("cart-days").value)||1);
+  const discount= Math.max(0, parseInt(document.getElementById("cart-discount").value)||0);
   if(!name||!address){ showError("cart-error","Nama dan alamat wajib diisi."); return; }
   if(cart.length===0){ showError("cart-error","Keranjang kosong!"); return; }
 
@@ -744,11 +773,11 @@ window.confirmCartSewa = async function() {
       await push(ref(db, "rentals"), {
         itemId:c.itemId, itemName:c.itemName, color:c.color,
         qty:c.qty, pricePerDay:c.pricePerDay,
-        name, address, days, dueTs, startTs:now
+        name, address, days, dueTs, startTs:now, discount
       });
     }
     // Tampilkan nota
-    showNota({name, address, days, items:[...cart], startTs:now, dueTs});
+    showNota({name, address, days, items:[...cart], startTs:now, dueTs, discount});
     // Reset cart
     cart=[];
     updateCartUI();
@@ -765,7 +794,9 @@ window.confirmCartSewa = async function() {
 // ── Nota ───────────────────────────────────────────────────────────
 function showNota(data) {
   const {name, address, days, items, startTs, dueTs} = data;
-  const total = items.reduce((s,c)=>s+c.qty*c.pricePerDay*days,0);
+  const discount = Math.max(0, data.discount||0);
+  const subtotal = items.reduce((s,c)=>s+c.qty*c.pricePerDay*days,0);
+  const total = Math.max(0, subtotal - discount);
   const totalQty = items.reduce((s,c)=>s+c.qty,0);
   const nowStr = new Date(startTs).toLocaleString("id-ID",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}).replace(/\./g,"/");
   const dueStr = new Date(dueTs).toLocaleDateString("id-ID",{day:"2-digit",month:"2-digit",year:"numeric"});
@@ -795,7 +826,8 @@ function showNota(data) {
     <div class="nota-printed">[ Printed by e-Nota ]</div>
     <hr class="nota-divider-dashed"/>
     <div class="nota-totals">
-      <div class="nota-total-row"><span>Total Harga</span><span>Rp ${fmtRp(total)}</span></div>
+      <div class="nota-total-row"><span>Subtotal</span><span>Rp ${fmtRp(subtotal)}</span></div>
+      ${discount>0?`<div class="nota-total-row" style="color:#e67e22"><span>Diskon</span><span>− Rp ${fmtRp(discount)}</span></div>`:""}
     </div>
     <hr class="nota-divider"/>
     <div class="nota-grand-total"><span>TOTAL</span><span>Rp ${fmtRp(total)}</span></div>
@@ -816,7 +848,7 @@ window.showHistoryNota = function(key) {
   const r = historyMap[key];
   if(!r) return;
   const items = r.items || [{itemId:r.itemId,itemName:r.itemName,color:r.color,qty:r.qty||1,pricePerDay:r.pricePerDay||0}];
-  showNota({name:r.name,address:r.address,days:r.days||1,items,startTs:r.startTs,dueTs:r.dueTs||r.returnedAt});
+  showNota({name:r.name,address:r.address,days:r.days||1,items,startTs:r.startTs,dueTs:r.dueTs||r.returnedAt,discount:r.discount||0});
 };
 
 function fmtRp(n){ return Number(n||0).toLocaleString("id-ID"); }
@@ -829,13 +861,29 @@ function setStatus(state,text){
   if(state==="connected"){ setTimeout(()=>{el.style.opacity="0";setTimeout(()=>{el.style.opacity="1";el.className="connected";},3000);},2000); }
 }
 
-// ── Seed ───────────────────────────────────────────────────────────
+// ── Seed & patch harga ─────────────────────────────────────────────
 async function seedIfEmpty(){
   const snap=await get(ref(db,"inventory"));
   if(!snap.exists()){
+    // Database kosong → isi semua dari DEFAULT_INVENTORY
     const inv={};
     DEFAULT_INVENTORY.forEach(item=>{ inv[item.id]=item; });
     await set(ref(db,"inventory"),inv);
+  } else {
+    // Database sudah ada → patch harga untuk item yang belum punya price
+    const patches=[];
+    snap.forEach(child=>{
+      const item=child.val();
+      // Cari harga: dari DEFAULT_INVENTORY berdasarkan id, atau dari PRICE_LIST berdasarkan nama
+      const def=DEFAULT_INVENTORY.find(d=>d.id===child.key);
+      const priceFromDef=def?.price||0;
+      const priceFromList=PRICE_LIST[item.name]||0;
+      const correctPrice=priceFromDef||priceFromList;
+      if((!item.price||item.price===0) && correctPrice>0){
+        patches.push(set(ref(db,`inventory/${child.key}/price`),correctPrice));
+      }
+    });
+    if(patches.length>0) await Promise.all(patches);
   }
 }
 
@@ -973,7 +1021,7 @@ function renderDashboard(){
 function renderInventory(){
   document.getElementById("inv-list").innerHTML=inventory.map(item=>{
     const total=item.variants.reduce((s,v)=>s+v.stock,0);
-    const price=item.price||PRICE_LIST[item.name]||0;
+    const price=item.price>0?item.price:(PRICE_LIST[item.name]||0);
     return `<div class="card item-card">
       <div class="item-header">
         <div>
@@ -1003,51 +1051,110 @@ function renderInventory(){
 
 function renderActive(){
   const rl=rentalsList();
-  document.getElementById("active-sub").textContent=rl.length+" penyewaan aktif";
+  document.getElementById("active-sub").textContent=rl.length+" item aktif";
   const el=document.getElementById("active-list");
   if(rl.length===0){el.innerHTML=`<div class="card empty-state">Tidak ada penyewaan aktif</div>`;return;}
-  el.innerHTML=`<div class="active-grid">${rl.map(r=>{
-    const dueLabel=r.dueTs?`<div style="color:#F59E0B;font-size:12px;margin-top:2px">Jatuh tempo: ${formatDate(r.dueTs)}</div>`:"";
+
+  // Group berdasarkan nama+alamat+startTs (satu sesi sewa)
+  const groups={};
+  rl.forEach(r=>{
+    // Kunci grup: nama + alamat + startTs (dibulatkan ke detik agar item dari satu sesi tergabung)
+    const key=`${r.name}__${r.address}__${Math.round((r.startTs||0)/1000)}`;
+    if(!groups[key]) groups[key]={name:r.name,address:r.address,startTs:r.startTs,dueTs:r.dueTs,days:r.days,items:[]};
+    groups[key].items.push(r);
+  });
+
+  el.innerHTML=`<div class="active-grid">${Object.values(groups).map(g=>{
+    const allKeys=g.items.map(r=>`'${r._key}'`).join(",");
+    const totalHarga=g.items.reduce((s,r)=>s+(r.pricePerDay||0)*(r.qty||1)*(r.days||1),0);
+    const dueLabel=g.dueTs?`<div style="color:#F59E0B;font-size:12px;margin-top:2px">⏰ Jatuh tempo: ${formatDate(g.dueTs)}</div>`:"";
+    const itemList=g.items.map(r=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:6px;border:1px solid rgba(255,255,255,0.05)">
+        <div style="display:flex;align-items:center;gap:7px">
+          ${dot(r.color,8)}
+          <span style="color:#CBD5E1;font-size:13px">${r.itemName}${r.qty>1?` <strong>×${r.qty}</strong>`:""}</span>
+        </div>
+        <div style="text-align:right">
+          ${r.pricePerDay?`<div style="color:#38BDF8;font-size:11px;font-weight:600">Rp ${fmtRp(r.pricePerDay*(r.qty||1)*(g.days||1))}</div>`:""}
+          <button onclick="returnRental('${r._key}')" style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid rgba(248,113,113,0.3);background:rgba(248,113,113,0.08);color:#F87171;cursor:pointer;margin-top:3px;font-family:inherit">Kembalikan</button>
+        </div>
+      </div>`).join("");
+
     return `<div class="card rental-card">
       <div class="rental-card-glow"></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
         <div>
-          <div style="color:#F1F5F9;font-weight:700;font-size:15px">${r.name}</div>
-          <div style="color:#64748B;font-size:12px;margin-top:3px">${r.address}</div>
-          ${r.days?`<div style="color:#38BDF8;font-size:12px;margin-top:2px">📅 ${r.days} hari</div>`:""}
+          <div style="color:#F1F5F9;font-weight:700;font-size:15px">${g.name}</div>
+          <div style="color:#64748B;font-size:12px;margin-top:2px">${g.address}</div>
+          ${g.days?`<div style="color:#38BDF8;font-size:12px;margin-top:2px">📅 ${g.days} hari</div>`:""}
+          ${dueLabel}
         </div>
-        <div style="display:flex;align-items:center;gap:6px">${dot(r.color,10)}<span style="color:#94A3B8;font-size:12px">${r.color}</span></div>
+        <button onclick="printActiveNota('${g.name}','${g.address}',${g.days||1},[${allKeys}])" 
+          style="padding:5px 10px;border-radius:8px;border:1px solid rgba(56,189,248,0.3);background:rgba(56,189,248,0.08);color:#38BDF8;cursor:pointer;font-size:12px;font-family:inherit;white-space:nowrap">
+          🧾 Nota
+        </button>
       </div>
-      <div class="rental-item-info">
-        <div style="color:#60A5FA;font-weight:600;font-size:14px">${r.itemName}${r.qty>1?` ×${r.qty}`:""}</div>
-        <div style="color:#475569;font-size:12px;margin-top:4px">Mulai: ${formatDate(r.startTs)}</div>
-        ${dueLabel}
-        ${r.pricePerDay?`<div style="color:#94A3B8;font-size:12px">Total: Rp ${fmtRp(r.pricePerDay*(r.qty||1)*(r.days||1))}</div>`:""}
-      </div>
-      <div class="rental-duration-box">
+      <div style="color:#94A3B8;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">${g.items.length} Barang Disewa</div>
+      ${itemList}
+      <div class="rental-duration-box" style="margin-top:10px">
         <div class="duration-label">Durasi Berjalan</div>
-        <div class="duration-value" data-dur-start="${r.startTs}">${formatDuration(Date.now()-r.startTs)}</div>
+        <div class="duration-value" data-dur-start="${g.startTs}">${formatDuration(Date.now()-g.startTs)}</div>
       </div>
-      <button class="btn-return" onclick="returnRental('${r._key}')">
+      ${totalHarga>0?`<div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 12px;padding:8px 12px;background:rgba(16,185,129,0.06);border-radius:8px;border:1px solid rgba(16,185,129,0.15)">
+        <span style="color:#94A3B8;font-size:12px">Total Sewa</span>
+        <span style="color:#10B981;font-weight:700;font-size:14px">Rp ${fmtRp(totalHarga)}</span>
+      </div>`:""}
+      <button class="btn-return" onclick="returnAllRentals([${allKeys}])">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h11a5 5 0 010 10h-1"/></svg>
-        Kembalikan
+        Kembalikan Semua
       </button>
     </div>`;
   }).join("")}</div>`;
   startDurationTick();
 }
 
+// Kembalikan semua item dalam satu grup
+window.returnAllRentals = async function(keys) {
+  for(const key of keys) await returnRentalByKey(key);
+};
+window.returnRental = async function(key) { await returnRentalByKey(key); };
+async function returnRentalByKey(key){
+  const r=rentals[key];
+  if(!r) return;
+  const item=inventory.find(i=>i.id===r.itemId);
+  if(!item) return;
+  try{
+    const updatedVariants=item.variants.map(v=>v.color!==r.color?v:{...v,stock:v.stock+(r.qty||1)});
+    await set(ref(db,`inventory/${item.id}/variants`),updatedVariants);
+    await push(ref(db,"history"),{...r,returnedAt:Date.now()});
+    await remove(ref(db,`rentals/${key}`));
+  }catch(e){alert("Gagal mengembalikan: "+e.message);}
+}
+
+// Cetak nota dari halaman aktif
+window.printActiveNota = function(name, address, days, keys) {
+  const items = keys.map(k=>rentals[k]).filter(Boolean).map(r=>({
+    itemName:r.itemName, color:r.color, qty:r.qty||1, pricePerDay:r.pricePerDay||0
+  }));
+  const r0 = keys.map(k=>rentals[k]).find(Boolean);
+  showNota({name, address, days, items, startTs:r0?.startTs||Date.now(), dueTs:r0?.dueTs, discount:r0?.discount||0});
+};
+
 function renderManage(){
   const rl=rentalsList();
   document.getElementById("manage-list").innerHTML=inventory.map(item=>{
     const totalStock=item.variants.reduce((s,v)=>s+v.stock,0);
     const hasRental=rl.some(r=>r.itemId===item.id);
+    const price=item.price>0?item.price:(PRICE_LIST[item.name]||0);
     return `<div class="card manage-card">
       <div class="manage-item-header">
-        <div style="display:flex;align-items:center;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <span style="color:#F1F5F9;font-weight:700;font-size:16px">${item.name}</span>
           <span style="background:rgba(96,165,250,0.1);border-radius:8px;padding:2px 10px;font-size:12px;color:#60A5FA">${totalStock} stok</span>
-          <span style="color:#38BDF8;font-size:12px">Rp ${fmtRp(item.price||0)}/hari</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:#38BDF8;font-size:12px" id="price-label-${item.id}">Rp ${fmtRp(price)}/hari</span>
+            <button onclick="openEditPrice('${item.id}',${price})" style="padding:2px 8px;border-radius:6px;border:1px solid rgba(56,189,248,0.25);background:rgba(56,189,248,0.07);color:#38BDF8;cursor:pointer;font-size:11px;font-family:inherit">Edit Harga</button>
+          </div>
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn-add-variant" onclick="openAddVariantModal('${item.id}')">
@@ -1087,25 +1194,59 @@ function renderHistory(){
   document.getElementById("history-sub").textContent=hl.length+" total transaksi tercatat";
   const el=document.getElementById("history-content");
   if(hl.length===0){el.innerHTML=`<div class="card empty-state">Belum ada riwayat penyewaan</div>`;return;}
-  const rows=hl.map(r=>`
+
+  // Group berdasarkan sesi: nama + alamat + startTs (dibulatkan ke detik)
+  const sessionMap={};
+  hl.forEach(r=>{
+    const key=`${r.name}__${r.address}__${Math.round((r.startTs||0)/1000)}`;
+    if(!sessionMap[key]) sessionMap[key]={
+      name:r.name, address:r.address, startTs:r.startTs,
+      returnedAt:r.returnedAt, days:r.days||1, discount:r.discount||0,
+      items:[], keys:[]
+    };
+    sessionMap[key].items.push(r);
+    sessionMap[key].keys.push(r._key);
+    // Gunakan returnedAt terbaru
+    if(r.returnedAt > sessionMap[key].returnedAt) sessionMap[key].returnedAt=r.returnedAt;
+  });
+
+  const sessions=Object.values(sessionMap).sort((a,b)=>b.returnedAt-a.returnedAt);
+
+  const rows=sessions.map(s=>{
+    const subtotal=s.items.reduce((sum,r)=>sum+(r.pricePerDay||0)*(r.qty||1)*(s.days||1),0);
+    const total=Math.max(0,subtotal-(s.discount||0));
+    const barangList=s.items.map(r=>`${r.itemName}${r.qty>1?` ×${r.qty}`:""} (${r.color})`).join(', ');
+    const firstKey=s.keys[0];
+    return `
     <tr>
-      <td style="color:#E2E8F0;font-weight:600">${r.name}</td>
-      <td style="color:#64748B">${r.address}</td>
-      <td style="color:#60A5FA">${r.itemName}${r.qty>1?` ×${r.qty}`:""}</td>
-      <td><span style="display:flex;align-items:center;gap:6px;color:#94A3B8">${dot(r.color,8)}${r.color}</span></td>
-      <td style="color:#38BDF8">${r.days||1} hari</td>
-      <td style="color:${r.pricePerDay?"#10B981":"#475569"}">${r.pricePerDay?`Rp ${fmtRp(r.pricePerDay*(r.qty||1)*(r.days||1))}`:"—"}</td>
-      <td style="color:#64748B;white-space:nowrap">${formatDate(r.startTs)}</td>
-      <td style="color:#64748B;white-space:nowrap">${formatDate(r.returnedAt)}</td>
-      <td><button onclick="showHistoryNota('${r._key}')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(56,189,248,0.3);background:rgba(56,189,248,0.08);color:#38BDF8;cursor:pointer;font-size:11px;font-family:inherit">🧾 Nota</button></td>
-    </tr>`).join("");
+      <td style="color:#E2E8F0;font-weight:600">${s.name}</td>
+      <td style="color:#64748B">${s.address}</td>
+      <td style="color:#60A5FA;max-width:200px">${barangList}</td>
+      <td style="color:#38BDF8">${s.days||1} hari</td>
+      <td style="color:${total?"#10B981":"#475569"}">${total?`Rp ${fmtRp(total)}`:"—"}</td>
+      <td style="color:#64748B;white-space:nowrap">${formatDate(s.startTs)}</td>
+      <td style="color:#64748B;white-space:nowrap">${formatDate(s.returnedAt)}</td>
+      <td><button onclick="showHistoryNotaSession('${s.keys.join(",")}')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(56,189,248,0.3);background:rgba(56,189,248,0.08);color:#38BDF8;cursor:pointer;font-size:11px;font-family:inherit">🧾 Nota</button></td>
+    </tr>`}).join("");
+
   el.innerHTML=`<div class="card" style="overflow:hidden"><div style="overflow-x:auto">
     <table class="history-table">
-      <thead><tr>${["Penyewa","Alamat","Barang","Warna","Durasi","Total","Tgl Sewa","Tgl Kembali","Nota"].map(h=>`<th>${h}</th>`).join("")}</tr></thead>
+      <thead><tr>${["Penyewa","Alamat","Barang Disewa","Durasi","Total","Tgl Sewa","Tgl Kembali","Nota"].map(h=>`<th>${h}</th>`).join("")}</tr></thead>
       <tbody>${rows}</tbody>
     </table>
   </div></div>`;
 }
+
+window.showHistoryNotaSession = function(keysStr) {
+  const keys = keysStr.split(",");
+  const records = keys.map(k=>historyMap[k]).filter(Boolean);
+  if(!records.length) return;
+  const r0 = records[0];
+  const items = records.map(r=>({itemId:r.itemId,itemName:r.itemName,color:r.color,qty:r.qty||1,pricePerDay:r.pricePerDay||0}));
+  // Ambil discount dari record pertama yang punya
+  const discount = records.reduce((d,r)=>d||(r.discount||0),0);
+  showNota({name:r0.name,address:r0.address,days:r0.days||1,items,startTs:r0.startTs,dueTs:r0.dueTs||r0.returnedAt,discount});
+};
 
 let durTick=null;
 function startDurationTick(){
@@ -1117,20 +1258,28 @@ function startDurationTick(){
   },30000);
 }
 
-// ── Return Rental ──────────────────────────────────────────────────
-window.returnRental=async function(key){
-  const r=rentals[key];
-  if(!r) return;
-  const item=inventory.find(i=>i.id===r.itemId);
-  if(!item) return;
+
+
+// ── Edit Price ─────────────────────────────────────────────────────
+let editPriceItemId=null;
+window.openEditPrice=function(itemId,currentPrice){
+  editPriceItemId=itemId;
+  const item=inventory.find(i=>i.id===itemId);
+  document.getElementById("edit-price-sub").textContent=item?.name||"";
+  document.getElementById("edit-price-val").value=currentPrice||0;
+  showError("edit-price-error","");
+  openModal("modal-edit-price");
+};
+window.handleEditPrice=async function(){
+  const val=parseInt(document.getElementById("edit-price-val").value)||0;
+  if(val<0){showError("edit-price-error","Harga tidak boleh negatif.");return;}
   try{
-    const updatedVariants=item.variants.map(v=>
-      v.color!==r.color?v:{...v,stock:v.stock+(r.qty||1)}
-    );
-    await set(ref(db,`inventory/${item.id}/variants`),updatedVariants);
-    await push(ref(db,"history"),{...r,returnedAt:Date.now()});
-    await remove(ref(db,`rentals/${key}`));
-  }catch(e){alert("Gagal mengembalikan: "+e.message);}
+    await set(ref(db,`inventory/${editPriceItemId}/price`),val);
+    // Update label langsung
+    const lbl=document.getElementById(`price-label-${editPriceItemId}`);
+    if(lbl) lbl.textContent=`Rp ${fmtRp(val)}/hari`;
+    closeModal("modal-edit-price");
+  }catch(e){showError("edit-price-error","Gagal: "+e.message);}
 };
 
 // ── Add Item ───────────────────────────────────────────────────────
