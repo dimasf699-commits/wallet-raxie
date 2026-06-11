@@ -1,613 +1,687 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Foto Fuzzle</title>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.js" crossorigin="anonymous"></script>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --ink:#0a0a0f;--paper:#f0ede8;--cyan:#00f5c4;--magenta:#ff2d78;
-  --violet:#7c5cff;--amber:#ffb340;--green:#00e676;
-  --cyan-dim:rgba(0,245,196,.15);--mag-dim:rgba(255,45,120,.15);
-  --white:rgba(255,255,255,.9);--mono:'DM Mono',monospace;
-  --display:'Bebas Neue',sans-serif;--body:'Instrument Sans',sans-serif;
+import { useState, useEffect, useCallback } from "react";
+
+// ─── Initial Data ─────────────────────────────────────────────────────────────
+const INITIAL_INVENTORY = [
+  { id: "carrier", name: "Carrier", variants: [{ color: "Kuning", stock: 2 }, { color: "Hitam", stock: 1 }, { color: "Merah", stock: 2 }] },
+  { id: "hydropack", name: "Hydropack", variants: [{ color: "Hitam", stock: 3 }, { color: "Biru", stock: 2 }] },
+  { id: "tenda", name: "Tenda", variants: [{ color: "Hijau", stock: 2 }, { color: "Oranye", stock: 1 }] },
+  { id: "sleeping-bag", name: "Sleeping Bag", variants: [{ color: "Biru", stock: 3 }, { color: "Abu-abu", stock: 2 }] },
+  { id: "matras", name: "Matras", variants: [{ color: "Hijau", stock: 4 }, { color: "Merah", stock: 2 }] },
+  { id: "headlamp", name: "Headlamp", variants: [{ color: "Hitam", stock: 5 }, { color: "Kuning", stock: 2 }] },
+];
+
+const COLOR_DOT = {
+  Kuning: "#FBBF24", Hitam: "#374151", Merah: "#EF4444",
+  Biru: "#3B82F6", Hijau: "#22C55E", Oranye: "#F97316",
+  "Abu-abu": "#9CA3AF", Putih: "#F9FAFB", Ungu: "#A855F7",
+  Pink: "#EC4899", Coklat: "#92400E", Navy: "#1E3A5F",
+};
+
+const COLOR_OPTIONS = ["Kuning","Hitam","Merah","Biru","Hijau","Oranye","Abu-abu","Putih","Ungu","Pink","Coklat","Navy"];
+
+function formatDuration(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hrs = Math.floor((totalSec % 86400) / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+  return `${days} Hari ${hrs} Jam ${mins} Menit`;
 }
-html,body{width:100%;height:100%;overflow:hidden;background:var(--ink)}
-body{font-family:var(--body);color:var(--white)}
-#app{position:relative;width:100vw;height:100vh}
-#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);opacity:0;transition:opacity .6s}
-#vid.live{opacity:1}
-#overlayCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:10}
-#trailCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:15}
-#photoCanvas{display:none}
-.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .4s,visibility .4s}
-.screen.off{opacity:0;visibility:hidden;pointer-events:none}
-#bootScreen{z-index:90;background:var(--ink);gap:20px}
-#bootScreen canvas{position:absolute;inset:0}
-.boot-logo{position:relative;z-index:2;text-align:center}
-.boot-logo h1{font-family:var(--display);font-size:clamp(4rem,14vw,9rem);letter-spacing:.04em;line-height:.9;background:linear-gradient(135deg,var(--cyan) 0%,var(--violet) 50%,var(--magenta) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 60px rgba(0,245,196,.3))}
-.boot-logo .sub{font-family:var(--mono);font-size:.7rem;letter-spacing:.4em;color:rgba(255,255,255,.25);text-transform:uppercase;margin-top:12px;display:block}
-.boot-status{position:relative;z-index:2;font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;color:rgba(255,255,255,.3);text-transform:uppercase}
-.boot-bar{position:relative;z-index:2;width:200px;height:1px;background:rgba(255,255,255,.06);overflow:hidden}
-.boot-bar-fill{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--violet));transition:width .4s}
-.boot-err{position:relative;z-index:2;font-family:var(--mono);font-size:.68rem;color:var(--magenta);letter-spacing:.1em;text-align:center;max-width:320px;line-height:1.8;display:none}
-#cameraHud{z-index:20;background:transparent;pointer-events:none}
-.corner{position:absolute;width:36px;height:36px;pointer-events:none}
-.corner::before,.corner::after{content:'';position:absolute;transition:background .3s}
-.corner::before{width:100%;height:2px;background:rgba(255,255,255,.2)}
-.corner::after{width:2px;height:100%;background:rgba(255,255,255,.2)}
-.corner.tl{top:28px;left:28px}.corner.tl::before{top:0;left:0}.corner.tl::after{top:0;left:0}
-.corner.tr{top:28px;right:28px}.corner.tr::before{top:0;right:0}.corner.tr::after{top:0;right:0}
-.corner.bl{bottom:28px;left:28px}.corner.bl::before{bottom:0;left:0}.corner.bl::after{bottom:0;left:0}
-.corner.br{bottom:28px;right:28px}.corner.br::before{bottom:0;right:0}.corner.br::after{bottom:0;right:0}
-.corner.active::before,.corner.active::after{background:var(--cyan)}
-#hudBadge{position:absolute;top:28px;left:50%;transform:translateX(-50%);background:rgba(10,10,15,.8);border:1px solid rgba(255,255,255,.1);border-radius:3px;padding:10px 28px;font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;color:rgba(255,255,255,.45);backdrop-filter:blur(20px);text-transform:uppercase;white-space:nowrap;transition:color .3s,border-color .3s,background .3s;z-index:30;pointer-events:none}
-#hudBadge.detected{color:var(--cyan);border-color:rgba(0,245,196,.4);background:rgba(0,245,196,.06)}
-#hudBadge.counting{color:var(--amber);border-color:rgba(255,179,64,.4);background:rgba(255,179,64,.06)}
-#handIndicator{position:absolute;bottom:100px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:16px;transition:opacity .4s}
-#handIndicator.hidden{opacity:0;pointer-events:none}
-#handIcon{width:72px;height:72px;border-radius:50%;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;font-size:2.2rem;transition:border-color .4s,background .4s,box-shadow .4s}
-#handIcon.detected{border-color:rgba(0,245,196,.6);background:rgba(0,245,196,.08);box-shadow:0 0 30px rgba(0,245,196,.2),inset 0 0 20px rgba(0,245,196,.05);animation:pulse 1.2s ease-in-out infinite}
-@keyframes pulse{0%,100%{box-shadow:0 0 20px rgba(0,245,196,.2),inset 0 0 10px rgba(0,245,196,.04)}50%{box-shadow:0 0 50px rgba(0,245,196,.4),0 0 100px rgba(0,245,196,.08),inset 0 0 20px rgba(0,245,196,.08)}}
-#handLabel{font-family:var(--mono);font-size:.65rem;letter-spacing:.2em;color:rgba(255,255,255,.25);text-transform:uppercase;transition:color .3s}
-#handLabel.detected{color:rgba(0,245,196,.7)}
-#cdRing{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;z-index:40}
-#cdBg{position:absolute;width:210px;height:210px;border-radius:50%;background:rgba(10,10,15,.75);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.06)}
-#cdSvg{position:relative;z-index:2}
-#cdN{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:6rem;color:#fff;letter-spacing:.02em;z-index:3}
-#cdHint{position:absolute;top:calc(50% + 120px);left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:.62rem;letter-spacing:.2em;color:rgba(255,255,255,.3);text-transform:uppercase;white-space:nowrap;z-index:3}
-#cancelHint{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:.62rem;letter-spacing:.15em;color:rgba(255,45,120,.7);text-transform:uppercase;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
-#cancelHint.show{opacity:1}
-#flashEl{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:50}
-.hc{position:fixed;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);z-index:80;display:none;will-change:transform;transition:width .08s,height .08s,background .08s,box-shadow .08s}
-#hc1{width:24px;height:24px;background:rgba(0,245,196,.15);border:2px solid var(--cyan);mix-blend-mode:screen;box-shadow:0 0 14px rgba(0,245,196,.4)}
-#hc1.pinch{width:34px;height:34px;background:rgba(0,245,196,.4);box-shadow:0 0 32px rgba(0,245,196,.9),0 0 0 4px rgba(0,245,196,.2)}
-#hc2{width:18px;height:18px;background:rgba(124,92,255,.15);border:1.5px solid var(--violet);mix-blend-mode:screen}
-#puzzleScreen{z-index:30;background:var(--ink)}
-#puzzleWrap{position:relative;width:min(88vmin,520px);height:min(88vmin,520px)}
-#puzzleHUD{position:absolute;top:-52px;left:0;right:0;display:flex;justify-content:space-between;align-items:center}
-#pzProg{font-family:var(--mono);font-size:.72rem;color:rgba(255,255,255,.3);letter-spacing:.08em}
-#pzStatus{font-family:var(--mono);font-size:.72rem;color:var(--cyan);letter-spacing:.08em}
-#pzBoard{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);gap:2px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
-.pCell{background:rgba(255,255,255,.015);border:1px solid rgba(255,255,255,.03);border-radius:1px;transition:background .12s,box-shadow .12s}
-.pCell.hi{background:rgba(0,245,196,.09);box-shadow:inset 0 0 20px rgba(0,245,196,.15)}
-.pCell.correct{background:rgba(0,230,118,.05)}
-#piecesWrap{position:absolute;inset:0;pointer-events:none}
-.piece{position:absolute;cursor:none;border-radius:2px;overflow:hidden;background:#111;will-change:transform;transition:box-shadow .15s}
-.piece.sel{box-shadow:0 0 0 2px var(--cyan),0 0 30px rgba(0,245,196,.35)}
-.piece.placed{transition:box-shadow .2s,left .18s,top .18s}
-.piece canvas{display:block;width:100%;height:100%}
-#pzTrackCanvas{position:absolute;inset:0;pointer-events:none;z-index:25;border-radius:3px}
-#winScreen{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:rgba(10,10,15,.96);opacity:0;pointer-events:none;transition:opacity .4s}
-#winScreen.show{opacity:1;pointer-events:all}
-#winScreen h2{font-family:var(--display);font-size:4.5rem;letter-spacing:.06em;background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:popIn .5s cubic-bezier(.34,1.56,.64,1)}
-#winScreen p{font-family:var(--mono);font-size:.72rem;color:rgba(255,255,255,.35);letter-spacing:.12em}
-@keyframes popIn{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
-#holoScreen{z-index:40;background:#000;overflow:hidden}
-#holoBg{position:absolute;inset:0;background:radial-gradient(ellipse 90% 80% at 50% 50%,#050510 0%,#000 100%)}
-#holoParticleCanvas{position:absolute;inset:0;pointer-events:none}
-#holoStage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;perspective:1000px;perspective-origin:50% 40%}
-#holoWrap{position:relative;transform-style:preserve-3d;will-change:transform;filter:drop-shadow(0 40px 80px rgba(0,245,196,.15))}
-#holoFrame{position:relative;transform-style:preserve-3d}
-#holoImg{display:block;max-width:min(66vmin,440px);max-height:min(66vmin,440px);border-radius:3px;position:relative;z-index:2}
-.hlayer{position:absolute;inset:0;border-radius:3px;pointer-events:none}
-#hlR{mix-blend-mode:screen;filter:blur(.6px);background:rgba(255,0,50,.06)}
-#hlG{mix-blend-mode:screen;filter:blur(.4px);background:rgba(0,255,120,.05)}
-#hlB{mix-blend-mode:screen;filter:blur(.8px);background:rgba(0,80,255,.07)}
-#hlScan{position:absolute;inset:0;border-radius:3px;pointer-events:none;overflow:hidden}
-#hlScan::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,245,196,.018) 2px,rgba(0,245,196,.018) 3px)}
-#hlScan::after{content:'';position:absolute;left:0;right:0;height:80px;background:linear-gradient(to bottom,transparent,rgba(0,245,196,.06),transparent);animation:scan 2.8s linear infinite;top:-80px}
-@keyframes scan{to{top:calc(100% + 80px)}}
-#hlEdge{position:absolute;inset:-2px;border-radius:5px;z-index:3;pointer-events:none;box-shadow:0 0 0 1px rgba(0,245,196,.18),0 0 16px rgba(0,245,196,.1),0 0 50px rgba(0,245,196,.05),inset 0 0 16px rgba(0,245,196,.03)}
-.hcorner{position:absolute;width:16px;height:16px;pointer-events:none;z-index:5}
-.hcorner::before,.hcorner::after{content:'';position:absolute;background:var(--cyan)}
-.hcorner::before{width:100%;height:1px}
-.hcorner::after{width:1px;height:100%}
-.hcorner.tl{top:-4px;left:-4px}.hcorner.tl::before{top:0;left:0}.hcorner.tl::after{top:0;left:0}
-.hcorner.tr{top:-4px;right:-4px}.hcorner.tr::before{top:0;right:0}.hcorner.tr::after{top:0;right:0}
-.hcorner.bl{bottom:-4px;left:-4px}.hcorner.bl::before{bottom:0;left:0}.hcorner.bl::after{bottom:0;left:0}
-.hcorner.br{bottom:-4px;right:-4px}.hcorner.br::before{bottom:0;right:0}.hcorner.br::after{bottom:0;right:0}
-#hlSheen{position:absolute;inset:0;border-radius:3px;pointer-events:none;z-index:4;background:linear-gradient(118deg,rgba(255,255,255,.07) 0%,transparent 35%,transparent 65%,rgba(0,245,196,.04) 100%);animation:sheen 9s ease-in-out infinite}
-@keyframes sheen{0%,100%{opacity:.5}50%{opacity:1}}
-#hlReflect{position:absolute;top:100%;left:0;right:0;height:50%;border-radius:0 0 3px 3px;overflow:hidden;pointer-events:none;z-index:1;transform:scaleY(-1);opacity:0;mask-image:linear-gradient(to bottom,rgba(0,0,0,.25),transparent 75%);-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.25),transparent 75%);transition:opacity .4s}
-#hlReflectImg{display:block;width:100%;height:auto;filter:blur(1.5px)}
-#holoHUD{position:absolute;top:24px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);border:1px solid rgba(0,245,196,.12);border-radius:2px;padding:8px 22px;font-family:var(--mono);font-size:.65rem;color:rgba(0,245,196,.55);backdrop-filter:blur(10px);letter-spacing:.12em;text-transform:uppercase;z-index:10;pointer-events:none}
-#holoData{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;color:rgba(0,245,196,.35);text-align:center;text-transform:uppercase;line-height:2;pointer-events:none;z-index:10}
-#holoHtCanvas{position:absolute;inset:0;pointer-events:none;z-index:8}
-#restartBtn{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);padding:10px 28px;border:1px solid rgba(255,255,255,.1);border-radius:2px;background:rgba(255,255,255,.03);color:rgba(255,255,255,.4);cursor:pointer;font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;backdrop-filter:blur(10px);text-transform:uppercase;transition:all .25s;z-index:10}
-#restartBtn:hover{border-color:rgba(0,245,196,.35);color:var(--cyan);background:rgba(0,245,196,.05)}
-@keyframes glitchFlash{0%{opacity:0}10%{opacity:1}15%{opacity:.3}20%{opacity:.8}30%{opacity:0}}
-.do-flash{animation:glitchFlash .35s forwards!important}
-</style>
-</head>
-<body>
-<div id="app">
-  <div class="hc" id="hc1"></div>
-  <div class="hc" id="hc2"></div>
-  <video id="vid" playsinline autoplay muted></video>
-  <canvas id="overlayCanvas"></canvas>
-  <canvas id="trailCanvas"></canvas>
-  <canvas id="photoCanvas"></canvas>
-  <div class="screen" id="bootScreen">
-    <canvas id="bootBgCanvas"></canvas>
-    <div class="boot-logo"><h1>FOTO<br>FUZZLE</h1><span class="sub">Hand Tracking · AR Hologram</span></div>
-    <div class="boot-status" id="bootStatus">Menginisialisasi kamera...</div>
-    <div class="boot-bar"><div class="boot-bar-fill" id="bootBar"></div></div>
-    <div class="boot-err" id="bootErr"></div>
+
+function formatDate(ts) {
+  return new Date(ts).toLocaleString("id-ID", {
+    day: "numeric", month: "long", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+const Icon = ({ name, size = 18 }) => {
+  const icons = {
+    dashboard: <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
+    inventory: <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M20 7H4a1 1 0 00-1 1v12a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1z"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>,
+    active: <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+    history: <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+    manage: <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>,
+    return: <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h11a5 5 0 010 10h-1"/></svg>,
+    x: <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+    tent: <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg>,
+    menu: <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
+    plus: <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+    minus: <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+    trash: <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>,
+    edit: <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+    check: <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>,
+  };
+  return icons[name] || null;
+};
+
+// ─── Reusable Components ───────────────────────────────────────────────────────
+const GlassCard = ({ children, className = "", onClick, style = {} }) => (
+  <div onClick={onClick} style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(96,165,250,0.15)", backdropFilter:"blur(12px)", borderRadius:16, ...style }} className={`${className} ${onClick?"cursor-pointer":""}`}>
+    {children}
   </div>
-  <div class="screen off" id="cameraHud">
-    <div class="corner tl" id="cTL"></div><div class="corner tr" id="cTR"></div>
-    <div class="corner bl" id="cBL"></div><div class="corner br" id="cBR"></div>
-    <div id="hudBadge">Tampilkan tangan ke kamera</div>
-    <div id="handIndicator">
-      <div id="handIcon">✋</div>
-      <div id="handLabel">Belum terdeteksi</div>
-    </div>
-    <div id="cdRing">
-      <div id="cdBg"></div>
-      <svg id="cdSvg" width="210" height="210" viewBox="0 0 210 210">
-        <circle cx="105" cy="105" r="92" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="5"/>
-        <circle id="cdArc" cx="105" cy="105" r="92" fill="none" stroke="url(#cg)" stroke-width="5" stroke-dasharray="578.1" stroke-dashoffset="578.1" stroke-linecap="round" style="transform-origin:center;transform:rotate(-90deg)"/>
-        <defs><linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00f5c4"/><stop offset="100%" stop-color="#7c5cff"/></linearGradient></defs>
-      </svg>
-      <div id="cdN">5</div>
-      <div id="cdHint">Tetap tampilkan tangan</div>
-    </div>
-    <div id="cancelHint">⚠ Tangan hilang — timer dibatalkan</div>
-    <div id="flashEl"></div>
-  </div>
-  <div class="screen off" id="puzzleScreen">
-    <div id="puzzleWrap">
-      <div id="puzzleHUD">
-        <span id="pzProg">0 / 12</span>
-        <span id="pzStatus">Cubit &amp; geser keping</span>
+);
+
+const Modal = ({ open, onClose, children, wide = false }) => {
+  if (!open) return null;
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:1000, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background:"#0F172A", border:"1px solid rgba(96,165,250,0.25)", borderRadius:20, padding:28, width:"100%", maxWidth: wide ? 600 : 440, boxShadow:"0 0 40px rgba(96,165,250,0.15)", maxHeight:"90vh", overflowY:"auto" }}>
+        {children}
       </div>
-      <div id="pzBoard"></div>
-      <div id="piecesWrap"></div>
-      <canvas id="pzTrackCanvas"></canvas>
     </div>
+  );
+};
+
+function LiveDuration({ startTs }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(t); }, []);
+  return <span style={{ color:"#38BDF8", fontVariantNumeric:"tabular-nums" }}>{formatDuration(now - startTs)}</span>;
+}
+
+const InputField = ({ label, value, onChange, placeholder, type="text" }) => (
+  <div>
+    <label style={{ color:"#94A3B8", fontSize:12, display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:0.8 }}>{label}</label>
+    <input type={type} value={value} onChange={onChange} placeholder={placeholder}
+      style={{ width:"100%", padding:"10px 14px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(96,165,250,0.2)", borderRadius:10, color:"#F1F5F9", fontSize:14, outline:"none", boxSizing:"border-box" }} />
   </div>
-  <div class="screen off" id="holoScreen">
-    <div id="holoBg"></div>
-    <canvas id="holoParticleCanvas"></canvas>
-    <div id="holoStage">
-      <div id="holoWrap">
-        <div id="holoFrame">
-          <img id="holoImg" src="" alt="">
-          <div class="hlayer" id="hlR"></div><div class="hlayer" id="hlG"></div><div class="hlayer" id="hlB"></div>
-          <div id="hlScan"></div><div id="hlEdge"></div><div id="hlSheen"></div>
-          <div class="hcorner tl"></div><div class="hcorner tr"></div>
-          <div class="hcorner bl"></div><div class="hcorner br"></div>
-          <div id="hlReflect"><img id="hlReflectImg" src="" alt=""></div>
+);
+
+const BtnPrimary = ({ onClick, children, disabled, style={} }) => (
+  <button onClick={onClick} disabled={disabled} style={{ padding:"10px 20px", borderRadius:10, border:"none", cursor:disabled?"not-allowed":"pointer", background:disabled?"rgba(71,85,105,0.3)":"linear-gradient(135deg,#3B82F6,#38BDF8)", color:disabled?"#475569":"#fff", fontWeight:700, fontSize:14, boxShadow:disabled?"none":"0 0 16px rgba(56,189,248,0.25)", fontFamily:"inherit", ...style }}>
+    {children}
+  </button>
+);
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function DashboardPage({ inventory, rentals, history }) {
+  const totalStock = inventory.reduce((s, i) => s + i.variants.reduce((v, vr) => v + vr.stock, 0), 0);
+  const todayCount = history.filter(h => new Date(h.returnedAt).toDateString() === new Date().toDateString()).length;
+  const activeToday = rentals.filter(r => new Date(r.startTs).toDateString() === new Date().toDateString()).length;
+  const stats = [
+    { label:"Total Stok Tersedia", value:totalStock, icon:"inventory", color:"#60A5FA" },
+    { label:"Sedang Disewa", value:rentals.length, icon:"active", color:"#38BDF8" },
+    { label:"Transaksi Hari Ini", value:todayCount+activeToday, icon:"history", color:"#818CF8" },
+  ];
+  return (
+    <div>
+      <div style={{ marginBottom:28 }}>
+        <h1 style={{ fontSize:26, fontWeight:700, color:"#F1F5F9", margin:0 }}>Dashboard</h1>
+        <p style={{ color:"#64748B", marginTop:4, fontSize:14 }}>Selamat datang di Trek Out Adventure — {new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:16, marginBottom:28 }}>
+        {stats.map(s => (
+          <GlassCard key={s.label} style={{ padding:24 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+              <div>
+                <p style={{ color:"#64748B", fontSize:12, marginBottom:8, textTransform:"uppercase", letterSpacing:1 }}>{s.label}</p>
+                <p style={{ fontSize:36, fontWeight:800, color:s.color, margin:0, lineHeight:1 }}>{s.value}</p>
+              </div>
+              <div style={{ color:s.color, background:`${s.color}15`, padding:10, borderRadius:12 }}><Icon name={s.icon} size={22}/></div>
+            </div>
+          </GlassCard>
+        ))}
+      </div>
+      <GlassCard style={{ padding:24 }}>
+        <h3 style={{ color:"#94A3B8", fontSize:13, textTransform:"uppercase", letterSpacing:1, marginBottom:16 }}>Penyewaan Aktif</h3>
+        {rentals.length === 0 ? (
+          <p style={{ color:"#475569", fontSize:14 }}>Tidak ada penyewaan aktif saat ini.</p>
+        ) : (
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {rentals.slice(0,5).map(r => (
+              <div key={r.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background:"rgba(96,165,250,0.05)", borderRadius:10, border:"1px solid rgba(96,165,250,0.1)" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <span style={{ width:8, height:8, borderRadius:"50%", background:COLOR_DOT[r.color]||"#94A3B8", flexShrink:0 }}/>
+                  <div>
+                    <p style={{ color:"#E2E8F0", fontWeight:600, margin:0, fontSize:14 }}>{r.name}</p>
+                    <p style={{ color:"#64748B", margin:0, fontSize:12 }}>{r.itemName} · {r.color}</p>
+                  </div>
+                </div>
+                <LiveDuration startTs={r.startTs}/>
+              </div>
+            ))}
+            {rentals.length > 5 && <p style={{ color:"#475569", fontSize:13, textAlign:"center" }}>+{rentals.length-5} lainnya</p>}
+          </div>
+        )}
+      </GlassCard>
+    </div>
+  );
+}
+
+// ─── INVENTORY (Sewa) ─────────────────────────────────────────────────────────
+function InventoryPage({ inventory, setInventory, addRental }) {
+  const [modal, setModal] = useState(null);
+  const [form, setForm] = useState({ name:"", address:"" });
+  const [error, setError] = useState("");
+
+  const openModal = (itemId, color) => { setModal({ itemId, color }); setForm({ name:"", address:"" }); setError(""); };
+
+  const confirm = () => {
+    if (!form.name.trim() || !form.address.trim()) { setError("Nama dan alamat wajib diisi."); return; }
+    const item = inventory.find(i => i.id === modal.itemId);
+    const variant = item.variants.find(v => v.color === modal.color);
+    if (variant.stock <= 0) { setError("Stok habis!"); return; }
+    setInventory(prev => prev.map(i => i.id !== modal.itemId ? i : { ...i, variants: i.variants.map(v => v.color !== modal.color ? v : { ...v, stock: v.stock-1 }) }));
+    addRental({ itemId: modal.itemId, itemName: item.name, color: modal.color, name: form.name.trim(), address: form.address.trim() });
+    setModal(null);
+  };
+
+  return (
+    <div>
+      <div style={{ marginBottom:28 }}>
+        <h1 style={{ fontSize:26, fontWeight:700, color:"#F1F5F9", margin:0 }}>Stok Tersedia</h1>
+        <p style={{ color:"#64748B", marginTop:4, fontSize:14 }}>Pilih barang dan warna untuk memulai penyewaan</p>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:16 }}>
+        {inventory.map(item => {
+          const total = item.variants.reduce((s,v) => s+v.stock, 0);
+          return (
+            <GlassCard key={item.id} style={{ padding:22 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
+                <div>
+                  <h3 style={{ color:"#F1F5F9", fontWeight:700, margin:0, fontSize:16 }}>{item.name}</h3>
+                  <p style={{ color:"#475569", fontSize:12, marginTop:3 }}>Total stok: <span style={{ color:"#60A5FA" }}>{total}</span></p>
+                </div>
+                <div style={{ background:"rgba(96,165,250,0.1)", borderRadius:10, padding:"4px 10px", fontSize:13, color:"#60A5FA", fontWeight:700 }}>{total}</div>
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                {item.variants.map(v => (
+                  <div key={v.color} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 12px", background:"rgba(255,255,255,0.03)", borderRadius:10, border:"1px solid rgba(255,255,255,0.06)" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <span style={{ width:10, height:10, borderRadius:"50%", background:COLOR_DOT[v.color]||"#94A3B8" }}/>
+                      <span style={{ color:"#CBD5E1", fontSize:13 }}>{v.color}</span>
+                      <span style={{ color:"#475569", fontSize:12 }}>({v.stock})</span>
+                    </div>
+                    <button onClick={() => openModal(item.id, v.color)} disabled={v.stock===0} style={{ padding:"4px 14px", borderRadius:8, border:"none", cursor:v.stock===0?"not-allowed":"pointer", fontSize:12, fontWeight:600, background:v.stock===0?"rgba(71,85,105,0.3)":"linear-gradient(135deg,#3B82F6,#38BDF8)", color:v.stock===0?"#475569":"#fff", boxShadow:v.stock===0?"none":"0 0 12px rgba(56,189,248,0.3)", fontFamily:"inherit" }}>
+                      {v.stock===0 ? "Habis" : "Sewa"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          );
+        })}
+      </div>
+
+      <Modal open={!!modal} onClose={() => setModal(null)}>
+        {modal && (() => {
+          const item = inventory.find(i => i.id === modal.itemId);
+          return (
+            <>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+                <div>
+                  <h3 style={{ color:"#F1F5F9", margin:0, fontWeight:700 }}>Form Penyewaan</h3>
+                  <p style={{ color:"#64748B", margin:"4px 0 0", fontSize:13 }}>{item?.name} · <span style={{ color:COLOR_DOT[modal.color]||"#60A5FA" }}>●</span> {modal.color}</p>
+                </div>
+                <button onClick={() => setModal(null)} style={{ background:"none", border:"none", color:"#64748B", cursor:"pointer" }}><Icon name="x" size={20}/></button>
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+                <InputField label="Nama Penyewa" value={form.name} onChange={e => setForm(p=>({...p,name:e.target.value}))} placeholder="Masukkan nama penyewa"/>
+                <InputField label="Alamat Penyewa" value={form.address} onChange={e => setForm(p=>({...p,address:e.target.value}))} placeholder="Masukkan alamat penyewa"/>
+                {error && <p style={{ color:"#F87171", fontSize:13, margin:0 }}>{error}</p>}
+                <BtnPrimary onClick={confirm} style={{ width:"100%", padding:12, fontSize:15, marginTop:4 }}>Konfirmasi Sewa</BtnPrimary>
+              </div>
+            </>
+          );
+        })()}
+      </Modal>
+    </div>
+  );
+}
+
+// ─── ACTIVE RENTALS ───────────────────────────────────────────────────────────
+function ActivePage({ rentals, returnRental }) {
+  return (
+    <div>
+      <div style={{ marginBottom:28 }}>
+        <h1 style={{ fontSize:26, fontWeight:700, color:"#F1F5F9", margin:0 }}>Barang Sedang Disewa</h1>
+        <p style={{ color:"#64748B", marginTop:4, fontSize:14 }}>{rentals.length} penyewaan aktif</p>
+      </div>
+      {rentals.length === 0 ? (
+        <GlassCard style={{ padding:40, textAlign:"center" }}><p style={{ color:"#475569", fontSize:16 }}>Tidak ada penyewaan aktif</p></GlassCard>
+      ) : (
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:16 }}>
+          {rentals.map(r => (
+            <GlassCard key={r.id} style={{ padding:22, position:"relative", overflow:"hidden" }}>
+              <div style={{ position:"absolute", top:0, right:0, width:80, height:80, background:"radial-gradient(circle,rgba(96,165,250,0.08),transparent)", borderRadius:"0 16px 0 80px" }}/>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:14 }}>
+                <div>
+                  <h3 style={{ color:"#F1F5F9", fontWeight:700, margin:0 }}>{r.name}</h3>
+                  <p style={{ color:"#64748B", fontSize:12, margin:"3px 0 0" }}>{r.address}</p>
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                  <span style={{ width:10, height:10, borderRadius:"50%", background:COLOR_DOT[r.color]||"#94A3B8" }}/>
+                  <span style={{ color:"#94A3B8", fontSize:12 }}>{r.color}</span>
+                </div>
+              </div>
+              <div style={{ background:"rgba(96,165,250,0.06)", borderRadius:10, padding:"10px 14px", marginBottom:12 }}>
+                <p style={{ color:"#60A5FA", fontWeight:600, margin:0, fontSize:14 }}>{r.itemName}</p>
+                <p style={{ color:"#475569", fontSize:12, margin:"4px 0 0" }}>Mulai: {formatDate(r.startTs)}</p>
+              </div>
+              <div style={{ marginBottom:14, padding:"8px 14px", background:"rgba(56,189,248,0.05)", borderRadius:10, border:"1px solid rgba(56,189,248,0.1)" }}>
+                <p style={{ color:"#64748B", fontSize:11, margin:"0 0 2px", textTransform:"uppercase", letterSpacing:0.8 }}>Durasi Berjalan</p>
+                <LiveDuration startTs={r.startTs}/>
+              </div>
+              <button onClick={() => returnRental(r.id)} style={{ width:"100%", padding:"10px", borderRadius:10, border:"1px solid rgba(248,113,113,0.3)", cursor:"pointer", background:"rgba(248,113,113,0.08)", color:"#F87171", fontWeight:600, fontSize:13, display:"flex", alignItems:"center", justifyContent:"center", gap:8, fontFamily:"inherit" }}>
+                <Icon name="return" size={15}/> Kembalikan
+              </button>
+            </GlassCard>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── HISTORY ──────────────────────────────────────────────────────────────────
+function HistoryPage({ history }) {
+  return (
+    <div>
+      <div style={{ marginBottom:28 }}>
+        <h1 style={{ fontSize:26, fontWeight:700, color:"#F1F5F9", margin:0 }}>Riwayat Penyewaan</h1>
+        <p style={{ color:"#64748B", marginTop:4, fontSize:14 }}>{history.length} total transaksi tercatat</p>
+      </div>
+      {history.length === 0 ? (
+        <GlassCard style={{ padding:40, textAlign:"center" }}><p style={{ color:"#475569", fontSize:16 }}>Belum ada riwayat penyewaan</p></GlassCard>
+      ) : (
+        <GlassCard style={{ overflow:"hidden" }}>
+          <div style={{ overflowX:"auto" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse" }}>
+              <thead>
+                <tr style={{ borderBottom:"1px solid rgba(96,165,250,0.1)" }}>
+                  {["Penyewa","Alamat","Barang","Warna","Tanggal Sewa","Tanggal Kembali","Total Durasi"].map(h => (
+                    <th key={h} style={{ padding:"14px 16px", textAlign:"left", color:"#475569", fontSize:11, textTransform:"uppercase", letterSpacing:0.8, whiteSpace:"nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[...history].reverse().map((r,i) => (
+                  <tr key={r.id} style={{ borderBottom:"1px solid rgba(255,255,255,0.04)", background:i%2===0?"transparent":"rgba(255,255,255,0.01)" }}>
+                    <td style={{ padding:"12px 16px", color:"#E2E8F0", fontWeight:600, fontSize:13 }}>{r.name}</td>
+                    <td style={{ padding:"12px 16px", color:"#64748B", fontSize:13 }}>{r.address}</td>
+                    <td style={{ padding:"12px 16px", color:"#60A5FA", fontSize:13 }}>{r.itemName}</td>
+                    <td style={{ padding:"12px 16px" }}>
+                      <span style={{ display:"flex", alignItems:"center", gap:6, color:"#94A3B8", fontSize:13 }}>
+                        <span style={{ width:8, height:8, borderRadius:"50%", background:COLOR_DOT[r.color]||"#94A3B8" }}/>{r.color}
+                      </span>
+                    </td>
+                    <td style={{ padding:"12px 16px", color:"#64748B", fontSize:12, whiteSpace:"nowrap" }}>{formatDate(r.startTs)}</td>
+                    <td style={{ padding:"12px 16px", color:"#64748B", fontSize:12, whiteSpace:"nowrap" }}>{formatDate(r.returnedAt)}</td>
+                    <td style={{ padding:"12px 16px", color:"#38BDF8", fontSize:12, whiteSpace:"nowrap" }}>{formatDuration(r.returnedAt-r.startTs)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </GlassCard>
+      )}
+    </div>
+  );
+}
+
+// ─── KELOLA INVENTARIS ────────────────────────────────────────────────────────
+function KelolPage({ inventory, setInventory, rentals }) {
+  // Modal states
+  const [addItemModal, setAddItemModal] = useState(false);
+  const [addVariantModal, setAddVariantModal] = useState(null); // itemId
+  const [editStockModal, setEditStockModal] = useState(null);   // { itemId, color, stock }
+  const [deleteConfirm, setDeleteConfirm] = useState(null);     // { type: 'item'|'variant', itemId, color? }
+
+  // Forms
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemColor, setNewItemColor] = useState("Hitam");
+  const [newItemStock, setNewItemStock] = useState(1);
+  const [newVariantColor, setNewVariantColor] = useState("Hitam");
+  const [newVariantStock, setNewVariantStock] = useState(1);
+  const [editStockVal, setEditStockVal] = useState(0);
+  const [customColor, setCustomColor] = useState("");
+  const [customVariantColor, setCustomVariantColor] = useState("");
+  const [formErr, setFormErr] = useState("");
+
+  // Tambah kategori baru
+  const handleAddItem = () => {
+    setFormErr("");
+    const name = newItemName.trim();
+    if (!name) { setFormErr("Nama barang wajib diisi."); return; }
+    if (inventory.find(i => i.name.toLowerCase() === name.toLowerCase())) { setFormErr("Nama barang sudah ada."); return; }
+    const colorUsed = newItemColor === "__custom__" ? customColor.trim() : newItemColor;
+    if (!colorUsed) { setFormErr("Pilih atau masukkan warna."); return; }
+    const id = name.toLowerCase().replace(/\s+/g,"-") + "-" + Date.now();
+    setInventory(prev => [...prev, { id, name, variants:[{ color: colorUsed, stock: Math.max(0, newItemStock) }] }]);
+    setAddItemModal(false); setNewItemName(""); setNewItemColor("Hitam"); setNewItemStock(1); setCustomColor("");
+  };
+
+  // Tambah varian warna ke barang yang sudah ada
+  const handleAddVariant = () => {
+    setFormErr("");
+    const colorUsed = newVariantColor === "__custom__" ? customVariantColor.trim() : newVariantColor;
+    if (!colorUsed) { setFormErr("Pilih atau masukkan warna."); return; }
+    const item = inventory.find(i => i.id === addVariantModal);
+    if (item.variants.find(v => v.color.toLowerCase() === colorUsed.toLowerCase())) { setFormErr("Warna sudah ada di barang ini."); return; }
+    setInventory(prev => prev.map(i => i.id !== addVariantModal ? i : { ...i, variants:[...i.variants, { color:colorUsed, stock:Math.max(0,newVariantStock) }] }));
+    setAddVariantModal(null); setNewVariantColor("Hitam"); setNewVariantStock(1); setCustomVariantColor("");
+  };
+
+  // Edit stok langsung
+  const handleEditStock = () => {
+    const val = Math.max(0, editStockVal);
+    // Check how many are currently rented
+    const rented = rentals.filter(r => r.itemId === editStockModal.itemId && r.color === editStockModal.color).length;
+    if (val < 0) return;
+    setInventory(prev => prev.map(i => i.id !== editStockModal.itemId ? i : { ...i, variants: i.variants.map(v => v.color !== editStockModal.color ? v : { ...v, stock: val }) }));
+    setEditStockModal(null);
+  };
+
+  // Hapus varian
+  const handleDeleteVariant = (itemId, color) => {
+    setInventory(prev => prev.map(i => i.id !== itemId ? i : { ...i, variants: i.variants.filter(v => v.color !== color) }).filter(i => i.variants.length > 0));
+    setDeleteConfirm(null);
+  };
+
+  // Hapus seluruh barang
+  const handleDeleteItem = (itemId) => {
+    setInventory(prev => prev.filter(i => i.id !== itemId));
+    setDeleteConfirm(null);
+  };
+
+  // Cek apakah sedang disewa
+  const isRented = (itemId, color) => rentals.some(r => r.itemId === itemId && r.color === color);
+  const itemHasRental = (itemId) => rentals.some(r => r.itemId === itemId);
+
+  const ColorSelect = ({ value, onChange, customVal, onCustomChange }) => (
+    <div>
+      <label style={{ color:"#94A3B8", fontSize:12, display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:0.8 }}>Warna</label>
+      <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom: value==="__custom__"?10:0 }}>
+        {COLOR_OPTIONS.map(c => (
+          <button key={c} onClick={() => onChange(c)} style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 12px", borderRadius:20, border: value===c?"1px solid #38BDF8":"1px solid rgba(96,165,250,0.15)", background:value===c?"rgba(56,189,248,0.12)":"rgba(255,255,255,0.03)", color:value===c?"#38BDF8":"#94A3B8", fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>
+            <span style={{ width:8, height:8, borderRadius:"50%", background:COLOR_DOT[c]||"#94A3B8", flexShrink:0 }}/>
+            {c}
+          </button>
+        ))}
+        <button onClick={() => onChange("__custom__")} style={{ padding:"5px 12px", borderRadius:20, border:value==="__custom__"?"1px solid #38BDF8":"1px solid rgba(96,165,250,0.15)", background:value==="__custom__"?"rgba(56,189,248,0.12)":"rgba(255,255,255,0.03)", color:value==="__custom__"?"#38BDF8":"#94A3B8", fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>
+          + Lainnya
+        </button>
+      </div>
+      {value === "__custom__" && (
+        <input value={customVal} onChange={e => onCustomChange(e.target.value)} placeholder="Tulis nama warna..." style={{ width:"100%", padding:"8px 12px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(96,165,250,0.2)", borderRadius:10, color:"#F1F5F9", fontSize:14, outline:"none", boxSizing:"border-box", fontFamily:"inherit" }}/>
+      )}
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28, flexWrap:"wrap", gap:12 }}>
+        <div>
+          <h1 style={{ fontSize:26, fontWeight:700, color:"#F1F5F9", margin:0 }}>Kelola Inventaris</h1>
+          <p style={{ color:"#64748B", marginTop:4, fontSize:14 }}>Tambah kategori, warna, dan atur jumlah stok</p>
+        </div>
+        <BtnPrimary onClick={() => { setAddItemModal(true); setFormErr(""); }}>
+          <span style={{ display:"flex", alignItems:"center", gap:6 }}><Icon name="plus" size={16}/> Tambah Barang Baru</span>
+        </BtnPrimary>
+      </div>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+        {inventory.map(item => (
+          <GlassCard key={item.id} style={{ padding:22 }}>
+            {/* Item header */}
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                <h3 style={{ color:"#F1F5F9", fontWeight:700, margin:0, fontSize:16 }}>{item.name}</h3>
+                <span style={{ background:"rgba(96,165,250,0.1)", borderRadius:8, padding:"2px 10px", fontSize:12, color:"#60A5FA" }}>
+                  {item.variants.reduce((s,v)=>s+v.stock,0)} stok
+                </span>
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={() => { setAddVariantModal(item.id); setNewVariantColor("Hitam"); setNewVariantStock(1); setCustomVariantColor(""); setFormErr(""); }} style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px", borderRadius:8, border:"1px solid rgba(56,189,248,0.3)", background:"rgba(56,189,248,0.08)", color:"#38BDF8", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                  <Icon name="plus" size={13}/> Tambah Warna
+                </button>
+                {!itemHasRental(item.id) && (
+                  <button onClick={() => setDeleteConfirm({ type:"item", itemId:item.id })} style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px", borderRadius:8, border:"1px solid rgba(248,113,113,0.25)", background:"rgba(248,113,113,0.06)", color:"#F87171", fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>
+                    <Icon name="trash" size={13}/>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Variants */}
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:10 }}>
+              {item.variants.map(v => {
+                const rented = isRented(item.id, v.color);
+                return (
+                  <div key={v.color} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background:"rgba(255,255,255,0.03)", borderRadius:12, border:"1px solid rgba(255,255,255,0.06)" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <span style={{ width:10, height:10, borderRadius:"50%", background:COLOR_DOT[v.color]||"#94A3B8", flexShrink:0 }}/>
+                      <div>
+                        <p style={{ color:"#CBD5E1", fontSize:13, margin:0, fontWeight:500 }}>{v.color}</p>
+                        <p style={{ color: v.stock===0?"#F87171":"#60A5FA", fontSize:12, margin:0, fontWeight:700 }}>{v.stock} stok</p>
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", gap:6 }}>
+                      <button onClick={() => { setEditStockModal({ itemId:item.id, color:v.color, stock:v.stock }); setEditStockVal(v.stock); }} style={{ padding:"5px 10px", borderRadius:8, border:"1px solid rgba(96,165,250,0.2)", background:"rgba(96,165,250,0.08)", color:"#60A5FA", cursor:"pointer", fontFamily:"inherit" }}>
+                        <Icon name="edit" size={13}/>
+                      </button>
+                      {!rented && (
+                        <button onClick={() => setDeleteConfirm({ type:"variant", itemId:item.id, color:v.color })} style={{ padding:"5px 10px", borderRadius:8, border:"1px solid rgba(248,113,113,0.2)", background:"rgba(248,113,113,0.06)", color:"#F87171", cursor:"pointer", fontFamily:"inherit" }}>
+                          <Icon name="trash" size={13}/>
+                        </button>
+                      )}
+                      {rented && <span style={{ fontSize:10, color:"#F59E0B", padding:"3px 8px", background:"rgba(245,158,11,0.1)", borderRadius:6, border:"1px solid rgba(245,158,11,0.2)" }}>Disewa</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </GlassCard>
+        ))}
+      </div>
+
+      {/* ── Modal: Tambah Barang Baru ── */}
+      <Modal open={addItemModal} onClose={() => setAddItemModal(false)} wide>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+          <h3 style={{ color:"#F1F5F9", margin:0, fontWeight:700 }}>Tambah Barang Baru</h3>
+          <button onClick={() => setAddItemModal(false)} style={{ background:"none", border:"none", color:"#64748B", cursor:"pointer" }}><Icon name="x" size={20}/></button>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          <InputField label="Nama Barang" value={newItemName} onChange={e => setNewItemName(e.target.value)} placeholder="Contoh: Kompas, Trekking Pole..."/>
+          <ColorSelect value={newItemColor} onChange={v => setNewItemColor(v)} customVal={customColor} onCustomChange={setCustomColor}/>
+          <div>
+            <label style={{ color:"#94A3B8", fontSize:12, display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:0.8 }}>Jumlah Stok Awal</label>
+            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+              <button onClick={() => setNewItemStock(Math.max(0,newItemStock-1))} style={{ width:36, height:36, borderRadius:8, border:"1px solid rgba(96,165,250,0.2)", background:"rgba(96,165,250,0.08)", color:"#60A5FA", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"inherit" }}><Icon name="minus" size={16}/></button>
+              <span style={{ color:"#F1F5F9", fontWeight:700, fontSize:22, minWidth:40, textAlign:"center" }}>{newItemStock}</span>
+              <button onClick={() => setNewItemStock(newItemStock+1)} style={{ width:36, height:36, borderRadius:8, border:"1px solid rgba(96,165,250,0.2)", background:"rgba(96,165,250,0.08)", color:"#60A5FA", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"inherit" }}><Icon name="plus" size={16}/></button>
+            </div>
+          </div>
+          {formErr && <p style={{ color:"#F87171", fontSize:13, margin:0 }}>{formErr}</p>}
+          <BtnPrimary onClick={handleAddItem} style={{ width:"100%", padding:12, fontSize:15 }}>Simpan Barang</BtnPrimary>
+        </div>
+      </Modal>
+
+      {/* ── Modal: Tambah Varian Warna ── */}
+      <Modal open={!!addVariantModal} onClose={() => setAddVariantModal(null)} wide>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+          <div>
+            <h3 style={{ color:"#F1F5F9", margin:0, fontWeight:700 }}>Tambah Warna</h3>
+            <p style={{ color:"#64748B", margin:"4px 0 0", fontSize:13 }}>{inventory.find(i=>i.id===addVariantModal)?.name}</p>
+          </div>
+          <button onClick={() => setAddVariantModal(null)} style={{ background:"none", border:"none", color:"#64748B", cursor:"pointer" }}><Icon name="x" size={20}/></button>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          <ColorSelect value={newVariantColor} onChange={v => setNewVariantColor(v)} customVal={customVariantColor} onCustomChange={setCustomVariantColor}/>
+          <div>
+            <label style={{ color:"#94A3B8", fontSize:12, display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:0.8 }}>Jumlah Stok</label>
+            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+              <button onClick={() => setNewVariantStock(Math.max(0,newVariantStock-1))} style={{ width:36, height:36, borderRadius:8, border:"1px solid rgba(96,165,250,0.2)", background:"rgba(96,165,250,0.08)", color:"#60A5FA", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"inherit" }}><Icon name="minus" size={16}/></button>
+              <span style={{ color:"#F1F5F9", fontWeight:700, fontSize:22, minWidth:40, textAlign:"center" }}>{newVariantStock}</span>
+              <button onClick={() => setNewVariantStock(newVariantStock+1)} style={{ width:36, height:36, borderRadius:8, border:"1px solid rgba(96,165,250,0.2)", background:"rgba(96,165,250,0.08)", color:"#60A5FA", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"inherit" }}><Icon name="plus" size={16}/></button>
+            </div>
+          </div>
+          {formErr && <p style={{ color:"#F87171", fontSize:13, margin:0 }}>{formErr}</p>}
+          <BtnPrimary onClick={handleAddVariant} style={{ width:"100%", padding:12, fontSize:15 }}>Tambah Warna</BtnPrimary>
+        </div>
+      </Modal>
+
+      {/* ── Modal: Edit Stok ── */}
+      <Modal open={!!editStockModal} onClose={() => setEditStockModal(null)}>
+        {editStockModal && (
+          <>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+              <div>
+                <h3 style={{ color:"#F1F5F9", margin:0, fontWeight:700 }}>Edit Stok</h3>
+                <p style={{ color:"#64748B", margin:"4px 0 0", fontSize:13 }}>
+                  {inventory.find(i=>i.id===editStockModal.itemId)?.name} · <span style={{ color:COLOR_DOT[editStockModal.color]||"#60A5FA" }}>●</span> {editStockModal.color}
+                </p>
+              </div>
+              <button onClick={() => setEditStockModal(null)} style={{ background:"none", border:"none", color:"#64748B", cursor:"pointer" }}><Icon name="x" size={20}/></button>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              <div>
+                <label style={{ color:"#94A3B8", fontSize:12, display:"block", marginBottom:10, textTransform:"uppercase", letterSpacing:0.8 }}>Jumlah Stok</label>
+                <div style={{ display:"flex", alignItems:"center", gap:16, justifyContent:"center" }}>
+                  <button onClick={() => setEditStockVal(Math.max(0,editStockVal-1))} style={{ width:44, height:44, borderRadius:10, border:"1px solid rgba(96,165,250,0.2)", background:"rgba(96,165,250,0.08)", color:"#60A5FA", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, fontFamily:"inherit" }}><Icon name="minus" size={20}/></button>
+                  <input type="number" min="0" value={editStockVal} onChange={e => setEditStockVal(parseInt(e.target.value)||0)} style={{ width:80, textAlign:"center", padding:"10px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(96,165,250,0.2)", borderRadius:10, color:"#F1F5F9", fontSize:24, fontWeight:700, outline:"none", fontFamily:"inherit" }}/>
+                  <button onClick={() => setEditStockVal(editStockVal+1)} style={{ width:44, height:44, borderRadius:10, border:"1px solid rgba(96,165,250,0.2)", background:"rgba(96,165,250,0.08)", color:"#60A5FA", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"inherit" }}><Icon name="plus" size={20}/></button>
+                </div>
+              </div>
+              {rentals.filter(r=>r.itemId===editStockModal.itemId&&r.color===editStockModal.color).length > 0 && (
+                <p style={{ color:"#F59E0B", fontSize:12, margin:0, textAlign:"center" }}>⚠ {rentals.filter(r=>r.itemId===editStockModal.itemId&&r.color===editStockModal.color).length} unit sedang disewa — stok di sini adalah unit yang tersisa.</p>
+              )}
+              <BtnPrimary onClick={handleEditStock} style={{ width:"100%", padding:12, fontSize:15 }}>
+                <span style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}><Icon name="check" size={16}/> Simpan Stok</span>
+              </BtnPrimary>
+            </div>
+          </>
+        )}
+      </Modal>
+
+      {/* ── Modal: Konfirmasi Hapus ── */}
+      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)}>
+        {deleteConfirm && (
+          <>
+            <div style={{ textAlign:"center", padding:"8px 0 20px" }}>
+              <div style={{ width:52, height:52, borderRadius:"50%", background:"rgba(248,113,113,0.1)", border:"1px solid rgba(248,113,113,0.3)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px", color:"#F87171" }}><Icon name="trash" size={24}/></div>
+              <h3 style={{ color:"#F1F5F9", margin:"0 0 8px", fontWeight:700 }}>Konfirmasi Hapus</h3>
+              <p style={{ color:"#64748B", fontSize:14, margin:0 }}>
+                {deleteConfirm.type === "item"
+                  ? `Hapus barang "${inventory.find(i=>i.id===deleteConfirm.itemId)?.name}" beserta semua variannya?`
+                  : `Hapus varian ${deleteConfirm.color} dari "${inventory.find(i=>i.id===deleteConfirm.itemId)?.name}"?`
+                }
+              </p>
+            </div>
+            <div style={{ display:"flex", gap:10 }}>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex:1, padding:"10px", borderRadius:10, border:"1px solid rgba(96,165,250,0.2)", background:"rgba(96,165,250,0.05)", color:"#94A3B8", cursor:"pointer", fontWeight:600, fontFamily:"inherit" }}>Batal</button>
+              <button onClick={() => deleteConfirm.type==="item" ? handleDeleteItem(deleteConfirm.itemId) : handleDeleteVariant(deleteConfirm.itemId, deleteConfirm.color)} style={{ flex:1, padding:"10px", borderRadius:10, border:"none", background:"rgba(248,113,113,0.15)", color:"#F87171", cursor:"pointer", fontWeight:700, fontFamily:"inherit", border:"1px solid rgba(248,113,113,0.3)" }}>Hapus</button>
+            </div>
+          </>
+        )}
+      </Modal>
+    </div>
+  );
+}
+
+// ─── APP ──────────────────────────────────────────────────────────────────────
+export default function App() {
+  const [page, setPage] = useState("dashboard");
+  const [inventory, setInventory] = useState(INITIAL_INVENTORY);
+  const [rentals, setRentals] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const addRental = useCallback(({ itemId, itemName, color, name, address }) => {
+    setRentals(prev => [...prev, { id:Date.now()+Math.random(), itemId, itemName, color, name, address, startTs:Date.now() }]);
+  }, []);
+
+  const returnRental = useCallback((id) => {
+    const r = rentals.find(x => x.id === id);
+    if (!r) return;
+    const now = Date.now();
+    setHistory(prev => [...prev, { ...r, returnedAt:now }]);
+    setInventory(prev => prev.map(i => i.id !== r.itemId ? i : { ...i, variants: i.variants.map(v => v.color !== r.color ? v : { ...v, stock:v.stock+1 }) }));
+    setRentals(prev => prev.filter(x => x.id !== id));
+  }, [rentals]);
+
+  const navItems = [
+    { id:"dashboard", label:"Dashboard", icon:"dashboard" },
+    { id:"inventory", label:"Stok Tersedia", icon:"inventory" },
+    { id:"active", label:"Sedang Disewa", icon:"active", badge:rentals.length },
+    { id:"manage", label:"Kelola Inventaris", icon:"manage" },
+    { id:"history", label:"Riwayat", icon:"history" },
+  ];
+
+  const Sidebar = ({ mobile = false }) => (
+    <div style={{ width:mobile?"100%":240, height:"100%", display:"flex", flexDirection:"column", background:mobile?"transparent":"rgba(255,255,255,0.03)", borderRight:mobile?"none":"1px solid rgba(96,165,250,0.08)" }}>
+      <div style={{ padding:"24px 20px 20px", borderBottom:"1px solid rgba(96,165,250,0.08)" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ width:36, height:36, borderRadius:10, background:"linear-gradient(135deg,#3B82F6,#38BDF8)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 0 16px rgba(56,189,248,0.4)" }}><Icon name="tent" size={18}/></div>
+          <div>
+            <p style={{ color:"#F1F5F9", fontWeight:800, margin:0, fontSize:13, letterSpacing:0.5 }}>TREK OUT</p>
+            <p style={{ color:"#38BDF8", fontSize:10, margin:0, letterSpacing:1.5, textTransform:"uppercase" }}>Adventure</p>
+          </div>
         </div>
       </div>
+      <nav style={{ flex:1, padding:"16px 12px" }}>
+        {navItems.map(n => {
+          const active = page === n.id;
+          return (
+            <button key={n.id} onClick={() => { setPage(n.id); setSidebarOpen(false); }} style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:10, border:"none", cursor:"pointer", marginBottom:4, background:active?"rgba(96,165,250,0.12)":"transparent", color:active?"#60A5FA":"#64748B", fontWeight:active?600:400, fontSize:14, boxShadow:active?"inset 0 0 0 1px rgba(96,165,250,0.2)":"none", justifyContent:"space-between", fontFamily:"inherit" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}><Icon name={n.icon} size={16}/>{n.label}</div>
+              {n.badge > 0 && <span style={{ background:"#38BDF8", color:"#0F172A", fontSize:11, fontWeight:700, padding:"1px 7px", borderRadius:20 }}>{n.badge}</span>}
+            </button>
+          );
+        })}
+      </nav>
+      <div style={{ padding:"16px 20px", borderTop:"1px solid rgba(96,165,250,0.08)" }}>
+        <p style={{ color:"#334155", fontSize:11, margin:0, textAlign:"center" }}>Trek Out Adventure © 2026</p>
+      </div>
     </div>
-    <canvas id="holoHtCanvas"></canvas>
-    <div id="holoHUD">Gerakkan tangan untuk memutar hologram</div>
-    <div id="holoData">ROT X: 0° &nbsp;·&nbsp; ROT Y: 0°</div>
-    <button id="restartBtn">↺ &nbsp;Foto Ulang</button>
-  </div>
-  <div id="winScreen"><h2>SELESAI!</h2><p>Merender hologram...</p></div>
-</div>
-<script>
-// BOOT BG
-(function(){
-  const c=document.getElementById('bootBgCanvas'),ctx=c.getContext('2d');
-  function sz(){c.width=innerWidth;c.height=innerHeight;}sz();window.addEventListener('resize',sz);
-  const pts=Array.from({length:60},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*1.2+.3,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,o:Math.random()*.3+.05}));
-  function draw(){
-    c.width=c.width;
-    pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=innerWidth;if(p.x>innerWidth)p.x=0;if(p.y<0)p.y=innerHeight;if(p.y>innerHeight)p.y=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle='rgba(0,245,196,'+p.o+')';ctx.fill();});
-    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const d=Math.hypot(pts[i].x-pts[j].x,pts[i].y-pts[j].y);if(d<100){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle='rgba(0,245,196,'+(0.1*(1-d/100))+')';ctx.lineWidth=.5;ctx.stroke();}}
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
+  );
 
-// GLOBALS
-const vid=document.getElementById('vid');
-const overlayCanvas=document.getElementById('overlayCanvas'),oCtx=overlayCanvas.getContext('2d');
-const trailCanvas=document.getElementById('trailCanvas'),tCtx=trailCanvas.getContext('2d');
-const photoCanvas=document.getElementById('photoCanvas'),pCtx=photoCanvas.getContext('2d');
-
-function resizeAll(){
-  overlayCanvas.width=innerWidth;overlayCanvas.height=innerHeight;
-  trailCanvas.width=innerWidth;trailCanvas.height=innerHeight;
-  const pw=document.getElementById('puzzleWrap');
-  if(pw){const ptc=document.getElementById('pzTrackCanvas');ptc.width=pw.offsetWidth;ptc.height=pw.offsetHeight;}
-  document.getElementById('holoHtCanvas').width=innerWidth;document.getElementById('holoHtCanvas').height=innerHeight;
-  document.getElementById('holoParticleCanvas').width=innerWidth;document.getElementById('holoParticleCanvas').height=innerHeight;
+  return (
+    <div style={{ minHeight:"100vh", background:"linear-gradient(135deg,#0F172A 0%,#0D1B2A 50%,#0F172A 100%)", fontFamily:"'Inter',-apple-system,sans-serif", color:"#F1F5F9" }}>
+      <div style={{ position:"fixed", top:-100, left:"30%", width:400, height:400, borderRadius:"50%", background:"radial-gradient(circle,rgba(56,189,248,0.06),transparent 70%)", pointerEvents:"none", zIndex:0 }}/>
+      <div style={{ position:"fixed", bottom:-100, right:"20%", width:300, height:300, borderRadius:"50%", background:"radial-gradient(circle,rgba(96,165,250,0.04),transparent 70%)", pointerEvents:"none", zIndex:0 }}/>
+      <div style={{ position:"relative", zIndex:1, display:"flex", height:"100vh" }}>
+        <div style={{ display:"flex", flexShrink:0, height:"100vh", position:"sticky", top:0 }} className="desktop-sidebar">
+          <Sidebar/>
+        </div>
+        {sidebarOpen && (
+          <div style={{ position:"fixed", inset:0, zIndex:500, background:"rgba(0,0,0,0.7)" }} onClick={() => setSidebarOpen(false)}>
+            <div onClick={e => e.stopPropagation()} style={{ width:260, height:"100vh", background:"#0F172A", border:"1px solid rgba(96,165,250,0.15)", boxShadow:"4px 0 30px rgba(0,0,0,0.5)" }}>
+              <Sidebar mobile/>
+            </div>
+          </div>
+        )}
+        <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"auto" }}>
+          <div className="mobile-header" style={{ padding:"14px 16px", borderBottom:"1px solid rgba(96,165,250,0.08)", display:"flex", alignItems:"center", gap:12, background:"rgba(15,23,42,0.9)", backdropFilter:"blur(8px)", position:"sticky", top:0, zIndex:100 }}>
+            <button onClick={() => setSidebarOpen(true)} style={{ background:"none", border:"none", color:"#64748B", cursor:"pointer", padding:4 }}><Icon name="menu" size={22}/></button>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <div style={{ width:28, height:28, borderRadius:8, background:"linear-gradient(135deg,#3B82F6,#38BDF8)", display:"flex", alignItems:"center", justifyContent:"center" }}><Icon name="tent" size={14}/></div>
+              <span style={{ color:"#F1F5F9", fontWeight:700, fontSize:14 }}>Trek Out Adventure</span>
+            </div>
+          </div>
+          <div style={{ flex:1, padding:"28px 24px", maxWidth:1100, width:"100%", margin:"0 auto", boxSizing:"border-box" }}>
+            {page === "dashboard" && <DashboardPage inventory={inventory} rentals={rentals} history={history}/>}
+            {page === "inventory" && <InventoryPage inventory={inventory} setInventory={setInventory} addRental={addRental}/>}
+            {page === "active" && <ActivePage rentals={rentals} returnRental={returnRental}/>}
+            {page === "manage" && <KelolPage inventory={inventory} setInventory={setInventory} rentals={rentals}/>}
+            {page === "history" && <HistoryPage history={history}/>}
+          </div>
+        </div>
+      </div>
+      <style>{`
+        * { box-sizing: border-box; }
+        input[type=number]::-webkit-inner-spin-button { opacity:1; }
+        .desktop-sidebar { display: flex; }
+        .mobile-header { display: none; }
+        @media (max-width: 768px) {
+          .desktop-sidebar { display: none; }
+          .mobile-header { display: flex !important; }
+        }
+        input::placeholder { color: #334155; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(96,165,250,0.2); border-radius: 4px; }
+      `}</style>
+    </div>
+  );
 }
-window.addEventListener('resize',resizeAll);resizeAll();
-
-// === TUNING CONSTANTS ===
-const SMOOTH      = 0.35;   // cursor lerp factor (lower=smoother/laggier, higher=snappier/jitterier)
-const PINCH_ON    = 36;     // px: distance to START pinch (tight)
-const PINCH_OFF   = 54;     // px: distance to END pinch (wider = hysteresis, avoids flicker)
-const PINCH_ON_F  = 2;      // frames needed to confirm pinch start
-const PINCH_OFF_F = 3;      // frames needed to confirm pinch release
-const GRAB_R      = 90;     // px: grab radius around piece center
-const COLS=4,ROWS=3,TOTAL=12,CD_MS=5000;
-
-const ST={
-  mode:'boot',hands:[],photoUrl:null,pieces:[],selPiece:null,placed:0,
-  phase:'idle',cdStart:0,cdRAF:null,
-  hRx:0,hRy:0,lastHand:null,handActive:false,trailPts:[],
-  sx:0,sy:0,s2x:0,s2y:0,       // smoothed cursor positions
-  pinchOn:false,pOnF:0,pOffF:0, // pinch state machine
-  dox:0,doy:0,                  // drag offset (piece relative to finger)
-};
-let prevPinch=false;
-
-// DOM
-const bootStatus=document.getElementById('bootStatus'),bootBar=document.getElementById('bootBar'),bootErr=document.getElementById('bootErr');
-const hudBadge=document.getElementById('hudBadge'),handIndicator=document.getElementById('handIndicator');
-const handIcon=document.getElementById('handIcon'),handLabel=document.getElementById('handLabel');
-const cdRing=document.getElementById('cdRing'),cdArc=document.getElementById('cdArc'),cdN=document.getElementById('cdN');
-const flashEl=document.getElementById('flashEl'),cancelHint=document.getElementById('cancelHint');
-const hc1=document.getElementById('hc1'),hc2=document.getElementById('hc2');
-const corners=['cTL','cTR','cBL','cBR'].map(id=>document.getElementById(id));
-const pzBoard=document.getElementById('pzBoard'),piecesWrap=document.getElementById('piecesWrap');
-const pzProg=document.getElementById('pzProg'),pzStatus=document.getElementById('pzStatus');
-const pzTrackCanvas=document.getElementById('pzTrackCanvas'),ptCtx=pzTrackCanvas.getContext('2d');
-const holoImg=document.getElementById('holoImg'),hlReflectImg=document.getElementById('hlReflectImg');
-const holoWrap=document.getElementById('holoWrap'),holoData=document.getElementById('holoData');
-const holoHtCanvas=document.getElementById('holoHtCanvas'),htCtx=holoHtCanvas.getContext('2d');
-const winScreen=document.getElementById('winScreen');
-
-function showScreen(id){['bootScreen','cameraHud','puzzleScreen','holoScreen'].forEach(s=>document.getElementById(s).classList.toggle('off',s!==id));}
-
-// CAMERA INIT
-async function initCamera(){
-  bootStatus.textContent='Meminta akses kamera...';bootBar.style.width='20%';
-  try{
-    const stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'},audio:false});
-    vid.srcObject=stream;await new Promise(r=>vid.onloadedmetadata=r);vid.play();vid.classList.add('live');
-    bootStatus.textContent='Memuat model tangan...';bootBar.style.width='60%';
-    initMediaPipe();
-  }catch(e){bootErr.style.display='block';bootErr.textContent='Kamera tidak dapat diakses.\n'+e.message;bootStatus.textContent='Gagal';}
-}
-
-function initMediaPipe(){
-  const hands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/'+f});
-  hands.setOptions({
-    maxNumHands:2,
-    modelComplexity:1,            // FIX: was 0 → more accurate landmark detection
-    minDetectionConfidence:.65,   // FIX: was .5 → fewer false detections
-    minTrackingConfidence:.6,     // FIX: was .4 → more stable tracking
-    selfieMode:true
-  });
-  hands.onResults(onResults);
-  const cam=new Camera(vid,{onFrame:async()=>{if(ST.mode!=='boot') await hands.send({image:vid});},width:1280,height:720});
-  cam.start().then(()=>{bootBar.style.width='100%';bootStatus.textContent='Siap!';setTimeout(()=>{ST.mode='camera';showScreen('cameraHud');},400);})
-    .catch(e=>{bootErr.style.display='block';bootErr.textContent='MediaPipe gagal: '+e.message;});
-}
-
-// LANDMARK HELPERS
-function sc(lm){return{x:lm.x*innerWidth,y:lm.y*innerHeight};}
-function rawPinchPt(h){const t=sc(h[4]),i=sc(h[8]);return{x:(t.x+i.x)/2,y:(t.y+i.y)/2};}
-function rawPinchDist(h){const t=sc(h[4]),i=sc(h[8]);return Math.hypot(t.x-i.x,t.y-i.y);}
-
-// RESULTS — runs every MediaPipe frame
-function onResults(res){
-  ST.hands=res.multiHandLandmarks||[];
-
-  if(ST.hands.length>0){
-    const r=rawPinchPt(ST.hands[0]);
-    // Init without lerp on first detection
-    if(ST.sx===0&&ST.sy===0){ST.sx=r.x;ST.sy=r.y;}
-    else{ST.sx+=(r.x-ST.sx)*SMOOTH;ST.sy+=(r.y-ST.sy)*SMOOTH;}
-
-    // Pinch hysteresis state machine — prevents flicker
-    const d=rawPinchDist(ST.hands[0]);
-    if(!ST.pinchOn){
-      if(d<PINCH_ON){ST.pOnF++;if(ST.pOnF>=PINCH_ON_F){ST.pinchOn=true;ST.pOnF=0;ST.pOffF=0;}}
-      else{ST.pOnF=Math.max(0,ST.pOnF-1);}
-    } else {
-      if(d>PINCH_OFF){ST.pOffF++;if(ST.pOffF>=PINCH_OFF_F){ST.pinchOn=false;ST.pOffF=0;ST.pOnF=0;}}
-      else{ST.pOffF=Math.max(0,ST.pOffF-1);}
-    }
-  } else {
-    ST.sx=0;ST.sy=0;ST.pinchOn=false;ST.pOnF=0;ST.pOffF=0;
-  }
-
-  if(ST.hands.length>1){
-    const r2=rawPinchPt(ST.hands[1]);
-    if(ST.s2x===0&&ST.s2y===0){ST.s2x=r2.x;ST.s2y=r2.y;}
-    else{ST.s2x+=(r2.x-ST.s2x)*SMOOTH;ST.s2y+=(r2.y-ST.s2y)*SMOOTH;}
-  } else {ST.s2x=0;ST.s2y=0;}
-
-  if(ST.mode==='camera') tickCamera();
-  else if(ST.mode==='puzzle') tickPuzzle();
-  else if(ST.mode==='hologram') tickHolo();
-  drawOverlay();
-}
-
-// CAMERA MODE
-function tickCamera(){
-  if(!ST.hands.length){
-    if(ST.phase==='countdown'){cancelCountdown();flashCancel();}
-    resetHandUI();fadeTrail();return;
-  }
-  const pt={x:ST.sx,y:ST.sy};
-  hc1.style.display='block';hc1.style.left=pt.x+'px';hc1.style.top=pt.y+'px';
-  if(ST.hands.length>1){hc2.style.display='block';hc2.style.left=ST.s2x+'px';hc2.style.top=ST.s2y+'px';}
-  else{hc2.style.display='none';}
-  addTrail(pt);
-  if(ST.phase==='idle'){
-    setHandUI(true);ST.phase='countdown';ST.cdStart=performance.now();
-    cdRing.style.display='flex';handIndicator.classList.add('hidden');
-    hudBadge.textContent='Bersiap...';hudBadge.className='detected';
-    cancelHint.classList.remove('show');corners.forEach(c=>c.classList.add('active'));
-    tickCountdown();
-  }
-  if(ST.phase==='countdown') cancelHint.classList.remove('show');
-}
-
-function tickCountdown(){
-  if(ST.phase!=='countdown') return;
-  const frac=Math.min((performance.now()-ST.cdStart)/CD_MS,1);
-  cdArc.style.strokeDashoffset=578.1*(1-frac);
-  const rem=Math.max(1,Math.ceil(5*(1-frac)));
-  cdN.textContent=rem;hudBadge.textContent='Foto dalam '+rem+'...';hudBadge.className='counting';
-  if(frac>=1){takePhoto();return;}
-  ST.cdRAF=requestAnimationFrame(tickCountdown);
-}
-function cancelCountdown(){
-  if(ST.cdRAF){cancelAnimationFrame(ST.cdRAF);ST.cdRAF=null;}
-  ST.phase='idle';cdRing.style.display='none';cdArc.style.strokeDashoffset=578.1;cdN.textContent='5';
-  handIndicator.classList.remove('hidden');corners.forEach(c=>c.classList.remove('active'));
-}
-function flashCancel(){cancelHint.classList.add('show');setTimeout(()=>cancelHint.classList.remove('show'),2200);}
-function resetHandUI(){setHandUI(false);hc1.style.display='none';hc2.style.display='none';hudBadge.textContent='Tampilkan tangan ke kamera';hudBadge.className='';}
-function setHandUI(yes){handIcon.className=yes?'detected':'';handLabel.textContent=yes?'Tangan terdeteksi!':'Belum terdeteksi';handLabel.className=yes?'detected':'';}
-
-// TRAIL
-function addTrail(pt){
-  ST.trailPts.push({...pt});if(ST.trailPts.length>35) ST.trailPts.shift();
-  tCtx.clearRect(0,0,trailCanvas.width,trailCanvas.height);
-  if(ST.trailPts.length<2) return;
-  for(let i=1;i<ST.trailPts.length;i++){
-    const a=(i/ST.trailPts.length)*0.55,w=1+(i/ST.trailPts.length)*2.5;
-    tCtx.beginPath();tCtx.moveTo(ST.trailPts[i-1].x,ST.trailPts[i-1].y);tCtx.lineTo(ST.trailPts[i].x,ST.trailPts[i].y);
-    tCtx.strokeStyle='rgba(0,245,196,'+a+')';tCtx.lineWidth=w;tCtx.lineCap='round';tCtx.stroke();
-  }
-}
-function fadeTrail(){
-  tCtx.globalCompositeOperation='destination-out';tCtx.fillStyle='rgba(0,0,0,0.15)';tCtx.fillRect(0,0,trailCanvas.width,trailCanvas.height);
-  tCtx.globalCompositeOperation='source-over';if(ST.trailPts.length>0) ST.trailPts.shift();
-}
-
-// TAKE PHOTO
-function takePhoto(){
-  ST.phase='shot';cdRing.style.display='none';corners.forEach(c=>c.classList.remove('active'));
-  flashEl.className='do-flash';setTimeout(()=>flashEl.className='',400);
-  photoCanvas.width=vid.videoWidth||1280;photoCanvas.height=vid.videoHeight||720;
-  pCtx.save();pCtx.translate(photoCanvas.width,0);pCtx.scale(-1,1);pCtx.drawImage(vid,0,0);pCtx.restore();
-  ST.photoUrl=photoCanvas.toDataURL('image/jpeg',.93);
-  tCtx.clearRect(0,0,trailCanvas.width,trailCanvas.height);ST.trailPts=[];
-  setTimeout(goToPuzzle,600);
-}
-
-// PUZZLE
-function goToPuzzle(){
-  ST.mode='puzzle';showScreen('puzzleScreen');
-  hc1.style.display='none';hc2.style.display='none';
-  ST.pinchOn=false;ST.pOnF=0;ST.pOffF=0;ST.sx=0;ST.sy=0;prevPinch=false;
-  ST.selPiece=null;ST.dox=0;ST.doy=0;
-  setTimeout(()=>{resizeAll();buildPuzzle();},60);
-}
-
-function buildPuzzle(){
-  pzBoard.innerHTML='';piecesWrap.innerHTML='';ST.pieces=[];ST.placed=0;ST.selPiece=null;
-  const img=new Image();
-  img.onload=()=>{
-    const iw=img.width,ih=img.height,pw=iw/COLS,ph=ih/ROWS;
-    const cont=document.getElementById('puzzleWrap');
-    const bw=cont.offsetWidth,bh=cont.offsetHeight,cw=bw/COLS,ch=bh/ROWS;
-    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){const cell=document.createElement('div');cell.className='pCell';cell.dataset.r=r;cell.dataset.c=c;pzBoard.appendChild(cell);}
-    const ids=[...Array(TOTAL).keys()];shuffle(ids);
-    ids.forEach((id,i)=>{
-      const cc=id%COLS,cr=Math.floor(id/COLS);
-      const src=document.createElement('canvas');src.width=pw;src.height=ph;src.getContext('2d').drawImage(img,cc*pw,cr*ph,pw,ph,0,0,pw,ph);
-      const el=document.createElement('div');el.className='piece';el.style.width=cw+'px';el.style.height=ch+'px';
-      const dc=document.createElement('canvas');dc.width=cw;dc.height=ch;dc.getContext('2d').drawImage(src,0,0,pw,ph,0,0,cw,ch);el.appendChild(dc);
-      const a=(i/TOTAL)*Math.PI*2;
-      el.style.left=clamp(bw/2+Math.cos(a)*(bw*.58)-cw/2,0,bw-cw)+'px';
-      el.style.top=clamp(bh/2+Math.sin(a)*(bh*.5)-ch/2,0,bh-ch)+'px';
-      piecesWrap.appendChild(el);ST.pieces.push({id,cc,cr,placed:false,el,cw,ch});
-    });
-    pzProg.textContent='0 / '+TOTAL;
-  };
-  img.src=ST.photoUrl;
-}
-
-function tickPuzzle(){
-  if(!ST.hands.length){releasePiece();prevPinch=false;return;}
-  const cont=document.getElementById('puzzleWrap');
-  const rect=cont.getBoundingClientRect();
-  const bw=cont.offsetWidth,bh=cont.offsetHeight,cw=bw/COLS,ch=bh/ROWS;
-  const mx=ST.sx,my=ST.sy;
-  const lx=mx-rect.left,ly=my-rect.top;
-  const pinching=ST.pinchOn;
-  const justOn=pinching&&!prevPinch;
-  const justOff=!pinching&&prevPinch;
-  prevPinch=pinching;
-
-  // Cursor visual
-  hc1.style.display='block';hc1.style.left=mx+'px';hc1.style.top=my+'px';
-  hc1.className='hc'+(pinching?' pinch':'');
-
-  // Highlight cell
-  document.querySelectorAll('.pCell').forEach(c=>c.classList.remove('hi'));
-  if(ST.selPiece){
-    const p=ST.selPiece;
-    const pcx=parseFloat(p.el.style.left)+p.cw/2,pcy=parseFloat(p.el.style.top)+p.ch/2;
-    const col=clamp(Math.floor(pcx/cw),0,COLS-1),row=clamp(Math.floor(pcy/ch),0,ROWS-1);
-    const cell=pzBoard.querySelector('[data-r="'+row+'"][data-c="'+col+'"]');
-    if(cell) cell.classList.add('hi');
-  }
-
-  // GRAB on pinch start
-  if(justOn&&!ST.selPiece){
-    let best=null,bestD=GRAB_R;
-    ST.pieces.forEach(p=>{
-      if(p.placed) return;
-      const px=parseFloat(p.el.style.left)+p.cw/2,py=parseFloat(p.el.style.top)+p.ch/2;
-      const d=Math.hypot(lx-px,ly-py);
-      if(d<bestD){bestD=d;best=p;}
-    });
-    if(best){
-      ST.selPiece=best;best.el.classList.add('sel');best.el.style.zIndex=999;
-      // Store offset so piece doesn't snap/jump to finger
-      ST.dox=lx-parseFloat(best.el.style.left);
-      ST.doy=ly-parseFloat(best.el.style.top);
-    }
-  }
-
-  // DRAG while pinching
-  if(pinching&&ST.selPiece&&!ST.selPiece.placed){
-    const p=ST.selPiece;
-    p.el.style.left=clamp(lx-ST.dox,0,bw-p.cw)+'px';
-    p.el.style.top=clamp(ly-ST.doy,0,bh-p.ch)+'px';
-    pzStatus.textContent='Lepas di tempat yang tepat';
-  }
-
-  // RELEASE on pinch end
-  if(justOff&&ST.selPiece){
-    snapOrBounce();
-    ST.selPiece=null;ST.dox=0;ST.doy=0;
-    pzStatus.textContent='Cubit & geser keping';
-  }
-
-  if(ST.hands.length>1){hc2.style.display='block';hc2.style.left=ST.s2x+'px';hc2.style.top=ST.s2y+'px';}
-  else{hc2.style.display='none';}
-
-  ptCtx.clearRect(0,0,pzTrackCanvas.width,pzTrackCanvas.height);
-  const rect2=document.getElementById('puzzleWrap').getBoundingClientRect();
-  ST.hands.forEach((h,i)=>drawSkeleton(ptCtx,h,lm=>lm.x*innerWidth-rect2.left,lm=>lm.y*innerHeight-rect2.top,i===0?'0,245,196':'124,92,255',i===0?'52,211,153':'167,139,250'));
-}
-
-function snapOrBounce(){
-  const p=ST.selPiece;if(!p) return;
-  const cont=document.getElementById('puzzleWrap');
-  const bw=cont.offsetWidth,bh=cont.offsetHeight,cw=bw/COLS,ch=bh/ROWS;
-  const pcx=parseFloat(p.el.style.left)+p.cw/2,pcy=parseFloat(p.el.style.top)+p.ch/2;
-  const sc2=clamp(Math.floor(pcx/cw),0,COLS-1),sr=clamp(Math.floor(pcy/ch),0,ROWS-1);
-  if(sc2===p.cc&&sr===p.cr){
-    const occ=ST.pieces.find(x=>x.placed&&x.cc===sc2&&x.cr===sr);
-    if(!occ){
-      p.placed=true;p.el.style.left=(sc2*cw)+'px';p.el.style.top=(sr*ch)+'px';
-      p.el.style.zIndex=1;p.el.classList.remove('sel');p.el.classList.add('placed');
-      const cell=pzBoard.querySelector('[data-r="'+sr+'"][data-c="'+sc2+'"]');
-      if(cell) cell.classList.add('correct');
-      ST.placed++;pzProg.textContent=ST.placed+' / '+TOTAL;
-      if(ST.placed===TOTAL) setTimeout(onPuzzleDone,500);
-    } else{bounce(p);}
-  } else{bounce(p);}
-}
-
-function releasePiece(){
-  if(ST.selPiece){
-    ST.selPiece.el.classList.remove('sel');
-    snapOrBounce();
-    ST.selPiece=null;ST.dox=0;ST.doy=0;
-  }
-  hc1.style.display='none';
-}
-
-function bounce(p){
-  p.el.style.transition='left .22s cubic-bezier(.34,1.56,.64,1),top .22s cubic-bezier(.34,1.56,.64,1)';
-  setTimeout(()=>p.el.style.transition='',280);
-}
-function onPuzzleDone(){winScreen.classList.add('show');setTimeout(()=>{winScreen.classList.remove('show');goToHolo();},2000);}
-
-// HOLOGRAM
-let holoParRAF,holoIdleRAF;
-function goToHolo(){
-  ST.mode='hologram';showScreen('holoScreen');
-  holoImg.src=ST.photoUrl;hlReflectImg.src=ST.photoUrl;
-  document.getElementById('hlReflect').style.opacity='1';
-  ST.hRx=0;ST.hRy=0;ST.lastHand=null;ST.handActive=false;
-  ST.sx=0;ST.sy=0;ST.s2x=0;ST.s2y=0;
-  hc1.style.display='none';hc2.style.display='none';
-  resizeAll();startHoloParticles();holoIdle();
-}
-function startHoloParticles(){
-  if(holoParRAF) cancelAnimationFrame(holoParRAF);
-  const c=document.getElementById('holoParticleCanvas');c.width=innerWidth;c.height=innerHeight;
-  const ctx=c.getContext('2d');
-  const pts=Array.from({length:100},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*.9+.15,vx:(Math.random()-.5)*.12,vy:-Math.random()*.35-.05,o:Math.random()*.4+.08,color:Math.random()<.55?'0,245,196':'124,92,255'}));
-  function draw(){c.width=c.width;pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.y<-4){p.y=innerHeight+4;p.x=Math.random()*innerWidth;}if(p.x<0)p.x=innerWidth;if(p.x>innerWidth)p.x=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle='rgba('+p.color+','+p.o+')';ctx.fill();});holoParRAF=requestAnimationFrame(draw);}
-  draw();
-}
-function holoIdle(){if(ST.mode!=='hologram') return;if(!ST.handActive){const t=Date.now()/1000;applyHolo(ST.hRx+Math.sin(t*.35)*2.5,ST.hRy+Math.cos(t*.28)*3.5);}holoIdleRAF=requestAnimationFrame(holoIdle);}
-function applyHolo(rx,ry){
-  holoWrap.style.transform='rotateX('+rx+'deg) rotateY('+ry+'deg)';
-  const sx=ry*.05,sy=-rx*.04;
-  document.getElementById('hlR').style.transform='translate('+(3+sx)+'px,'+(-1+sy)+'px)';
-  document.getElementById('hlG').style.transform='translate('+(-2-sx*.5)+'px,'+(1+sy*.5)+'px)';
-  document.getElementById('hlB').style.transform='translate('+(1+sx*.3)+'px,'+(2-sy)+'px)';
-  holoData.textContent='ROT X: '+Math.round(rx)+'° · ROT Y: '+Math.round(ry)+'°';
-  document.getElementById('hlReflect').style.opacity=Math.max(0,.3-Math.abs(rx)*.009);
-}
-function tickHolo(){
-  if(!ST.hands.length){ST.lastHand=null;ST.handActive=false;hc1.style.display='none';hc2.style.display='none';htCtx.clearRect(0,0,holoHtCanvas.width,holoHtCanvas.height);return;}
-  ST.handActive=true;
-  if(ST.hands.length>=2){
-    const mx=(ST.sx+ST.s2x)/2,my=(ST.sy+ST.s2y)/2;
-    hc1.style.display='block';hc1.style.left=ST.sx+'px';hc1.style.top=ST.sy+'px';
-    hc2.style.display='block';hc2.style.left=ST.s2x+'px';hc2.style.top=ST.s2y+'px';
-    if(ST.lastHand&&ST.lastHand.two){ST.hRy=clamp(ST.hRy+(mx-ST.lastHand.x)*.55,-80,80);ST.hRx=clamp(ST.hRx-(my-ST.lastHand.y)*.55,-50,50);}
-    ST.lastHand={x:mx,y:my,two:true};
-  } else {
-    hc1.style.display='block';hc1.style.left=ST.sx+'px';hc1.style.top=ST.sy+'px';hc2.style.display='none';
-    if(ST.lastHand){ST.hRy=clamp(ST.hRy+(ST.sx-ST.lastHand.x)*.6,-80,80);ST.hRx=clamp(ST.hRx-(ST.sy-ST.lastHand.y)*.6,-50,50);}
-    ST.lastHand={x:ST.sx,y:ST.sy,two:false};
-  }
-  applyHolo(ST.hRx,ST.hRy);
-  htCtx.clearRect(0,0,holoHtCanvas.width,holoHtCanvas.height);
-  ST.hands.forEach((h,i)=>drawSkeleton(htCtx,h,lm=>lm.x*innerWidth,lm=>lm.y*innerHeight,i===0?'0,245,196':'124,92,255',i===0?'52,211,153':'167,139,250'));
-}
-
-// SKELETON
-const CONN=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
-const TIPS=[4,8,12,16,20];
-function drawSkeleton(ctx,hand,toX,toY,col1,col2){
-  ctx.save();ctx.lineWidth=1.8;
-  CONN.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(toX(hand[a]),toY(hand[a]));ctx.lineTo(toX(hand[b]),toY(hand[b]));ctx.strokeStyle='rgba('+col1+',.55)';ctx.stroke();});
-  hand.forEach((lm,i)=>{const isTip=TIPS.includes(i);ctx.beginPath();ctx.arc(toX(lm),toY(lm),isTip?7:3.5,0,Math.PI*2);ctx.fillStyle=isTip?'rgba('+col2+',.95)':'rgba('+col1+',.8)';ctx.fill();if(isTip){ctx.strokeStyle='rgba('+col1+',.4)';ctx.lineWidth=1.5;ctx.stroke();}});
-  ctx.restore();
-}
-function drawOverlay(){
-  oCtx.clearRect(0,0,overlayCanvas.width,overlayCanvas.height);
-  if(ST.mode!=='camera') return;
-  ST.hands.forEach((h,i)=>drawSkeleton(oCtx,h,lm=>lm.x*innerWidth,lm=>lm.y*innerHeight,i===0?'0,245,196':'124,92,255',i===0?'52,211,153':'167,139,250'));
-}
-
-// UTILS
-function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
-
-document.getElementById('restartBtn').onclick=()=>{
-  if(holoParRAF) cancelAnimationFrame(holoParRAF);
-  if(holoIdleRAF) cancelAnimationFrame(holoIdleRAF);
-  if(ST.cdRAF) cancelAnimationFrame(ST.cdRAF);
-  Object.assign(ST,{mode:'camera',hands:[],photoUrl:null,lastHand:null,handActive:false,phase:'idle',cdRAF:null,trailPts:[],sx:0,sy:0,s2x:0,s2y:0,pinchOn:false,pOnF:0,pOffF:0,selPiece:null,dox:0,doy:0});
-  prevPinch=false;
-  holoWrap.style.transform='';showScreen('cameraHud');
-  hc1.style.display='none';hc2.style.display='none';
-  cdRing.style.display='none';cdArc.style.strokeDashoffset=578.1;cdN.textContent='5';
-  handIndicator.classList.remove('hidden');corners.forEach(c=>c.classList.remove('active'));
-  setHandUI(false);hudBadge.textContent='Tampilkan tangan ke kamera';hudBadge.className='';
-  tCtx.clearRect(0,0,trailCanvas.width,trailCanvas.height);cancelHint.classList.remove('show');
-};
-
-initCamera();
-</script>
-</body>
-</html>
