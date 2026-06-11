@@ -178,34 +178,38 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
 /* Nota / Receipt styles */
 #nota-overlay{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:16px}
 #nota-overlay.open{display:flex}
-.nota-wrapper{background:#fff;width:100%;max-width:380px;border-radius:4px;padding:24px 28px;box-shadow:0 20px 60px rgba(0,0,0,0.5);position:relative;max-height:90vh;overflow-y:auto;color:#000}
-.nota-header{display:flex;align-items:center;gap:12px;margin-bottom:6px}
-.nota-logo{width:56px;height:56px;border-radius:6px;background:linear-gradient(135deg,#1d4ed8,#0ea5e9);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.nota-store-name{font-size:16px;font-weight:800;color:#111}
-.nota-store-addr{font-size:11px;color:#555;margin-top:2px;line-height:1.4}
-.nota-divider{border:none;border-top:1px solid #ccc;margin:10px 0}
-.nota-divider-dashed{border:none;border-top:1px dashed #ccc;margin:10px 0}
-.nota-date{font-size:12px;color:#333;margin-bottom:6px}
-.nota-customer{font-size:13px;font-weight:600;color:#111;margin-bottom:2px}
-.nota-customer-addr{font-size:12px;color:#555}
-.nota-items{margin:8px 0}
-.nota-item-name{font-size:13px;font-weight:600;color:#111;margin-bottom:4px}
-.nota-item-row{display:flex;justify-content:space-between;font-size:12px;color:#333;padding:2px 0 2px 12px}
-.nota-totals{margin-top:4px}
-.nota-total-row{display:flex;justify-content:space-between;font-size:12px;color:#333;padding:2px 0}
-.nota-grand-total{display:flex;justify-content:space-between;font-size:15px;font-weight:800;color:#111;padding:4px 0;border-top:1px solid #333}
-.nota-pay-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
-.nota-printed{text-align:center;font-size:10px;color:#999;margin:6px 0}
+.nota-wrapper{background:#fff;width:100%;max-width:360px;border-radius:4px;padding:20px 22px 16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);position:relative;max-height:90vh;overflow-y:auto;color:#000;font-family:'Courier New',Courier,monospace}
+.nota-header{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.nota-logo{width:52px;height:52px;border-radius:6px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#f1f5f9}
+.nota-logo img{width:100%;height:100%;object-fit:cover;border-radius:6px}
+.nota-store-name{font-size:14px;font-weight:800;color:#111;font-family:'Arial',sans-serif;letter-spacing:0.3px}
+.nota-store-addr{font-size:10px;color:#555;margin-top:1px;line-height:1.4;font-family:'Arial',sans-serif}
+.nota-divider{border:none;border-top:1px solid #bbb;margin:7px 0}
+.nota-divider-dashed{border:none;border-top:1px dashed #bbb;margin:7px 0}
+.nota-date{font-size:11px;color:#333;margin-bottom:3px}
+.nota-customer{font-size:12px;font-weight:700;color:#111;margin-bottom:1px}
+.nota-customer-addr{font-size:11px;color:#444}
+.nota-items{margin:4px 0}
+.nota-item-name{font-size:12px;font-weight:700;color:#111;margin-bottom:1px}
+.nota-item-row{display:flex;justify-content:space-between;font-size:11px;color:#333;padding:1px 0 1px 10px}
+.nota-totals{margin-top:2px}
+.nota-total-row{display:flex;justify-content:space-between;font-size:11px;color:#333;padding:1px 0}
+.nota-grand-total{display:flex;justify-content:space-between;font-size:13px;font-weight:800;color:#111;padding:4px 0;border-top:2px solid #222}
+.nota-pay-row{display:flex;justify-content:space-between;font-size:11px;padding:1px 0;color:#333}
+.nota-printed{text-align:center;font-size:10px;color:#aaa;margin:4px 0}
 .nota-lunas{display:none}
-.nota-footer{text-align:center;font-size:11px;color:#555;margin-top:10px;line-height:1.6}
-.nota-qty-info{font-size:11px;color:#555}
-.nota-actions{display:flex;gap:10px;margin-top:16px}
+.nota-footer{text-align:center;font-size:10px;color:#555;margin-top:8px;line-height:1.7;font-family:'Arial',sans-serif}
+.nota-qty-info{font-size:10px;color:#777}
+.nota-actions{display:flex;gap:10px;margin-top:14px}
 .nota-print-btn{flex:1;padding:10px;border-radius:8px;background:#111;color:#fff;border:none;cursor:pointer;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit}
 .nota-close-btn{flex:1;padding:10px;border-radius:8px;background:#f1f5f9;color:#374151;border:none;cursor:pointer;font-weight:600;font-size:14px;font-family:inherit}
 @media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body > *:not(#nota-overlay){display:none!important}
+  #nota-overlay{display:flex!important;position:fixed!important;inset:0!important;background:white!important;padding:0!important;align-items:flex-start!important;justify-content:center!important}
+  .nota-wrapper{box-shadow:none!important;border-radius:0!important;max-height:none!important;overflow:visible!important;padding:12px 16px!important;max-width:72mm!important;font-size:11px!important}
   .nota-actions{display:none!important}
-  .nota-wrapper{box-shadow:none;border-radius:0}
-  #nota-overlay{display:flex!important;background:white;position:static;padding:0}
+  @page{size:80mm auto;margin:4mm 3mm}
 }
 
 /* Floating cart button (desktop sidebar) */
@@ -802,40 +806,42 @@ function showNota(data) {
   const dueStr = new Date(dueTs).toLocaleDateString("id-ID",{day:"2-digit",month:"2-digit",year:"numeric"});
 
   const itemRows = items.map(c=>`
-    <div class="nota-item-name">${c.itemName}</div>
-    <div class="nota-item-row"><span>${c.qty} unit @ Rp ${fmtRp(c.pricePerDay)} × ${days} hari</span><span>Rp ${fmtRp(c.qty*c.pricePerDay*days)}</span></div>
-  `).join('<div style="height:4px"></div>');
+    <div class="nota-item-name">${c.itemName} <span style="color:#666;font-weight:400;font-size:10px">(${c.color})</span></div>
+    <div class="nota-item-row"><span>${c.qty}x Rp ${fmtRp(c.pricePerDay)} × ${days}hr</span><span>Rp ${fmtRp(c.qty*c.pricePerDay*days)}</span></div>
+  `).join('');
 
   document.getElementById("nota-content").innerHTML = `
     <div class="nota-header">
       <div class="nota-logo">
-        <svg width="28" height="28" fill="none" stroke="white" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16"/></svg>
+        <img src="https://i.imgur.com/uO0W2B4.jpeg" alt="TrekOut" style="width:100%;height:100%;object-fit:cover;border-radius:6px" onerror="this.parentElement.style.background='linear-gradient(135deg,#1d4ed8,#0ea5e9)';this.style.display='none'"/>
       </div>
       <div>
-        <div class="nota-store-name">TrekOut Adventure</div>
+        <div class="nota-store-name">TREK OUT ADVENTURE</div>
         <div class="nota-store-addr">Jln. Raya Cisurupan, Dekat SPBU<br>Cisurupan - Garut</div>
       </div>
     </div>
     <hr class="nota-divider"/>
-    <div class="nota-date">${nowStr}</div>
-    <div class="nota-customer">${name}</div>
-    <div class="nota-customer-addr">${address}</div>
-    <div class="nota-customer-addr" style="margin-top:2px;color:#777">Sewa ${days} hari — Kembali: ${dueStr}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
+      <div>
+        <div class="nota-customer">${name}</div>
+        <div class="nota-customer-addr">${address}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="nota-date">${nowStr}</div>
+        <div class="nota-customer-addr">Kembali: ${dueStr}</div>
+      </div>
+    </div>
+    <div class="nota-customer-addr" style="margin-top:1px">Sewa: <strong>${days} hari</strong></div>
     <hr class="nota-divider"/>
     <div class="nota-items">${itemRows}</div>
-    <div class="nota-printed">[ Printed by e-Nota ]</div>
     <hr class="nota-divider-dashed"/>
     <div class="nota-totals">
-      <div class="nota-total-row"><span>Subtotal</span><span>Rp ${fmtRp(subtotal)}</span></div>
-      ${discount>0?`<div class="nota-total-row" style="color:#e67e22"><span>Diskon</span><span>− Rp ${fmtRp(discount)}</span></div>`:""}
+      <div class="nota-total-row"><span>Subtotal (${totalQty} unit)</span><span>Rp ${fmtRp(subtotal)}</span></div>
+      ${discount>0?`<div class="nota-total-row" style="color:#c0392b"><span>Diskon</span><span>- Rp ${fmtRp(discount)}</span></div>`:""}
     </div>
+    <div class="nota-grand-total" style="margin-top:3px"><span>TOTAL</span><span>Rp ${fmtRp(total)}</span></div>
     <hr class="nota-divider"/>
-    <div class="nota-grand-total"><span>TOTAL</span><span>Rp ${fmtRp(total)}</span></div>
-    <div class="nota-pay-row"><span>BAYAR</span><span>Rp ${fmtRp(total)}</span></div>
-    <div class="nota-pay-row"><span>KEMBALI</span><span>0</span></div>
-    <div style="margin-top:4px"><span class="nota-qty-info">Total Qty: ${totalQty}</span></div>
-    <hr class="nota-divider"/>
-    <div class="nota-footer">*** Terimakasih ***<br>Gunakan Alat dengan Bijak<br>dan selalu bertanggung jawab atas barang sewaan anda</div>
+    <div class="nota-footer">★ Terimakasih ★<br>Gunakan alat dengan bijak &amp; bertanggung jawab</div>
   `;
   document.getElementById("nota-overlay").classList.add("open");
 }
