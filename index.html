@@ -804,6 +804,45 @@ input[type=number]::-webkit-inner-spin-button{opacity:1}
   </div>
 </div>
 
+<!-- Modal: Reset Riwayat -->
+<div id="modal-reset-history" class="modal-overlay" onclick="closeModal('modal-reset-history')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div style="text-align:center;padding:8px 0 16px">
+      <div class="delete-icon-wrap"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></div>
+      <div class="modal-title" style="margin-bottom:6px">Reset Riwayat Penyewaan</div>
+      <p style="color:#64748B;font-size:13px;line-height:1.6">Untuk melanjutkan, masukkan kode akses terlebih dahulu.</p>
+    </div>
+    <div class="field">
+      <label class="field-label">Kode Akses</label>
+      <input type="text" id="reset-history-code" class="field-input" placeholder="Masukkan kode akses..."
+        oninput="onResetCodeInput()" autocomplete="off" style="text-transform:uppercase;letter-spacing:2px;font-weight:700;font-size:16px;text-align:center"/>
+    </div>
+    <div id="reset-history-code-error" class="form-error" style="display:none"></div>
+    <div id="reset-history-confirm-section" style="display:none;margin-top:4px">
+      <div style="background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;text-align:center">
+        <div style="color:#F87171;font-size:13px;font-weight:600">⚠ Semua riwayat penyewaan akan dihapus permanen!</div>
+        <div style="color:#64748B;font-size:12px;margin-top:4px">Tindakan ini tidak dapat dibatalkan.</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-cancel" onclick="closeModal('modal-reset-history')">Batal</button>
+        <button class="btn-confirm-del" id="btn-confirm-reset-history" onclick="executeResetHistory()" style="display:flex;align-items:center;justify-content:center;gap:6px">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          Ya, Reset Semua
+        </button>
+      </div>
+    </div>
+    <div id="reset-history-btn-check" style="margin-top:4px">
+      <div style="display:flex;gap:10px">
+        <button class="btn-cancel" onclick="closeModal('modal-reset-history')">Batal</button>
+        <button class="btn-primary" onclick="checkResetCode()" style="flex:1;padding:10px;display:flex;align-items:center;justify-content:center;gap:6px">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Verifikasi Kode
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="db-status" class="connecting"><div class="status-dot"></div><span id="db-status-text">Menghubungkan...</span></div>
 
 <script type="module">
@@ -2053,6 +2092,61 @@ window.executeDelete=async function(){
     }
     closeModal("modal-delete");
   }catch(e){alert("Gagal menghapus: "+e.message);}
+};
+
+// ── Reset History ──────────────────────────────────────────────────
+const RESET_HISTORY_CODE = "TREKOUTADV";
+
+window.openResetHistoryModal = function() {
+  document.getElementById("reset-history-code").value = "";
+  showError("reset-history-code-error", "");
+  document.getElementById("reset-history-confirm-section").style.display = "none";
+  document.getElementById("reset-history-btn-check").style.display = "block";
+  openModal("modal-reset-history");
+  setTimeout(() => document.getElementById("reset-history-code").focus(), 100);
+};
+
+window.onResetCodeInput = function() {
+  // Auto uppercase
+  const el = document.getElementById("reset-history-code");
+  el.value = el.value.toUpperCase();
+  showError("reset-history-code-error", "");
+};
+
+window.checkResetCode = function() {
+  const code = document.getElementById("reset-history-code").value.trim();
+  if(!code) { showError("reset-history-code-error", "Kode akses tidak boleh kosong."); return; }
+  if(code !== RESET_HISTORY_CODE) {
+    showError("reset-history-code-error", "Kode akses salah! Silakan coba lagi.");
+    document.getElementById("reset-history-code").value = "";
+    document.getElementById("reset-history-code").focus();
+    return;
+  }
+  // Kode benar — tampilkan tombol konfirmasi
+  showError("reset-history-code-error", "");
+  document.getElementById("reset-history-btn-check").style.display = "none";
+  document.getElementById("reset-history-confirm-section").style.display = "block";
+};
+
+window.executeResetHistory = async function() {
+  const btn = document.getElementById("btn-confirm-reset-history");
+  btn.disabled = true;
+  btn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="animation:spin 0.7s linear infinite"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Menghapus...`;
+  try {
+    await remove(ref(db, "history"));
+    closeModal("modal-reset-history");
+    // Success toast
+    const toast = document.createElement("div");
+    toast.style.cssText = "position:fixed;bottom:70px;right:16px;z-index:9999;background:#1a2e3a;border:1px solid rgba(248,113,113,0.4);border-radius:12px;padding:14px 18px;color:#F87171;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.4);max-width:280px;line-height:1.5;animation:toastSlide 0.35s cubic-bezier(0.22,1,0.36,1) forwards";
+    toast.innerHTML = `🗑️ Riwayat berhasil direset!<br><span style="color:#94A3B8;font-weight:400">Semua data riwayat telah dihapus.</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity="0"; toast.style.transition="opacity 0.4s"; setTimeout(() => toast.remove(), 400); }, 3000);
+  } catch(e) {
+    alert("Gagal reset riwayat: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg> Ya, Reset Semua`;
+  }
 };
 
 // ── Color chips ────────────────────────────────────────────────────
